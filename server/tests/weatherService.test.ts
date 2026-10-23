@@ -1,0 +1,25 @@
+import { describe, expect, it } from 'vitest';
+import { WeatherService } from '../src/services/weatherService.js';
+import { createFakeProvider } from './fakeProvider.js';
+
+describe('WeatherService', () => {
+  it('caches forecasts for nearby coordinates', async () => {
+    const provider = createFakeProvider();
+    const service = new WeatherService(provider);
+
+    await service.getForecast(52.2297, 21.0122);
+    await service.getForecast(52.2301, 21.0118);
+
+    expect(provider.getForecast).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats location queries case-insensitively for caching', async () => {
+    const provider = createFakeProvider();
+    const service = new WeatherService(provider);
+
+    await service.searchLocations('Warsaw');
+    await service.searchLocations('  warsaw ');
+
+    expect(provider.searchLocations).toHaveBeenCalledTimes(1);
+  });
+});

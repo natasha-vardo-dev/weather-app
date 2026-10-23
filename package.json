@@ -1,0 +1,21 @@
+{
+  "name": "weather-app",
+  "private": true,
+  "workspaces": ["packages/*", "server", "client"],
+  "scripts": {
+    "build:shared": "npm run build -w @weather/shared",
+    "predev": "npm run build:shared",
+    "dev": "concurrently -n shared,server,client -c gray,blue,magenta \"npm run dev -w @weather/shared\" \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build:shared && npm run build -w server && npm run build -w client",
+    "pretypecheck": "npm run build:shared",
+    "typecheck": "npm run typecheck -w @weather/shared && npm run typecheck -w server && npm run typecheck -w client",
+    "pretest": "npm run build:shared",
+    "test": "npm test -w @weather/shared && npm test -w server && npm test -w client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

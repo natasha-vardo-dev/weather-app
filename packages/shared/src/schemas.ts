@@ -1,0 +1,32 @@
+import { z } from 'zod';
+import {
+  FORECAST_DEFAULT_DAYS,
+  FORECAST_MAX_DAYS,
+  SEARCH_DEFAULT_LIMIT,
+  SEARCH_MAX_LENGTH,
+  SEARCH_MAX_LIMIT,
+  SEARCH_MIN_LENGTH,
+} from './constants.js';
+import { LATITUDE_RANGE, LONGITUDE_RANGE } from './coordinates.js';
+
+export const locationsQuerySchema = z.object({
+  q: z
+    .string()
+    .trim()
+    .min(SEARCH_MIN_LENGTH, `Type at least ${SEARCH_MIN_LENGTH} characters to search.`)
+    .max(SEARCH_MAX_LENGTH),
+  limit: z.coerce.number().int().min(1).max(SEARCH_MAX_LIMIT).default(SEARCH_DEFAULT_LIMIT),
+});
+
+export const forecastQuerySchema = z.object({
+  lat: z.coerce.number().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
+  lon: z.coerce.number().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
+  days: z.coerce.number().int().min(1).max(FORECAST_MAX_DAYS).default(FORECAST_DEFAULT_DAYS),
+});
+
+/** Parsed (output) types, used by the server after validation. */
+export type LocationsQuery = z.infer<typeof locationsQuerySchema>;
+export type ForecastQuery = z.infer<typeof forecastQuerySchema>;
+
+/** Re-exported so the server checks errors against the same zod instance the schemas use. */
+export { ZodError } from 'zod';
