@@ -37,6 +37,7 @@ SPA with client-side routing (React Router):
 - anything else — not found
 
 Pages live in `pages/`, reusable UI in `components/`.
+Weather icons are a small hand-drawn set of filled two-colour SVGs (`WeatherIcon.tsx`). Icon libraries such as `lucide-react` were tried, but they are outline-only, and filling them breaks the rain, snow and storm icons; ten icons do not justify a dependency. `shared` only names the icon kind, so a React Native app can map the same kinds to its own images.
 Because the browser doesn't treat SPA navigation as a new page, the app updates `document.title` itself and moves focus to the place heading for screen reader and keyboard users.
 Data fetching lives in hooks (`useLocationSearch`, `useForecast`) with debouncing and request cancellation.
 
@@ -50,7 +51,7 @@ Data fetching lives in hooks (`useLocationSearch`, `useForecast`) with debouncin
 
 `packages/shared` (`@weather/shared`) is used by the server and the web client, and is ready for a future mobile app.
 
-Included: API types, error codes and error body shape, Zod schemas for request parameters, limits and defaults, weather helpers (`describeWeather`, `rangePosition`, `formatDay`, `formatHour`, `compareWithYesterday`) and an environment-neutral API client created with `createApiClient({ baseUrl })`.
+Included: API types, error codes and error body shape, Zod schemas for request parameters, limits and defaults, weather helpers (`describeWeather`, which returns a label and an icon kind such as `partly-cloudy`, `rangePosition`, `formatDay`, `formatHour`, `compareWithYesterday`) and an environment-neutral API client created with `createApiClient({ baseUrl })`.
 
 Excluded on purpose: the `WeatherProvider` interface, Open-Meteo response types, cache and services (server internals), React components, hooks and CSS (client-specific), environment configuration.
 

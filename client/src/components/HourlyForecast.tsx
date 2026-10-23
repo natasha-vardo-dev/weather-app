@@ -1,4 +1,5 @@
 import { describeWeather, formatHour, type HourlyForecast as Hour } from '@weather/shared';
+import { WeatherIcon } from './WeatherIcon';
 
 interface Props {
   hours: Hour[];
@@ -22,7 +23,7 @@ export function HourlyForecast({ hours }: Props) {
             hour.precipitationProbability !== null && hour.precipitationProbability >= 30
               ? hour.precipitationProbability
               : null;
-          const { label } = describeWeather(hour.weatherCode);
+          const { label, icon } = describeWeather(hour.weatherCode);
           return (
             <li key={hour.time} className="hour" title={label}>
               {/* Screen readers get one sentence instead of three loose numbers. */}
@@ -33,11 +34,9 @@ export function HourlyForecast({ hours }: Props) {
               <span className="hour__time" aria-hidden="true">
                 {name}
               </span>
+              <WeatherIcon icon={icon} isDay={hour.isDay} />
               <span className="hour__temp" aria-hidden="true">
                 {temperature}°
-              </span>
-              <span className="hour__rain" aria-hidden="true">
-                {rain !== null ? `${rain}%` : ''}
               </span>
             </li>
           );

@@ -1,3 +1,4 @@
+import { FORECAST_DEFAULT_DAYS } from '@weather/shared';
 import type { Forecast, Location, WeatherProvider } from '../providers/types.js';
 import { TtlCache } from './cache.js';
 
@@ -24,7 +25,7 @@ export class WeatherService {
     return locations;
   }
 
-  async getForecast(latitude: number, longitude: number, days = 7): Promise<Forecast> {
+  async getForecast(latitude: number, longitude: number, days = FORECAST_DEFAULT_DAYS): Promise<Forecast> {
     // ~1 km precision: nearby requests share one cache entry.
     const key = `${latitude.toFixed(2)}:${longitude.toFixed(2)}:${days}`;
     const cached = this.forecastCache.get(key);

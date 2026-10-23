@@ -9,8 +9,11 @@ import {
 
 describe('describeWeather', () => {
   it('maps WMO codes to readable labels', () => {
-    expect(describeWeather(0)).toEqual({ label: 'Clear sky', sky: 'clear' });
-    expect(describeWeather(63).sky).toBe('rain');
+    expect(describeWeather(0)).toEqual({ label: 'Clear sky', icon: 'clear' });
+    expect(describeWeather(2).icon).toBe('partly-cloudy');
+    expect(describeWeather(53).icon).toBe('drizzle');
+    expect(describeWeather(81).icon).toBe('rain');
+    expect(describeWeather(86).icon).toBe('snow');
     expect(describeWeather(95).label).toBe('Thunderstorm');
   });
 
