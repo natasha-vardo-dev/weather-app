@@ -33,6 +33,7 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     feelsLike: 'Odczuwalna',
     humidity: 'Wilgotność',
     wind: 'Wiatr',
+    airQuality: 'Jakość powietrza',
   },
   hourly: {
     title: (n) =>
@@ -64,6 +65,27 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     'snow-showers': 'Przelotny śnieg',
     thunderstorm: 'Burza',
     unknown: 'Nieznane',
+  },
+  airQualityLevels: {
+    good: 'Dobra',
+    fair: 'Dostateczna',
+    moderate: 'Umiarkowana',
+    poor: 'Zła',
+    'very-poor': 'Bardzo zła',
+    'extremely-poor': 'Skrajnie zła',
+    'unhealthy-sensitive': 'Niezdrowa dla wrażliwych',
+    unhealthy: 'Niezdrowa',
+    'very-unhealthy': 'Bardzo niezdrowa',
+    hazardous: 'Niebezpieczna',
+  },
+  airQualityScales: {
+    european: 'Europejski indeks jakości powietrza',
+    us: 'Amerykański indeks jakości powietrza (EPA)',
+  },
+  pollutants: {
+    title: 'Zanieczyszczenia',
+    ozone: 'Ozon',
+    nitrogenDioxide: 'Dwutlenek azotu',
   },
   errors: {
     INVALID_REQUEST: 'Nieprawidłowe zapytanie. Sprawdź adres i spróbuj ponownie.',

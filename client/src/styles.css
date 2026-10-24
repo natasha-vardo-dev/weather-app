@@ -218,6 +218,63 @@ body {
 .now__details dt { font-size: 0.85rem; color: var(--ink-soft); }
 .now__details dd { margin: 0; font-size: 1.1rem; font-weight: 500; }
 
+/* Air quality: the value is a button that shows the pollutants below */
+.aqi {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.4rem;
+}
+button.aqi { cursor: pointer; }
+.aqi:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+
+.aqi__more {
+  fill: var(--ink-soft);
+  padding: 1px;
+  border-radius: 0.3rem;
+}
+.aqi[aria-expanded='true'] .aqi__more { fill: var(--ink); background: var(--line); }
+
+/*
+ * Level colours follow each index's official palette, lightened where the darkest bands
+ * would vanish on the blue background. The level is also written out, so colour is never
+ * the only signal; the light ring keeps the dot visible on any background.
+ */
+.aqi__dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.6);
+  background: var(--ink-soft);
+}
+.aqi__dot[data-scale='european'][data-level='good'] { background: #50f0e6; }
+.aqi__dot[data-scale='european'][data-level='fair'] { background: #50ccaa; }
+.aqi__dot[data-scale='european'][data-level='moderate'] { background: #f0e641; }
+.aqi__dot[data-scale='european'][data-level='poor'] { background: #ff5050; }
+.aqi__dot[data-scale='european'][data-level='very-poor'] { background: #d1306e; }
+.aqi__dot[data-scale='european'][data-level='extremely-poor'] { background: #a855d6; }
+.aqi__dot[data-scale='us'][data-level='good'] { background: #00e400; }
+.aqi__dot[data-scale='us'][data-level='moderate'] { background: #ffff00; }
+.aqi__dot[data-scale='us'][data-level='unhealthy-sensitive'] { background: #ff7e00; }
+.aqi__dot[data-scale='us'][data-level='unhealthy'] { background: #ff3b3b; }
+.aqi__dot[data-scale='us'][data-level='very-unhealthy'] { background: #a95fd6; }
+.aqi__dot[data-scale='us'][data-level='hazardous'] { background: #c0304e; }
+
+.pollutants {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem 1rem;
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
+.pollutants[hidden] { display: none; }
+.pollutants dt { font-size: 0.85rem; color: var(--ink-soft); }
+.pollutants dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; }
+.pollutants__unit { font-size: 0.8rem; font-weight: 400; color: var(--ink-soft); }
+
 /* Hourly strip */
 /* Grid items default to min-width: auto, so without this the strip widens the page instead of scrolling. */
 .hours { min-width: 0; }
@@ -325,6 +382,7 @@ body {
     row-gap: 0.25rem;
   }
   .day__temps { grid-template-columns: 2rem 2rem; }
+  .pollutants { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .day__bar { display: none; }
 }
 

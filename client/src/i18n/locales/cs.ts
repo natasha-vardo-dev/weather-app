@@ -33,6 +33,7 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     feelsLike: 'Pocitově',
     humidity: 'Vlhkost',
     wind: 'Vítr',
+    airQuality: 'Kvalita ovzduší',
   },
   hourly: {
     title: (n) =>
@@ -65,6 +66,27 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     'snow-showers': 'Sněhové přeháňky',
     thunderstorm: 'Bouřka',
     unknown: 'Neznámé',
+  },
+  airQualityLevels: {
+    good: 'Dobrá',
+    fair: 'Přijatelná',
+    moderate: 'Mírná',
+    poor: 'Špatná',
+    'very-poor': 'Velmi špatná',
+    'extremely-poor': 'Extrémně špatná',
+    'unhealthy-sensitive': 'Nezdravá pro citlivé skupiny',
+    unhealthy: 'Nezdravá',
+    'very-unhealthy': 'Velmi nezdravá',
+    hazardous: 'Nebezpečná',
+  },
+  airQualityScales: {
+    european: 'Evropský index kvality ovzduší',
+    us: 'Americký index kvality ovzduší (EPA)',
+  },
+  pollutants: {
+    title: 'Znečišťující látky',
+    ozone: 'Ozon',
+    nitrogenDioxide: 'Oxid dusičitý',
   },
   errors: {
     INVALID_REQUEST: 'Neplatný požadavek. Zkontrolujte adresu a zkuste to znovu.',

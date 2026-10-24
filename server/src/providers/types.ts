@@ -1,6 +1,6 @@
-import type { Forecast, Location } from '@weather/shared';
+import type { AirQuality, Forecast, Location } from '@weather/shared';
 
-export type { CurrentWeather, DailyForecast, Forecast, Location } from '@weather/shared';
+export type { AirQuality, CurrentWeather, DailyForecast, Forecast, Location } from '@weather/shared';
 
 /**
  * Any weather data source must implement this interface.
@@ -10,4 +10,5 @@ export interface WeatherProvider {
   /** `language`: ISO 639-1 code for place and country names. */
   searchLocations(query: string, limit: number, language: string): Promise<Location[]>;
   getForecast(latitude: number, longitude: number, days: number): Promise<Forecast>;
+  getAirQuality(latitude: number, longitude: number): Promise<AirQuality>;
 }

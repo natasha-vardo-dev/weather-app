@@ -1,4 +1,4 @@
-import type { ErrorCode, WeatherCondition } from '@weather/shared';
+import type { AirQualityLevel, AirQualitySummary, ErrorCode, WeatherCondition } from '@weather/shared';
 import type { Plural } from './plural';
 
 /**
@@ -30,6 +30,7 @@ export interface Messages {
     feelsLike: string;
     humidity: string;
     wind: string;
+    airQuality: string;
   };
   hourly: { title: (n: number) => string; now: string; rainChance: (percent: string) => string };
   daily: {
@@ -39,6 +40,11 @@ export interface Messages {
     rain: (percent: string) => string;
   };
   conditions: Record<WeatherCondition, string>;
+  airQualityLevels: Record<AirQualityLevel, string>;
+  /** Which index the value is on; shown as a tooltip. */
+  airQualityScales: Record<AirQualitySummary['scale'], string>;
+  /** Names spoken by screen readers; the screen shows formulas (O₃, NO₂). */
+  pollutants: { title: string; ozone: string; nitrogenDioxide: string };
   errors: Record<ErrorCode, string>;
 }
 

@@ -51,6 +51,23 @@ export interface Forecast {
   daily: DailyForecast[];
 }
 
+/** Current air quality. Either index can be missing where the provider has no data. */
+export interface AirQuality {
+  /** Local time at the place, "YYYY-MM-DDTHH:mm". */
+  time: string;
+  /** IANA timezone of the place, used to pick the index people there know. */
+  timezone: string;
+  europeanAqi: number | null;
+  usAqi: number | null;
+  /** Concentrations in µg/m³. */
+  pollutants: {
+    pm2_5: number | null;
+    pm10: number | null;
+    ozone: number | null;
+    nitrogenDioxide: number | null;
+  };
+}
+
 export interface LocationsResponse {
   locations: Location[];
 }

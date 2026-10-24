@@ -31,6 +31,7 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
     feelsLike: 'מורגש כמו',
     humidity: 'לחות',
     wind: 'רוח',
+    airQuality: 'איכות אוויר',
   },
   hourly: {
     title: (n) => plural(n, { one: 'השעה הקרובה', two: 'השעתיים הקרובות', other: '{n} השעות הקרובות' }),
@@ -56,6 +57,27 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
     'snow-showers': 'ממטרי שלג',
     thunderstorm: 'סופת רעמים',
     unknown: 'לא ידוע',
+  },
+  airQualityLevels: {
+    good: 'טובה',
+    fair: 'סבירה',
+    moderate: 'בינונית',
+    poor: 'גרועה',
+    'very-poor': 'גרועה מאוד',
+    'extremely-poor': 'גרועה ביותר',
+    'unhealthy-sensitive': 'לא בריאה לקבוצות רגישות',
+    unhealthy: 'לא בריאה',
+    'very-unhealthy': 'לא בריאה מאוד',
+    hazardous: 'מסוכנת',
+  },
+  airQualityScales: {
+    european: 'מדד איכות האוויר האירופי',
+    us: 'מדד איכות האוויר האמריקאי (EPA)',
+  },
+  pollutants: {
+    title: 'מזהמים',
+    ozone: 'אוזון',
+    nitrogenDioxide: 'חנקן דו־חמצני',
   },
   errors: {
     INVALID_REQUEST: 'הבקשה אינה תקינה. בדקו את הכתובת ונסו שוב.',

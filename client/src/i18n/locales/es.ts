@@ -31,6 +31,7 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
     feelsLike: 'Sensación térmica',
     humidity: 'Humedad',
     wind: 'Viento',
+    airQuality: 'Calidad del aire',
   },
   hourly: {
     title: (n) => plural(n, { one: 'Próxima hora', other: 'Próximas {n} horas' }),
@@ -56,6 +57,27 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
     'snow-showers': 'Chubascos de nieve',
     thunderstorm: 'Tormenta',
     unknown: 'Desconocido',
+  },
+  airQualityLevels: {
+    good: 'Buena',
+    fair: 'Aceptable',
+    moderate: 'Moderada',
+    poor: 'Mala',
+    'very-poor': 'Muy mala',
+    'extremely-poor': 'Extremadamente mala',
+    'unhealthy-sensitive': 'Dañina para grupos sensibles',
+    unhealthy: 'Dañina',
+    'very-unhealthy': 'Muy dañina',
+    hazardous: 'Peligrosa',
+  },
+  airQualityScales: {
+    european: 'Índice europeo de calidad del aire',
+    us: 'Índice de calidad del aire de EE. UU. (EPA)',
+  },
+  pollutants: {
+    title: 'Contaminantes',
+    ozone: 'Ozono',
+    nitrogenDioxide: 'Dióxido de nitrógeno',
   },
   errors: {
     INVALID_REQUEST: 'La solicitud no es válida. Revisa la dirección e inténtalo de nuevo.',

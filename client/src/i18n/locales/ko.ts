@@ -31,6 +31,7 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
     feelsLike: '체감 온도',
     humidity: '습도',
     wind: '바람',
+    airQuality: '대기질',
   },
   hourly: {
     title: (n) => `앞으로 ${num(n)}시간`,
@@ -56,6 +57,27 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
     'snow-showers': '소낙눈',
     thunderstorm: '뇌우',
     unknown: '알 수 없음',
+  },
+  airQualityLevels: {
+    good: '좋음',
+    fair: '양호',
+    moderate: '보통',
+    poor: '나쁨',
+    'very-poor': '매우 나쁨',
+    'extremely-poor': '극히 나쁨',
+    'unhealthy-sensitive': '민감군에 나쁨',
+    unhealthy: '건강에 나쁨',
+    'very-unhealthy': '건강에 매우 나쁨',
+    hazardous: '위험',
+  },
+  airQualityScales: {
+    european: '유럽 대기질 지수',
+    us: '미국 대기질 지수(EPA)',
+  },
+  pollutants: {
+    title: '오염 물질',
+    ozone: '오존',
+    nitrogenDioxide: '이산화질소',
   },
   errors: {
     INVALID_REQUEST: '요청이 올바르지 않습니다. 주소를 확인하고 다시 시도하세요.',

@@ -1,14 +1,18 @@
 import { compareWithYesterday, describeWeather, type Forecast } from '@weather/shared';
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import type { AirQualityView } from '../hooks/useAirQuality';
 import { useI18n } from '../i18n/I18nProvider';
+import { AirQualityItem, hasPollutants, PollutantsPanel } from './AirQualityDetails';
 
 interface Props {
   name: string;
   country?: string;
   forecast: Forecast;
+  /** Null hides the item: still loading, no data for the place, or the request failed. */
+  airQuality: AirQualityView | null;
 }
 
-export function CurrentWeather({ name, country, forecast }: Props) {
+export function CurrentWeather({ name, country, forecast, airQuality }: Props) {
   const { t, deg, speed, percent } = useI18n();
   const { current, units } = forecast;
   const label = t.conditions[describeWeather(current.weatherCode).condition];
@@ -18,11 +22,15 @@ export function CurrentWeather({ name, country, forecast }: Props) {
       ? compareWithYesterday(today.tempMax, forecast.yesterday.tempMax)
       : null;
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const [pollutantsOpen, setPollutantsOpen] = useState(false);
+  const pollutantsId = useId();
 
   // In an SPA the browser doesn't announce "new page", so move focus to the heading:
   // screen readers read the new city, and keyboard users continue from here.
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
+    // A new city starts with the details folded.
+    setPollutantsOpen(false);
   }, [name]);
 
   return (
@@ -63,7 +71,18 @@ export function CurrentWeather({ name, country, forecast }: Props) {
           <dt>{t.current.wind}</dt>
           <dd>{speed(current.windSpeed, units.windSpeed)}</dd>
         </div>
+        {airQuality && (
+          <AirQualityItem
+            airQuality={airQuality}
+            open={pollutantsOpen}
+            onToggle={() => setPollutantsOpen((open) => !open)}
+            panelId={pollutantsId}
+          />
+        )}
       </dl>
+      {airQuality && hasPollutants(airQuality) && (
+        <PollutantsPanel airQuality={airQuality} open={pollutantsOpen} id={pollutantsId} />
+      )}
     </section>
   );
 }
