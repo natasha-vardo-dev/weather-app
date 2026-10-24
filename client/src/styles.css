@@ -4,6 +4,8 @@
   --surface: rgba(255, 255, 255, 0.15);
   --line: rgba(255, 255, 255, 0.26);
   --cool: #cfe9ff;
+  --rain: #ffffff;
+  --sun: #ffd36b;
   --warm: #f0b25a;
   --danger: #ffdcd8;
   --sky: #3468a0;
@@ -29,6 +31,8 @@
     --surface: rgba(255, 255, 255, 0.06);
     --line: rgba(232, 238, 246, 0.14);
     --cool: #4f86c6;
+    --rain: #7fb0e6;
+    --sun: #f5c451;
     --warm: #e39a35;
     --sky: #1e2a40;
     --danger: #f08a80;
@@ -86,6 +90,21 @@ body {
 
 .page__footer a { color: inherit; }
 
+/* Header: search and language */
+.page__header { display: flex; gap: 0.75rem; align-items: stretch; }
+.page__header > .search { flex: 1; min-width: 0; }
+
+.language select {
+  height: 100%;
+  font: inherit;
+  padding: 0 0.75rem;
+  border: 1px solid var(--field-line);
+  border-radius: 0.75rem;
+  background: var(--field);
+  color: var(--field-ink);
+  cursor: pointer;
+}
+
 /* Search */
 .search { position: relative; }
 
@@ -129,7 +148,7 @@ body {
 .search__option[aria-selected='true'] { background: var(--field-active); }
 
 .search__name { font-weight: 500; }
-.search__meta { color: var(--field-ink-soft); text-align: right; }
+.search__meta { color: var(--field-ink-soft); text-align: end; }
 
 .search__hint { padding: 0.6rem 0.75rem; color: var(--field-ink-soft); }
 .search__hint--error { color: var(--field-danger); }
@@ -239,8 +258,14 @@ body {
 
 .hour__time { font-size: 0.85rem; color: var(--ink-soft); }
 .hour__temp { font-size: 1.1rem; font-weight: 500; }
-/* Kept even when empty so every cell has the same height. */
-.hour__rain { min-height: 1.2em; font-size: 0.8rem; color: var(--cool); }
+
+/* Icons are graphics, so they need 3:1 contrast, not 4.5:1. */
+.weather-icon { flex: none; }
+.wi-cloud, .wi-moon, .wi-flake { fill: var(--ink); }
+.wi-sun circle, .wi-bolt { fill: var(--sun); }
+.wi-sun path { stroke: var(--sun); stroke-width: 2; stroke-linecap: round; }
+.wi-line { stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; }
+.wi-drop { stroke: var(--cool); stroke-width: 1.8; stroke-linecap: round; }
 
 /* Weekly forecast with temperature range bars */
 .week__title {
@@ -254,7 +279,7 @@ body {
 
 .day {
   display: grid;
-  grid-template-columns: 3.5rem 1fr 2.5rem minmax(5rem, 9rem) 2.5rem;
+  grid-template-columns: 3.5rem 1.5rem 1fr auto;
   align-items: center;
   gap: 0.75rem;
   padding: 0.7rem 0;
@@ -264,8 +289,20 @@ body {
 
 .day__name { font-weight: 500; }
 .day__label { color: var(--ink-soft); }
-.day__rain { color: var(--cool); }
-.day__min { text-align: right; color: var(--ink-soft); }
+.day__rain { color: var(--rain); font-weight: 500; }
+.day__min { text-align: end; color: var(--ink-soft); }
+
+/*
+ * A temperature scale reads cold-to-warm left to right in every language, so low,
+ * bar and high form one left-to-right block; the rest of the row mirrors in RTL.
+ */
+.day__temps {
+  direction: ltr;
+  display: grid;
+  grid-template-columns: 2.5rem minmax(5rem, 9rem) 2.5rem;
+  align-items: center;
+  gap: 0.75rem;
+}
 
 .day__bar {
   position: relative;
@@ -284,9 +321,10 @@ body {
 
 @media (max-width: 30rem) {
   .day {
-    grid-template-columns: 3rem 1fr 2rem 2rem;
+    grid-template-columns: 3rem 1.5rem 1fr auto;
     row-gap: 0.25rem;
   }
+  .day__temps { grid-template-columns: 2rem 2rem; }
   .day__bar { display: none; }
 }
 

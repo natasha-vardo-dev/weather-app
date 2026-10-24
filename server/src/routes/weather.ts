@@ -7,8 +7,8 @@ export function weatherRouter(service: WeatherService): Router {
 
   router.get('/locations', async (req, res, next) => {
     try {
-      const { q, limit } = locationsQuerySchema.parse(req.query);
-      const body: LocationsResponse = { locations: await service.searchLocations(q, limit) };
+      const { q, limit, lang } = locationsQuerySchema.parse(req.query);
+      const body: LocationsResponse = { locations: await service.searchLocations(q, limit, lang) };
       res.json(body);
     } catch (err) {
       next(err);

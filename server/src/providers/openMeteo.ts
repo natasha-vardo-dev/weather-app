@@ -55,11 +55,11 @@ export class OpenMeteoProvider implements WeatherProvider {
     private readonly timeoutMs = 5000,
   ) {}
 
-  async searchLocations(query: string, limit: number): Promise<Location[]> {
+  async searchLocations(query: string, limit: number, language: string): Promise<Location[]> {
     const url = new URL(GEOCODING_URL);
     url.searchParams.set('name', query);
     url.searchParams.set('count', String(limit));
-    url.searchParams.set('language', 'en');
+    url.searchParams.set('language', language);
     url.searchParams.set('format', 'json');
 
     const data = await this.request<GeocodingResponse>(url);

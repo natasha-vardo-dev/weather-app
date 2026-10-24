@@ -1,0 +1,67 @@
+import type { MessagesFactory } from '../messages';
+
+export const ko: MessagesFactory = ({ num, deg }) => ({
+  appName: '날씨 예보',
+  language: '언어',
+  dataBy: '날씨 데이터 제공:',
+  home: {
+    title: '가는 곳의 날씨는 어떨까요?',
+    text: (days) => `도시를 검색하면 현재 날씨와 ${num(days)}일 예보를 볼 수 있습니다.`,
+  },
+  notFound: {
+    pageTitle: '찾을 수 없음',
+    title: '아무것도 없습니다',
+    pageMissing: '이 페이지는 존재하지 않습니다.',
+    badLink: '이 링크는 올바른 위치를 가리키지 않습니다.',
+    goHome: '시작 페이지로 이동',
+    orSearch: '또는 위에서 도시를 검색하세요.',
+  },
+  search: {
+    label: '도시 검색',
+    searching: '검색 중…',
+    noResults: (q) => `“${q}”와(과) 일치하는 도시가 없습니다. 철자를 확인하세요.`,
+  },
+  weather: { loading: (place) => `${place} 예보를 불러오는 중…`, tryAgain: '다시 시도' },
+  current: {
+    degrees: (n) => `${num(n)}도`,
+    highLow: (h, l) => `최고 ${deg(h)}, 최저 ${deg(l)}`,
+    warmer: (n) => `어제보다 ${deg(n)} 따뜻함`,
+    cooler: (n) => `어제보다 ${deg(n)} 추움`,
+    same: '어제와 비슷함',
+    feelsLike: '체감 온도',
+    humidity: '습도',
+    wind: '바람',
+  },
+  hourly: {
+    title: (n) => `앞으로 ${num(n)}시간`,
+    now: '지금',
+    rainChance: (pct) => `강수 확률 ${pct}`,
+  },
+  daily: {
+    title: (n) => `앞으로 ${num(n)}일`,
+    today: '오늘',
+    yesterday: '어제',
+    rain: (pct) => `비 ${pct}`,
+  },
+  conditions: {
+    'clear-sky': '맑음',
+    'mostly-clear': '대체로 맑음',
+    'partly-cloudy': '구름 조금',
+    overcast: '흐림',
+    fog: '안개',
+    drizzle: '이슬비',
+    rain: '비',
+    snow: '눈',
+    'rain-showers': '소나기',
+    'snow-showers': '소낙눈',
+    thunderstorm: '뇌우',
+    unknown: '알 수 없음',
+  },
+  errors: {
+    INVALID_REQUEST: '요청이 올바르지 않습니다. 주소를 확인하고 다시 시도하세요.',
+    PROVIDER_ERROR: '날씨 서비스가 응답하지 않습니다. 잠시 후 다시 시도하세요.',
+    NOT_FOUND: '찾은 결과가 없습니다.',
+    INTERNAL: '문제가 발생했습니다. 다시 시도하세요.',
+    NETWORK_ERROR: '서버에 연결할 수 없습니다. 인터넷 연결을 확인하고 다시 시도하세요.',
+  },
+});

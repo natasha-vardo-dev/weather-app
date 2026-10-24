@@ -19,6 +19,12 @@ describe('createApiClient', () => {
       'https://api.test/api/locations?q=S%C3%A3o+Paulo',
       expect.anything(),
     );
+
+    await api.searchLocations('Warsaw', { language: 'pl' });
+    expect(fetchFn).toHaveBeenLastCalledWith(
+      'https://api.test/api/locations?q=Warsaw&lang=pl',
+      expect.anything(),
+    );
   });
 
   it('turns API error bodies into ApiError with the server code', async () => {

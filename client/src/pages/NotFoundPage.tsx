@@ -1,18 +1,21 @@
 import { Link } from 'react-router';
 import { usePageMeta } from '../hooks/usePageMeta';
+import { useI18n } from '../i18n/I18nProvider';
 
 interface Props {
   message?: string;
 }
 
-export function NotFoundPage({ message = "This page doesn't exist." }: Props) {
-  usePageMeta('Not found');
+export function NotFoundPage({ message }: Props) {
+  const { t } = useI18n();
+  usePageMeta(t.notFound.pageTitle);
 
   return (
     <div className="empty">
-      <h1 className="empty__title">Nothing here</h1>
+      <h1 className="empty__title">{t.notFound.title}</h1>
       <p className="empty__text">
-        {message} <Link to="/">Go to the start page</Link> or search for a city above.
+        {message ?? t.notFound.pageMissing} <Link to="/">{t.notFound.goHome}</Link>{' '}
+        {t.notFound.orSearch}
       </p>
     </div>
   );

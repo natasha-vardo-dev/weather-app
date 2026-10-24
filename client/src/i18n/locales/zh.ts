@@ -1,0 +1,68 @@
+import type { MessagesFactory } from '../messages';
+
+/** Simplified Chinese. Traditional (zh-TW, zh-HK) would be a separate file. */
+export const zh: MessagesFactory = ({ num, deg }) => ({
+  appName: '天气预报',
+  language: '语言',
+  dataBy: '天气数据来源：',
+  home: {
+    title: '你要去的地方天气如何？',
+    text: (days) => `搜索城市，查看当前天气和未来${num(days)}天的预报。`,
+  },
+  notFound: {
+    pageTitle: '未找到',
+    title: '这里什么都没有',
+    pageMissing: '此页面不存在。',
+    badLink: '此链接未指向有效的地点。',
+    goHome: '前往首页',
+    orSearch: '或在上方搜索城市。',
+  },
+  search: {
+    label: '搜索城市',
+    searching: '正在搜索…',
+    noResults: (q) => `没有与“${q}”匹配的城市。请检查拼写。`,
+  },
+  weather: { loading: (place) => `正在加载${place}的预报…`, tryAgain: '重试' },
+  current: {
+    degrees: (n) => `${num(n)}度`,
+    highLow: (h, l) => `最高 ${deg(h)}，最低 ${deg(l)}`,
+    warmer: (n) => `比昨天暖和 ${deg(n)}`,
+    cooler: (n) => `比昨天凉 ${deg(n)}`,
+    same: '和昨天差不多',
+    feelsLike: '体感温度',
+    humidity: '湿度',
+    wind: '风',
+  },
+  hourly: {
+    title: (n) => `未来${num(n)}小时`,
+    now: '现在',
+    rainChance: (pct) => `降水概率 ${pct}`,
+  },
+  daily: {
+    title: (n) => `未来${num(n)}天`,
+    today: '今天',
+    yesterday: '昨天',
+    rain: (pct) => `降雨 ${pct}`,
+  },
+  conditions: {
+    'clear-sky': '晴',
+    'mostly-clear': '大部晴朗',
+    'partly-cloudy': '多云',
+    overcast: '阴',
+    fog: '雾',
+    drizzle: '毛毛雨',
+    rain: '雨',
+    snow: '雪',
+    'rain-showers': '阵雨',
+    'snow-showers': '阵雪',
+    thunderstorm: '雷暴',
+    unknown: '未知',
+  },
+  errors: {
+    INVALID_REQUEST: '请求无效。请检查地址后重试。',
+    PROVIDER_ERROR: '天气服务没有响应。请稍后重试。',
+    NOT_FOUND: '未找到任何内容。',
+    INTERNAL: '出了点问题。请重试。',
+    NETWORK_ERROR: '无法连接服务器。请检查网络后重试。',
+  },
+});

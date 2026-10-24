@@ -1,0 +1,68 @@
+import type { MessagesFactory } from '../messages';
+
+export const nl: MessagesFactory = ({ num, deg, plural }) => ({
+  appName: 'Weersverwachting',
+  language: 'Taal',
+  dataBy: 'Weergegevens van',
+  home: {
+    title: 'Wat voor weer is het waar je heen gaat?',
+    text: (days) =>
+      `Zoek een stad om het huidige weer en de verwachting voor ${num(days)} dagen te zien.`,
+  },
+  notFound: {
+    pageTitle: 'Niet gevonden',
+    title: 'Hier is niets',
+    pageMissing: 'Deze pagina bestaat niet.',
+    badLink: 'Deze link verwijst niet naar een geldige plaats.',
+    goHome: 'Naar de startpagina',
+    orSearch: 'of zoek hierboven een stad.',
+  },
+  search: {
+    label: 'Zoek een stad',
+    searching: 'Zoeken…',
+    noResults: (q) => `Geen stad gevonden voor ‘${q}’. Controleer de spelling.`,
+  },
+  weather: { loading: (place) => `Verwachting voor ${place} laden…`, tryAgain: 'Opnieuw proberen' },
+  current: {
+    degrees: (n) => plural(n, { one: '{n} graad', other: '{n} graden' }),
+    highLow: (h, l) => `Max. ${deg(h)}, min. ${deg(l)}`,
+    warmer: (n) => `${deg(n)} warmer dan gisteren`,
+    cooler: (n) => `${deg(n)} kouder dan gisteren`,
+    same: 'Ongeveer hetzelfde als gisteren',
+    feelsLike: 'Gevoelstemperatuur',
+    humidity: 'Luchtvochtigheid',
+    wind: 'Wind',
+  },
+  hourly: {
+    title: (n) => plural(n, { one: 'Komend uur', other: 'Komende {n} uur' }),
+    now: 'Nu',
+    rainChance: (pct) => `${pct} kans op regen`,
+  },
+  daily: {
+    title: (n) => plural(n, { one: 'Komende dag', other: 'Komende {n} dagen' }),
+    today: 'Vandaag',
+    yesterday: 'Gisteren',
+    rain: (pct) => `${pct} regen`,
+  },
+  conditions: {
+    'clear-sky': 'Onbewolkt',
+    'mostly-clear': 'Overwegend helder',
+    'partly-cloudy': 'Half bewolkt',
+    overcast: 'Zwaar bewolkt',
+    fog: 'Mist',
+    drizzle: 'Motregen',
+    rain: 'Regen',
+    snow: 'Sneeuw',
+    'rain-showers': 'Regenbuien',
+    'snow-showers': 'Sneeuwbuien',
+    thunderstorm: 'Onweer',
+    unknown: 'Onbekend',
+  },
+  errors: {
+    INVALID_REQUEST: 'Het verzoek is ongeldig. Controleer het adres en probeer het opnieuw.',
+    PROVIDER_ERROR: 'De weerdienst reageert niet. Probeer het zo opnieuw.',
+    NOT_FOUND: 'Niets gevonden.',
+    INTERNAL: 'Er is iets misgegaan. Probeer het opnieuw.',
+    NETWORK_ERROR: 'Geen verbinding met de server. Controleer je internetverbinding en probeer het opnieuw.',
+  },
+});

@@ -1,0 +1,67 @@
+import type { MessagesFactory } from '../messages';
+
+export const pt: MessagesFactory = ({ num, deg, plural }) => ({
+  appName: 'Previsão do tempo',
+  language: 'Idioma',
+  dataBy: 'Dados meteorológicos de',
+  home: {
+    title: 'Como está o tempo para onde você vai?',
+    text: (days) => `Pesquise uma cidade para ver o tempo atual e a previsão de ${num(days)} dias.`,
+  },
+  notFound: {
+    pageTitle: 'Não encontrado',
+    title: 'Nada aqui',
+    pageMissing: 'Esta página não existe.',
+    badLink: 'Este link não leva a um local válido.',
+    goHome: 'Ir para a página inicial',
+    orSearch: 'ou pesquise uma cidade acima.',
+  },
+  search: {
+    label: 'Pesquisar uma cidade',
+    searching: 'Pesquisando…',
+    noResults: (q) => `Nenhuma cidade corresponde a “${q}”. Verifique a ortografia.`,
+  },
+  weather: { loading: (place) => `Carregando a previsão para ${place}…`, tryAgain: 'Tentar novamente' },
+  current: {
+    degrees: (n) => plural(n, { one: '{n} grau', other: '{n} graus' }),
+    highLow: (h, l) => `Máx. ${deg(h)}, mín. ${deg(l)}`,
+    warmer: (n) => `${deg(n)} mais quente que ontem`,
+    cooler: (n) => `${deg(n)} mais frio que ontem`,
+    same: 'Mais ou menos como ontem',
+    feelsLike: 'Sensação térmica',
+    humidity: 'Umidade',
+    wind: 'Vento',
+  },
+  hourly: {
+    title: (n) => plural(n, { one: 'Próxima hora', other: 'Próximas {n} horas' }),
+    now: 'Agora',
+    rainChance: (pct) => `${pct} de chance de chuva`,
+  },
+  daily: {
+    title: (n) => plural(n, { one: 'Próximo dia', other: 'Próximos {n} dias' }),
+    today: 'Hoje',
+    yesterday: 'Ontem',
+    rain: (pct) => `${pct} de chuva`,
+  },
+  conditions: {
+    'clear-sky': 'Céu limpo',
+    'mostly-clear': 'Predominantemente limpo',
+    'partly-cloudy': 'Parcialmente nublado',
+    overcast: 'Encoberto',
+    fog: 'Nevoeiro',
+    drizzle: 'Garoa',
+    rain: 'Chuva',
+    snow: 'Neve',
+    'rain-showers': 'Pancadas de chuva',
+    'snow-showers': 'Pancadas de neve',
+    thunderstorm: 'Trovoada',
+    unknown: 'Desconhecido',
+  },
+  errors: {
+    INVALID_REQUEST: 'A solicitação não é válida. Verifique o endereço e tente novamente.',
+    PROVIDER_ERROR: 'O serviço meteorológico não está respondendo. Tente novamente em instantes.',
+    NOT_FOUND: 'Nada encontrado.',
+    INTERNAL: 'Algo deu errado. Tente novamente.',
+    NETWORK_ERROR: 'Sem conexão com o servidor. Verifique sua internet e tente novamente.',
+  },
+});

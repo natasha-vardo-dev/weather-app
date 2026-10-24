@@ -1,5 +1,6 @@
 import { compareWithYesterday, describeWeather, type Forecast } from '@weather/shared';
 import { useEffect, useRef } from 'react';
+import { useI18n } from '../i18n/I18nProvider';
 
 interface Props {
   name: string;
@@ -8,8 +9,9 @@ interface Props {
 }
 
 export function CurrentWeather({ name, country, forecast }: Props) {
+  const { t, deg, speed, percent } = useI18n();
   const { current, units } = forecast;
-  const { label } = describeWeather(current.weatherCode);
+  const label = t.conditions[describeWeather(current.weatherCode).condition];
   const today = forecast.daily[0];
   const trend =
     today && forecast.yesterday
@@ -29,39 +31,37 @@ export function CurrentWeather({ name, country, forecast }: Props) {
         {name}
         {country && <span className="now__country">{country}</span>}
       </h1>
-      <p className="now__temp" aria-label={`${Math.round(current.temperature)} degrees`}>
-        {Math.round(current.temperature)}°
+      <p className="now__temp" aria-label={t.current.degrees(Math.round(current.temperature))}>
+        {deg(Math.round(current.temperature))}
       </p>
       <p className="now__label">
         {label}
         {today && (
           <span className="now__hilo">
             {' '}
-            High {Math.round(today.tempMax)}°, low {Math.round(today.tempMin)}°
+            {t.current.highLow(Math.round(today.tempMax), Math.round(today.tempMin))}
           </span>
         )}
       </p>
       {trend && (
         <p className="now__trend">
           {trend.trend === 'same'
-            ? 'About the same as yesterday'
-            : `${trend.difference}° ${trend.trend} than yesterday`}
+            ? t.current.same
+            : t.current[trend.trend](trend.difference)}
         </p>
       )}
       <dl className="now__details">
         <div>
-          <dt>Feels like</dt>
-          <dd>{Math.round(current.apparentTemperature)}°</dd>
+          <dt>{t.current.feelsLike}</dt>
+          <dd>{deg(Math.round(current.apparentTemperature))}</dd>
         </div>
         <div>
-          <dt>Humidity</dt>
-          <dd>{current.humidity}%</dd>
+          <dt>{t.current.humidity}</dt>
+          <dd>{percent(current.humidity)}</dd>
         </div>
         <div>
-          <dt>Wind</dt>
-          <dd>
-            {Math.round(current.windSpeed)} {units.windSpeed}
-          </dd>
+          <dt>{t.current.wind}</dt>
+          <dd>{speed(current.windSpeed, units.windSpeed)}</dd>
         </div>
       </dl>
     </section>

@@ -8,14 +8,17 @@ import {
 } from '../src/weather.js';
 
 describe('describeWeather', () => {
-  it('maps WMO codes to readable labels', () => {
-    expect(describeWeather(0)).toEqual({ label: 'Clear sky', sky: 'clear' });
-    expect(describeWeather(63).sky).toBe('rain');
-    expect(describeWeather(95).label).toBe('Thunderstorm');
+  it('maps WMO codes to condition keys and icons', () => {
+    expect(describeWeather(0)).toEqual({ condition: 'clear-sky', icon: 'clear' });
+    expect(describeWeather(2).icon).toBe('partly-cloudy');
+    expect(describeWeather(53)).toEqual({ condition: 'drizzle', icon: 'drizzle' });
+    expect(describeWeather(81)).toEqual({ condition: 'rain-showers', icon: 'rain' });
+    expect(describeWeather(86).icon).toBe('snow');
+    expect(describeWeather(95).condition).toBe('thunderstorm');
   });
 
   it('falls back for unknown codes', () => {
-    expect(describeWeather(10).label).toBe('Unknown');
+    expect(describeWeather(10).condition).toBe('unknown');
   });
 });
 
@@ -45,10 +48,15 @@ describe('compareWithYesterday', () => {
 });
 
 describe('formatHour', () => {
-  it('labels the first hour as now and shows local clock time for the rest', () => {
+  it('labels the first hour as now', () => {
     expect(formatHour('2026-10-22T16:00', 0)).toBe('Now');
-    expect(formatHour('2026-10-22T17:00', 1)).toBe('17:00');
-    expect(formatHour('2026-10-23T00:00', 8, 'Сейчас')).toBe('00:00');
+    expect(formatHour('2026-10-22T16:00', 0, { nowLabel: 'Сейчас' })).toBe('Сейчас');
+  });
+
+  it('shows the local clock time in the locale format, without a timezone shift', () => {
+    expect(formatHour('2026-10-22T17:00', 1, { locale: 'en-GB' })).toBe('17:00');
+    expect(formatHour('2026-10-23T00:00', 8, { locale: 'en-GB' })).toBe('00:00');
+    expect(formatHour('2026-10-22T17:00', 1, { locale: 'en-US' })).toMatch(/^5:00\sPM$/);
   });
 });
 
@@ -66,5 +74,6 @@ describe('formatDay', () => {
 
   it('formats other days in the given locale', () => {
     expect(formatDay('2026-10-20', '2026-10-19', { locale: 'en-GB' })).toBe('Tue');
+    expect(formatDay('2026-10-24', '2026-10-19', { locale: 'ru' })).toBe('Сб');
   });
 });

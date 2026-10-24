@@ -16,6 +16,12 @@ export const locationsQuerySchema = z.object({
     .min(SEARCH_MIN_LENGTH, `Type at least ${SEARCH_MIN_LENGTH} characters to search.`)
     .max(SEARCH_MAX_LENGTH),
   limit: z.coerce.number().int().min(1).max(SEARCH_MAX_LIMIT).default(SEARCH_DEFAULT_LIMIT),
+  /** ISO 639-1 code for place names. The provider falls back to English for unknown ones. */
+  lang: z
+    .string()
+    .regex(/^[a-z]{2}$/i)
+    .transform((value) => value.toLowerCase())
+    .default('en'),
 });
 
 export const forecastQuerySchema = z.object({

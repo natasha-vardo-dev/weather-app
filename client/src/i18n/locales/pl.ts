@@ -1,0 +1,75 @@
+import type { MessagesFactory } from '../messages';
+
+export const pl: MessagesFactory = ({ deg, plural }) => ({
+  appName: 'Prognoza pogody',
+  language: 'Język',
+  dataBy: 'Dane pogodowe:',
+  home: {
+    title: 'Jaka pogoda czeka cię u celu?',
+    text: (days) =>
+      `Wyszukaj miasto, aby zobaczyć aktualną pogodę i prognozę na ${plural(days, { one: '{n} dzień', other: '{n} dni' })}.`,
+  },
+  notFound: {
+    pageTitle: 'Nie znaleziono',
+    title: 'Nic tu nie ma',
+    pageMissing: 'Ta strona nie istnieje.',
+    badLink: 'Ten link nie prowadzi do prawidłowej lokalizacji.',
+    goHome: 'Przejdź do strony głównej',
+    orSearch: 'albo wyszukaj miasto powyżej.',
+  },
+  search: {
+    label: 'Wyszukaj miasto',
+    searching: 'Szukam…',
+    noResults: (q) => `Żadne miasto nie pasuje do „${q}”. Sprawdź pisownię.`,
+  },
+  weather: { loading: (place) => `Wczytywanie prognozy: ${place}…`, tryAgain: 'Spróbuj ponownie' },
+  current: {
+    degrees: (n) =>
+      plural(n, { one: '{n} stopień', few: '{n} stopnie', many: '{n} stopni', other: '{n} stopnia' }),
+    highLow: (h, l) => `Maks. ${deg(h)}, min. ${deg(l)}`,
+    warmer: (n) => `O ${deg(n)} cieplej niż wczoraj`,
+    cooler: (n) => `O ${deg(n)} zimniej niż wczoraj`,
+    same: 'Mniej więcej jak wczoraj',
+    feelsLike: 'Odczuwalna',
+    humidity: 'Wilgotność',
+    wind: 'Wiatr',
+  },
+  hourly: {
+    title: (n) =>
+      plural(n, {
+        one: 'Najbliższa godzina',
+        few: 'Najbliższe {n} godziny',
+        many: 'Najbliższe {n} godzin',
+        other: 'Najbliższe {n} godziny',
+      }),
+    now: 'Teraz',
+    rainChance: (pct) => `Szansa na deszcz ${pct}`,
+  },
+  daily: {
+    title: (n) => plural(n, { one: 'Najbliższy dzień', other: 'Najbliższe {n} dni' }),
+    today: 'Dzisiaj',
+    yesterday: 'Wczoraj',
+    rain: (pct) => `deszcz ${pct}`,
+  },
+  conditions: {
+    'clear-sky': 'Bezchmurnie',
+    'mostly-clear': 'Przeważnie bezchmurnie',
+    'partly-cloudy': 'Częściowe zachmurzenie',
+    overcast: 'Pochmurno',
+    fog: 'Mgła',
+    drizzle: 'Mżawka',
+    rain: 'Deszcz',
+    snow: 'Śnieg',
+    'rain-showers': 'Przelotny deszcz',
+    'snow-showers': 'Przelotny śnieg',
+    thunderstorm: 'Burza',
+    unknown: 'Nieznane',
+  },
+  errors: {
+    INVALID_REQUEST: 'Nieprawidłowe zapytanie. Sprawdź adres i spróbuj ponownie.',
+    PROVIDER_ERROR: 'Serwis pogodowy nie odpowiada. Spróbuj ponownie za chwilę.',
+    NOT_FOUND: 'Nic nie znaleziono.',
+    INTERNAL: 'Coś poszło nie tak. Spróbuj ponownie.',
+    NETWORK_ERROR: 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.',
+  },
+});

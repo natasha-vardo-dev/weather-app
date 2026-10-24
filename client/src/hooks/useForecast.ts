@@ -1,9 +1,10 @@
-import { isRetryable, type Forecast } from '@weather/shared';
+import { ERROR_CODES, isRetryable, type ErrorCode, type Forecast } from '@weather/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError } from '../api/client';
 
 export interface ForecastError {
-  message: string;
+  /** Translated on render, so switching language also translates a shown error. */
+  code: ErrorCode;
   canRetry: boolean;
 }
 
@@ -34,10 +35,10 @@ export function useForecast(latitude: number | null, longitude: number | null) {
         setState({
           key: requestKey,
           forecast: null,
-          error: {
-            message: err.message,
-            canRetry: err instanceof ApiError ? isRetryable(err.code) : true,
-          },
+          error:
+            err instanceof ApiError
+              ? { code: err.code, canRetry: isRetryable(err.code) }
+              : { code: ERROR_CODES.INTERNAL, canRetry: true },
         });
       })
       .finally(() => {

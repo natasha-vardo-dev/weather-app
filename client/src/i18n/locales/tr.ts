@@ -1,0 +1,68 @@
+import type { MessagesFactory } from '../messages';
+
+export const tr: MessagesFactory = ({ num, deg }) => ({
+  appName: 'Hava durumu',
+  language: 'Dil',
+  dataBy: 'Hava durumu verileri:',
+  home: {
+    title: 'Gideceğin yerde hava nasıl?',
+    text: (days) => `Güncel hava durumunu ve ${num(days)} günlük tahmini görmek için bir şehir ara.`,
+  },
+  notFound: {
+    pageTitle: 'Bulunamadı',
+    title: 'Burada bir şey yok',
+    pageMissing: 'Bu sayfa mevcut değil.',
+    badLink: 'Bu bağlantı geçerli bir konuma gitmiyor.',
+    goHome: 'Ana sayfaya git',
+    orSearch: 'veya yukarıdan bir şehir ara.',
+  },
+  search: {
+    label: 'Şehir ara',
+    searching: 'Aranıyor…',
+    noResults: (q) => `“${q}” ile eşleşen şehir yok. Yazımı kontrol et.`,
+  },
+  weather: { loading: (place) => `${place} için tahmin yükleniyor…`, tryAgain: 'Tekrar dene' },
+  current: {
+    // Turkish nouns stay singular after a number.
+    degrees: (n) => `${num(n)} derece`,
+    highLow: (h, l) => `En yüksek ${deg(h)}, en düşük ${deg(l)}`,
+    warmer: (n) => `Dünden ${deg(n)} daha sıcak`,
+    cooler: (n) => `Dünden ${deg(n)} daha soğuk`,
+    same: 'Dünle hemen hemen aynı',
+    feelsLike: 'Hissedilen',
+    humidity: 'Nem',
+    wind: 'Rüzgâr',
+  },
+  hourly: {
+    title: (n) => `Sonraki ${num(n)} saat`,
+    now: 'Şimdi',
+    rainChance: (pct) => `Yağmur olasılığı ${pct}`,
+  },
+  daily: {
+    title: (n) => `Sonraki ${num(n)} gün`,
+    today: 'Bugün',
+    yesterday: 'Dün',
+    rain: (pct) => `${pct} yağmur`,
+  },
+  conditions: {
+    'clear-sky': 'Açık',
+    'mostly-clear': 'Çoğunlukla açık',
+    'partly-cloudy': 'Parçalı bulutlu',
+    overcast: 'Kapalı',
+    fog: 'Sis',
+    drizzle: 'Çisenti',
+    rain: 'Yağmur',
+    snow: 'Kar',
+    'rain-showers': 'Sağanak yağmur',
+    'snow-showers': 'Kar sağanağı',
+    thunderstorm: 'Gök gürültülü fırtına',
+    unknown: 'Bilinmiyor',
+  },
+  errors: {
+    INVALID_REQUEST: 'İstek geçersiz. Adresi kontrol edip tekrar dene.',
+    PROVIDER_ERROR: 'Hava durumu servisi yanıt vermiyor. Biraz sonra tekrar dene.',
+    NOT_FOUND: 'Hiçbir şey bulunamadı.',
+    INTERNAL: 'Bir şeyler ters gitti. Tekrar dene.',
+    NETWORK_ERROR: 'Sunucuya bağlantı yok. İnternetini kontrol edip tekrar dene.',
+  },
+});

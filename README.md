@@ -1,6 +1,6 @@
 # Weather Forecast App
 
-A web application that shows the current weather and a 7-day forecast for a selected city.
+A web application that shows the current weather and a 10-day forecast for a selected city.
 
 **Live demo:** [link to deployed app]
 
@@ -9,8 +9,9 @@ A web application that shows the current weather and a 7-day forecast for a sele
 - City search with autocomplete and keyboard navigation
 - Shareable links for each place, e.g. `/weather/52.23,21.01?name=Warsaw&country=Poland`; back/forward and refresh work
 - Current conditions: temperature, feels like, humidity, wind
-- 7-day forecast with temperature range bars and rain probability
+- 10-day forecast with temperature range bars and rain probability
 - Loading, empty and error states with retry
+- 19 interface languages, picked from the system language by default, with a switcher; dates, times, numbers and units follow the locale; right-to-left layout for Arabic and Hebrew
 - Responsive layout, light/dark mode, accessible combobox
 
 ## Tech stack
@@ -68,7 +69,7 @@ npm run build      # production build
 | Method | Endpoint                                 | Description            |
 |--------|------------------------------------------|------------------------|
 | GET    | `/api/locations?q=warsaw&limit=5`        | Search cities          |
-| GET    | `/api/forecast?lat=52.23&lon=21.01&days=7` | Current weather, next 24 hours, yesterday and daily forecast |
+| GET    | `/api/forecast?lat=52.23&lon=21.01&days=10` | Current weather, next 24 hours, yesterday and daily forecast |
 | GET    | `/api/health`                            | Health check           |
 
 Errors use one format: `{ "error": { "code": "INVALID_REQUEST", "message": "..." } }`.
@@ -83,8 +84,9 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 ## Assumptions
 
 - [No user accounts needed]
-- [7 days of forecast is enough]
-- [English UI, metric units]
+- [10 days of forecast is enough: beyond that Open-Meteo still returns data (up to 16 days), but accuracy drops sharply]
+- [Metric units only]
+- [UI translations for 19 languages are machine-quality drafts: they need a review by native speakers before a real release]
 
 ## Trade-offs and decisions
 
