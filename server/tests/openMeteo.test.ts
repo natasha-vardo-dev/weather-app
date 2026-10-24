@@ -66,6 +66,34 @@ describe('OpenMeteoProvider', () => {
     ]);
   });
 
+  it('maps the air quality response, keeping missing values as null', async () => {
+    const fetchFn = vi.fn(async () =>
+      jsonResponse({
+        timezone: 'Europe/Warsaw',
+        current: {
+          time: '2026-10-24T19:00',
+          european_aqi: 54,
+          us_aqi: null,
+          pm2_5: 38.7,
+          pm10: 60.9,
+          ozone: 23,
+          nitrogen_dioxide: null,
+        },
+      }),
+    );
+    const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
+
+    expect(await provider.getAirQuality(52.23, 21.01)).toEqual({
+      time: '2026-10-24T19:00',
+      timezone: 'Europe/Warsaw',
+      europeanAqi: 54,
+      usAqi: null,
+      pollutants: { pm2_5: 38.7, pm10: 60.9, ozone: 23, nitrogenDioxide: null },
+    });
+    const url = new URL(String((fetchFn.mock.calls[0] as unknown[])[0]));
+    expect(url.host).toBe('air-quality-api.open-meteo.com');
+  });
+
   it('returns an empty list when no city is found', async () => {
     const fetchFn = vi.fn(async () => jsonResponse({}));
     const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);

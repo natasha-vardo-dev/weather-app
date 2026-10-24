@@ -32,6 +32,7 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
     feelsLike: '体感温度',
     humidity: '湿度',
     wind: '风',
+    airQuality: '空气质量',
   },
   hourly: {
     title: (n) => `未来${num(n)}小时`,
@@ -57,6 +58,27 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
     'snow-showers': '阵雪',
     thunderstorm: '雷暴',
     unknown: '未知',
+  },
+  airQualityLevels: {
+    good: '优',
+    fair: '良',
+    moderate: '中等',
+    poor: '差',
+    'very-poor': '很差',
+    'extremely-poor': '极差',
+    'unhealthy-sensitive': '对敏感人群不健康',
+    unhealthy: '不健康',
+    'very-unhealthy': '非常不健康',
+    hazardous: '危险',
+  },
+  airQualityScales: {
+    european: '欧洲空气质量指数',
+    us: '美国空气质量指数（EPA）',
+  },
+  pollutants: {
+    title: '污染物',
+    ozone: '臭氧',
+    nitrogenDioxide: '二氧化氮',
   },
   errors: {
     INVALID_REQUEST: '请求无效。请检查地址后重试。',

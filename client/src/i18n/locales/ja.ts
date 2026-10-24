@@ -32,6 +32,7 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
     feelsLike: '体感温度',
     humidity: '湿度',
     wind: '風',
+    airQuality: '大気質',
   },
   hourly: {
     title: (n) => `今後${num(n)}時間`,
@@ -57,6 +58,27 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
     'snow-showers': 'にわか雪',
     thunderstorm: '雷雨',
     unknown: '不明',
+  },
+  airQualityLevels: {
+    good: '良好',
+    fair: 'まずまず',
+    moderate: '普通',
+    poor: '悪い',
+    'very-poor': '非常に悪い',
+    'extremely-poor': '極めて悪い',
+    'unhealthy-sensitive': '敏感な人には不健康',
+    unhealthy: '不健康',
+    'very-unhealthy': '非常に不健康',
+    hazardous: '危険',
+  },
+  airQualityScales: {
+    european: '欧州大気質指数',
+    us: '米国大気質指数（EPA）',
+  },
+  pollutants: {
+    title: '汚染物質',
+    ozone: 'オゾン',
+    nitrogenDioxide: '二酸化窒素',
   },
   errors: {
     INVALID_REQUEST: 'リクエストが正しくありません。アドレスを確認して、もう一度お試しください。',

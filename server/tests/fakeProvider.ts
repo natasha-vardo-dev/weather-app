@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { Forecast, WeatherProvider } from '../src/providers/types.js';
+import type { AirQuality, Forecast, WeatherProvider } from '../src/providers/types.js';
 
 export const sampleForecast: Forecast = {
   latitude: 52.23,
@@ -24,11 +24,20 @@ export const sampleForecast: Forecast = {
   ],
 };
 
+export const sampleAirQuality: AirQuality = {
+  time: '2026-10-15T12:00',
+  timezone: 'Europe/Warsaw',
+  europeanAqi: 54,
+  usAqi: 68,
+  pollutants: { pm2_5: 38.7, pm10: 60.9, ozone: 23, nitrogenDioxide: 31.1 },
+};
+
 export function createFakeProvider() {
   return {
     searchLocations: vi.fn(async () => [
       { id: 1, name: 'Warsaw', country: 'Poland', latitude: 52.23, longitude: 21.01 },
     ]),
     getForecast: vi.fn(async () => sampleForecast),
+    getAirQuality: vi.fn(async () => sampleAirQuality),
   } satisfies WeatherProvider;
 }

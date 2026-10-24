@@ -1,9 +1,10 @@
 import { FORECAST_HOURS } from '@weather/shared';
 import { ProviderError } from '../errors.js';
-import type { Forecast, Location, WeatherProvider } from './types.js';
+import type { AirQuality, Forecast, Location, WeatherProvider } from './types.js';
 
 const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
+const AIR_QUALITY_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
 interface GeocodingResponse {
   results?: Array<{
@@ -44,6 +45,19 @@ interface ForecastResponse {
     temperature_2m_max: number[];
     temperature_2m_min: number[];
     precipitation_probability_max: (number | null)[];
+  };
+}
+
+interface AirQualityResponse {
+  timezone: string;
+  current: {
+    time: string;
+    european_aqi: number | null;
+    us_aqi: number | null;
+    pm2_5: number | null;
+    pm10: number | null;
+    ozone: number | null;
+    nitrogen_dioxide: number | null;
   };
 }
 
@@ -136,6 +150,31 @@ export class OpenMeteoProvider implements WeatherProvider {
       })),
       yesterday: pastDays.at(-1) ?? null,
       daily: allDays.filter((day) => day.date >= today),
+    };
+  }
+
+  /** A separate Open-Meteo API (other host), so it is a separate call with its own cache. */
+  async getAirQuality(latitude: number, longitude: number): Promise<AirQuality> {
+    const url = new URL(AIR_QUALITY_URL);
+    url.searchParams.set('latitude', String(latitude));
+    url.searchParams.set('longitude', String(longitude));
+    // Pollutants come in the same call, so the details cost no extra provider request.
+    url.searchParams.set('current', 'european_aqi,us_aqi,pm2_5,pm10,ozone,nitrogen_dioxide');
+    url.searchParams.set('timezone', 'auto');
+
+    const data = await this.request<AirQualityResponse>(url);
+    const { current } = data;
+    return {
+      time: current.time,
+      timezone: data.timezone,
+      europeanAqi: current.european_aqi ?? null,
+      usAqi: current.us_aqi ?? null,
+      pollutants: {
+        pm2_5: current.pm2_5 ?? null,
+        pm10: current.pm10 ?? null,
+        ozone: current.ozone ?? null,
+        nitrogenDioxide: current.nitrogen_dioxide ?? null,
+      },
     };
   }
 

@@ -31,6 +31,7 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
     feelsLike: 'Känns som',
     humidity: 'Luftfuktighet',
     wind: 'Vind',
+    airQuality: 'Luftkvalitet',
   },
   hourly: {
     title: (n) => plural(n, { one: 'Nästa timme', other: 'Kommande {n} timmar' }),
@@ -56,6 +57,27 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
     'snow-showers': 'Snöbyar',
     thunderstorm: 'Åska',
     unknown: 'Okänt',
+  },
+  airQualityLevels: {
+    good: 'Bra',
+    fair: 'Godtagbar',
+    moderate: 'Måttlig',
+    poor: 'Dålig',
+    'very-poor': 'Mycket dålig',
+    'extremely-poor': 'Extremt dålig',
+    'unhealthy-sensitive': 'Ohälsosam för känsliga grupper',
+    unhealthy: 'Ohälsosam',
+    'very-unhealthy': 'Mycket ohälsosam',
+    hazardous: 'Farlig',
+  },
+  airQualityScales: {
+    european: 'Europeiskt luftkvalitetsindex',
+    us: 'Amerikanskt luftkvalitetsindex (EPA)',
+  },
+  pollutants: {
+    title: 'Föroreningar',
+    ozone: 'Ozon',
+    nitrogenDioxide: 'Kvävedioxid',
   },
   errors: {
     INVALID_REQUEST: 'Begäran är ogiltig. Kontrollera adressen och försök igen.',

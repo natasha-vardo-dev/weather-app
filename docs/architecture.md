@@ -16,7 +16,7 @@ Dependencies point downward only. Tests replace the provider with a fake.
 ## Why a backend at all
 
 - Keeps API keys (if a paid provider is used) out of the browser
-- Caches responses: forecasts for 10 minutes, city searches for 24 hours
+- Caches responses: forecasts for 10 minutes, air quality for 30 minutes, city searches for 24 hours
 - Normalises provider data into our own model
 - Lets us switch providers by adding a new adapter
 
@@ -26,6 +26,9 @@ Forecast cache keys round coordinates to 2 decimals (~1 km), so nearby requests 
 Every forecast also includes yesterday (Open-Meteo `past_days=1`), so it is not a request parameter and not part of the key: still one provider call per place.
 Every forecast also includes the next 24 hours (`forecast_hours=24`, starting at the current hour), again with no extra provider call. Because of the 10-minute cache, right after the hour changes the first "Now" slot may still be the previous hour for a few minutes; accepted to keep provider usage flat.
 The UI uses yesterday for one line under the current weather ("3° warmer than yesterday", comparing daily highs) rather than a row in the forecast list, which stays forward-looking.
+Air quality comes from a separate Open-Meteo API (another host), so it has its own endpoint (`/api/air-quality`) and cache: 30 minutes, because the provider updates it hourly, with the same ~1 km key rounding. It is separate from `/forecast` so that the forecast never fails or waits because of it; the client loads both in parallel and simply hides the air quality item if that request fails. The cost is one more provider call per place, at most 48 a day with this TTL (forecast: up to 144).
+Which index to show is a presentation choice made in `shared` (`summarizeAirQuality`): the European AQI for places whose timezone is in `Europe/` or in a short list of European zones outside it (Canary Islands, Madeira, Azores, Iceland, Faroe Islands, Cyprus), the US AQI elsewhere, falling back to the other one when a value is missing. The API returns both raw values, so another client can choose differently.
+The item shows a coloured dot (each index's official palette, darkest bands lightened for the blue background; the level is always written out, so colour is not the only signal). The whole value is a button (`aria-expanded`) that reveals PM2.5, PM10, O₃ and NO₂ concentrations below the details; they come in the same provider call. Without any pollutant data the value is plain text, so it never opens an empty box. Pollutants are shown as plain µg/m³ numbers without colour, because the two indices use different thresholds.
 The cache is in-memory with a TTL and a size limit. With several instances, replace it with Redis.
 
 ## Frontend

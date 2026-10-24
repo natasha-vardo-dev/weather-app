@@ -1,6 +1,6 @@
 import { FORECAST_DEFAULT_DAYS } from './constants.js';
 import { ERROR_CODES, type ApiErrorBody, type ErrorCode } from './errors.js';
-import type { Forecast, Location, LocationsResponse } from './types.js';
+import type { AirQuality, Forecast, Location, LocationsResponse } from './types.js';
 
 export class ApiError extends Error {
   constructor(
@@ -71,6 +71,11 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
         days: String(options.days ?? FORECAST_DEFAULT_DAYS),
       });
       return request<Forecast>(`/api/forecast?${params}`, options.signal);
+    },
+
+    getAirQuality(latitude: number, longitude: number, signal?: AbortSignal): Promise<AirQuality> {
+      const params = new URLSearchParams({ lat: String(latitude), lon: String(longitude) });
+      return request<AirQuality>(`/api/air-quality?${params}`, signal);
     },
   };
 }

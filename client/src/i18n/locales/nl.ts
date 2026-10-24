@@ -32,6 +32,7 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     feelsLike: 'Gevoelstemperatuur',
     humidity: 'Luchtvochtigheid',
     wind: 'Wind',
+    airQuality: 'Luchtkwaliteit',
   },
   hourly: {
     title: (n) => plural(n, { one: 'Komend uur', other: 'Komende {n} uur' }),
@@ -57,6 +58,27 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     'snow-showers': 'Sneeuwbuien',
     thunderstorm: 'Onweer',
     unknown: 'Onbekend',
+  },
+  airQualityLevels: {
+    good: 'Goed',
+    fair: 'Redelijk',
+    moderate: 'Matig',
+    poor: 'Slecht',
+    'very-poor': 'Zeer slecht',
+    'extremely-poor': 'Extreem slecht',
+    'unhealthy-sensitive': 'Ongezond voor gevoelige groepen',
+    unhealthy: 'Ongezond',
+    'very-unhealthy': 'Zeer ongezond',
+    hazardous: 'Gevaarlijk',
+  },
+  airQualityScales: {
+    european: 'Europese luchtkwaliteitsindex',
+    us: 'Amerikaanse luchtkwaliteitsindex (EPA)',
+  },
+  pollutants: {
+    title: 'Verontreinigende stoffen',
+    ozone: 'Ozon',
+    nitrogenDioxide: 'Stikstofdioxide',
   },
   errors: {
     INVALID_REQUEST: 'Het verzoek is ongeldig. Controleer het adres en probeer het opnieuw.',

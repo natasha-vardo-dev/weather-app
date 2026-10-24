@@ -1,10 +1,11 @@
 import { FORECAST_DEFAULT_DAYS } from '@weather/shared';
-import type { Forecast, Location, WeatherProvider } from '../providers/types.js';
+import type { AirQuality, Forecast, Location, WeatherProvider } from '../providers/types.js';
 import { TtlCache } from './cache.js';
 
 export class WeatherService {
   private readonly forecastCache: TtlCache<Forecast>;
   private readonly locationCache: TtlCache<Location[]>;
+  private readonly airQualityCache: TtlCache<AirQuality>;
 
   constructor(
     private readonly provider: WeatherProvider,
@@ -13,6 +14,8 @@ export class WeatherService {
     this.forecastCache = new TtlCache(forecastTtlMs);
     // City search results change very rarely, so they can live longer.
     this.locationCache = new TtlCache(24 * 60 * 60 * 1000);
+    // The provider updates air quality hourly, so it can live longer than forecasts.
+    this.airQualityCache = new TtlCache(30 * 60 * 1000);
   }
 
   async searchLocations(query: string, limit = 5, language = 'en'): Promise<Location[]> {
@@ -35,5 +38,16 @@ export class WeatherService {
     const forecast = await this.provider.getForecast(latitude, longitude, days);
     this.forecastCache.set(key, forecast);
     return forecast;
+  }
+
+  async getAirQuality(latitude: number, longitude: number): Promise<AirQuality> {
+    // Same ~1 km rounding as forecasts.
+    const key = `${latitude.toFixed(2)}:${longitude.toFixed(2)}`;
+    const cached = this.airQualityCache.get(key);
+    if (cached) return cached;
+
+    const airQuality = await this.provider.getAirQuality(latitude, longitude);
+    this.airQualityCache.set(key, airQuality);
+    return airQuality;
   }
 }

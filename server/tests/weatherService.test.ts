@@ -13,6 +13,16 @@ describe('WeatherService', () => {
     expect(provider.getForecast).toHaveBeenCalledTimes(1);
   });
 
+  it('caches air quality for nearby coordinates', async () => {
+    const provider = createFakeProvider();
+    const service = new WeatherService(provider);
+
+    await service.getAirQuality(52.2297, 21.0122);
+    await service.getAirQuality(52.2301, 21.0118);
+
+    expect(provider.getAirQuality).toHaveBeenCalledTimes(1);
+  });
+
   it('treats location queries case-insensitively for caching', async () => {
     const provider = createFakeProvider();
     const service = new WeatherService(provider);

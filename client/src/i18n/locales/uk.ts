@@ -33,6 +33,7 @@ export const uk: MessagesFactory = ({ deg, plural }) => ({
     feelsLike: 'Відчувається як',
     humidity: 'Вологість',
     wind: 'Вітер',
+    airQuality: 'Якість повітря',
   },
   hourly: {
     title: (n) =>
@@ -70,6 +71,27 @@ export const uk: MessagesFactory = ({ deg, plural }) => ({
     'snow-showers': 'Короткочасний сніг',
     thunderstorm: 'Гроза',
     unknown: 'Невідомо',
+  },
+  airQualityLevels: {
+    good: 'Добра',
+    fair: 'Задовільна',
+    moderate: 'Помірна',
+    poor: 'Погана',
+    'very-poor': 'Дуже погана',
+    'extremely-poor': 'Надзвичайно погана',
+    'unhealthy-sensitive': 'Шкідлива для чутливих груп',
+    unhealthy: 'Шкідлива',
+    'very-unhealthy': 'Дуже шкідлива',
+    hazardous: 'Небезпечна',
+  },
+  airQualityScales: {
+    european: 'Європейський індекс якості повітря',
+    us: 'Американський індекс якості повітря (EPA)',
+  },
+  pollutants: {
+    title: 'Забруднювачі',
+    ozone: 'Озон',
+    nitrogenDioxide: 'Діоксид азоту',
   },
   errors: {
     INVALID_REQUEST: 'Некоректний запит. Перевірте адресу й спробуйте ще раз.',

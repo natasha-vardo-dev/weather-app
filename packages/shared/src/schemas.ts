@@ -30,9 +30,15 @@ export const forecastQuerySchema = z.object({
   days: z.coerce.number().int().min(1).max(FORECAST_MAX_DAYS).default(FORECAST_DEFAULT_DAYS),
 });
 
+export const airQualityQuerySchema = z.object({
+  lat: z.coerce.number().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
+  lon: z.coerce.number().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
+});
+
 /** Parsed (output) types, used by the server after validation. */
 export type LocationsQuery = z.infer<typeof locationsQuerySchema>;
 export type ForecastQuery = z.infer<typeof forecastQuerySchema>;
+export type AirQualityQuery = z.infer<typeof airQualityQuerySchema>;
 
 /** Re-exported so the server checks errors against the same zod instance the schemas use. */
 export { ZodError } from 'zod';

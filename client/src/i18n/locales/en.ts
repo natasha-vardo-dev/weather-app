@@ -31,6 +31,7 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
     feelsLike: 'Feels like',
     humidity: 'Humidity',
     wind: 'Wind',
+    airQuality: 'Air quality',
   },
   hourly: {
     title: (n) => plural(n, { one: 'Next hour', other: 'Next {n} hours' }),
@@ -56,6 +57,27 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
     'snow-showers': 'Snow showers',
     thunderstorm: 'Thunderstorm',
     unknown: 'Unknown',
+  },
+  airQualityLevels: {
+    good: 'Good',
+    fair: 'Fair',
+    moderate: 'Moderate',
+    poor: 'Poor',
+    'very-poor': 'Very poor',
+    'extremely-poor': 'Extremely poor',
+    'unhealthy-sensitive': 'Unhealthy for sensitive groups',
+    unhealthy: 'Unhealthy',
+    'very-unhealthy': 'Very unhealthy',
+    hazardous: 'Hazardous',
+  },
+  airQualityScales: {
+    european: 'European Air Quality Index',
+    us: 'US Air Quality Index (EPA)',
+  },
+  pollutants: {
+    title: 'Pollutants',
+    ozone: 'Ozone',
+    nitrogenDioxide: 'Nitrogen dioxide',
   },
   errors: {
     INVALID_REQUEST: "That request doesn't look right. Check the address and try again.",

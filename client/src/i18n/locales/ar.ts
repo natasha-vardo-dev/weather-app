@@ -41,6 +41,7 @@ export const ar: MessagesFactory = ({ deg, plural }) => ({
     feelsLike: 'الإحساس الحراري',
     humidity: 'الرطوبة',
     wind: 'الرياح',
+    airQuality: 'جودة الهواء',
   },
   hourly: {
     title: (n) =>
@@ -78,6 +79,27 @@ export const ar: MessagesFactory = ({ deg, plural }) => ({
     'snow-showers': 'زخات ثلج',
     thunderstorm: 'عاصفة رعدية',
     unknown: 'غير معروف',
+  },
+  airQualityLevels: {
+    good: 'جيدة',
+    fair: 'مقبولة',
+    moderate: 'متوسطة',
+    poor: 'سيئة',
+    'very-poor': 'سيئة جدًا',
+    'extremely-poor': 'سيئة للغاية',
+    'unhealthy-sensitive': 'غير صحية للفئات الحساسة',
+    unhealthy: 'غير صحية',
+    'very-unhealthy': 'غير صحية جدًا',
+    hazardous: 'خطرة',
+  },
+  airQualityScales: {
+    european: 'مؤشر جودة الهواء الأوروبي',
+    us: 'مؤشر جودة الهواء الأمريكي (EPA)',
+  },
+  pollutants: {
+    title: 'الملوثات',
+    ozone: 'الأوزون',
+    nitrogenDioxide: 'ثاني أكسيد النيتروجين',
   },
   errors: {
     INVALID_REQUEST: 'الطلب غير صالح. تحقق من العنوان وحاول مرة أخرى.',

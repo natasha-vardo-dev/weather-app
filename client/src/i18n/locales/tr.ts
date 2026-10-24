@@ -32,6 +32,7 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
     feelsLike: 'Hissedilen',
     humidity: 'Nem',
     wind: 'Rüzgâr',
+    airQuality: 'Hava kalitesi',
   },
   hourly: {
     title: (n) => `Sonraki ${num(n)} saat`,
@@ -57,6 +58,27 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
     'snow-showers': 'Kar sağanağı',
     thunderstorm: 'Gök gürültülü fırtına',
     unknown: 'Bilinmiyor',
+  },
+  airQualityLevels: {
+    good: 'İyi',
+    fair: 'Makul',
+    moderate: 'Orta',
+    poor: 'Kötü',
+    'very-poor': 'Çok kötü',
+    'extremely-poor': 'Son derece kötü',
+    'unhealthy-sensitive': 'Hassas gruplar için sağlıksız',
+    unhealthy: 'Sağlıksız',
+    'very-unhealthy': 'Çok sağlıksız',
+    hazardous: 'Tehlikeli',
+  },
+  airQualityScales: {
+    european: 'Avrupa hava kalitesi indeksi',
+    us: 'ABD hava kalitesi indeksi (EPA)',
+  },
+  pollutants: {
+    title: 'Kirleticiler',
+    ozone: 'Ozon',
+    nitrogenDioxide: 'Azot dioksit',
   },
   errors: {
     INVALID_REQUEST: 'İstek geçersiz. Adresi kontrol edip tekrar dene.',

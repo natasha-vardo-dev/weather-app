@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from 'react-router';
 import { CurrentWeather } from '../components/CurrentWeather';
 import { ForecastList } from '../components/ForecastList';
 import { HourlyForecast } from '../components/HourlyForecast';
+import { useAirQuality } from '../hooks/useAirQuality';
 import { useForecast } from '../hooks/useForecast';
 import { usePageMeta } from '../hooks/usePageMeta';
 import { useI18n } from '../i18n/I18nProvider';
@@ -19,6 +20,9 @@ export function WeatherPage() {
     place?.latitude ?? null,
     place?.longitude ?? null,
   );
+
+  // Fetched in parallel with the forecast and never blocks it.
+  const airQuality = useAirQuality(place?.latitude ?? null, place?.longitude ?? null);
 
   const current = forecast;
 
@@ -47,7 +51,12 @@ export function WeatherPage() {
 
   return (
     <div className={loading ? 'content content--stale' : 'content'}>
-      <CurrentWeather name={place.name} country={place.country} forecast={current} />
+      <CurrentWeather
+        name={place.name}
+        country={place.country}
+        forecast={current}
+        airQuality={airQuality}
+      />
       <HourlyForecast hours={current.hourly} />
       <ForecastList days={current.daily} />
     </div>

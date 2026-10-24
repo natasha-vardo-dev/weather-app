@@ -33,6 +33,7 @@ export const ru: MessagesFactory = ({ deg, plural }) => ({
     feelsLike: 'Ощущается как',
     humidity: 'Влажность',
     wind: 'Ветер',
+    airQuality: 'Качество воздуха',
   },
   hourly: {
     title: (n) =>
@@ -70,6 +71,27 @@ export const ru: MessagesFactory = ({ deg, plural }) => ({
     'snow-showers': 'Снегопад',
     thunderstorm: 'Гроза',
     unknown: 'Неизвестно',
+  },
+  airQualityLevels: {
+    good: 'Хорошее',
+    fair: 'Удовлетворительное',
+    moderate: 'Умеренное',
+    poor: 'Плохое',
+    'very-poor': 'Очень плохое',
+    'extremely-poor': 'Крайне плохое',
+    'unhealthy-sensitive': 'Вредно для чувствительных групп',
+    unhealthy: 'Вредное',
+    'very-unhealthy': 'Очень вредное',
+    hazardous: 'Опасное',
+  },
+  airQualityScales: {
+    european: 'Европейский индекс качества воздуха',
+    us: 'Американский индекс качества воздуха (EPA)',
+  },
+  pollutants: {
+    title: 'Загрязнители',
+    ozone: 'Озон',
+    nitrogenDioxide: 'Диоксид азота',
   },
   errors: {
     INVALID_REQUEST: 'Некорректный запрос. Проверьте адрес и попробуйте снова.',

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { ProviderError } from '../src/errors.js';
 import { WeatherService } from '../src/services/weatherService.js';
-import { createFakeProvider, sampleForecast } from './fakeProvider.js';
+import { createFakeProvider, sampleAirQuality, sampleForecast } from './fakeProvider.js';
 
 function setup() {
   const provider = createFakeProvider();
@@ -31,6 +31,21 @@ describe('GET /api/forecast', () => {
     provider.getForecast.mockRejectedValueOnce(new ProviderError());
     const res = await request(app).get('/api/forecast?lat=1&lon=1');
     expect(res.status).toBe(502);
+  });
+});
+
+describe('GET /api/air-quality', () => {
+  it('returns air quality for valid coordinates', async () => {
+    const { app } = setup();
+    const res = await request(app).get('/api/air-quality?lat=52.23&lon=21.01');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(sampleAirQuality);
+  });
+
+  it('rejects invalid coordinates', async () => {
+    const { app } = setup();
+    const res = await request(app).get('/api/air-quality?lat=abc&lon=21');
+    expect(res.status).toBe(400);
   });
 });
 

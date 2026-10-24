@@ -31,6 +31,7 @@ export const hi: MessagesFactory = ({ num, deg, plural }) => ({
     feelsLike: 'महसूस होता है',
     humidity: 'नमी',
     wind: 'हवा',
+    airQuality: 'वायु गुणवत्ता',
   },
   hourly: {
     title: (n) => plural(n, { one: 'अगला {n} घंटा', other: 'अगले {n} घंटे' }),
@@ -56,6 +57,27 @@ export const hi: MessagesFactory = ({ num, deg, plural }) => ({
     'snow-showers': 'बर्फ़ की बौछारें',
     thunderstorm: 'आंधी-तूफ़ान',
     unknown: 'अज्ञात',
+  },
+  airQualityLevels: {
+    good: 'अच्छी',
+    fair: 'संतोषजनक',
+    moderate: 'मध्यम',
+    poor: 'खराब',
+    'very-poor': 'बहुत खराब',
+    'extremely-poor': 'बेहद खराब',
+    'unhealthy-sensitive': 'संवेदनशील लोगों के लिए अस्वास्थ्यकर',
+    unhealthy: 'अस्वास्थ्यकर',
+    'very-unhealthy': 'बहुत अस्वास्थ्यकर',
+    hazardous: 'खतरनाक',
+  },
+  airQualityScales: {
+    european: 'यूरोपीय वायु गुणवत्ता सूचकांक',
+    us: 'अमेरिकी वायु गुणवत्ता सूचकांक (EPA)',
+  },
+  pollutants: {
+    title: 'प्रदूषक',
+    ozone: 'ओज़ोन',
+    nitrogenDioxide: 'नाइट्रोजन डाइऑक्साइड',
   },
   errors: {
     INVALID_REQUEST: 'अनुरोध मान्य नहीं है। पता जाँचें और फिर से कोशिश करें।',
