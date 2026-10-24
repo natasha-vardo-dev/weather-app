@@ -82,6 +82,7 @@ export const hi: MessagesFactory = ({ num, deg, plural }) => ({
   favorites: {
     title: 'पसंदीदा',
     save: 'सहेजें',
+    saved: 'सहेजा गया',
     add: 'पसंदीदा में जोड़ें',
     remove: 'पसंदीदा से हटाएँ',
     full: (n) => `आप अधिकतम ${num(n)} शहर सहेज सकते हैं`,

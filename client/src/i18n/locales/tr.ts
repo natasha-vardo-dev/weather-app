@@ -83,6 +83,7 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
   favorites: {
     title: 'Favoriler',
     save: 'Kaydet',
+    saved: 'Kaydedildi',
     add: 'Favorilere ekle',
     remove: 'Favorilerden çıkar',
     full: (n) => `En fazla ${num(n)} şehir kaydedebilirsin`,

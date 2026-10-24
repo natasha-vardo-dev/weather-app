@@ -96,6 +96,7 @@ export const uk: MessagesFactory = ({ deg, plural }) => ({
   favorites: {
     title: 'Обране',
     save: 'Зберегти',
+    saved: 'Збережено',
     add: 'Додати до обраного',
     remove: 'Видалити з обраного',
     full: (n) => `Можна зберегти до ${plural(n, { one: '{n} міста', other: '{n} міст' })}`,

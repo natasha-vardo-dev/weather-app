@@ -10,7 +10,7 @@ A web application that shows the current weather and a 10-day forecast for a sel
 - Shareable links for each place, e.g. `/weather/52.23,21.01?name=Warsaw&country=Poland`; back/forward and refresh work
 - Current conditions: temperature, feels like, humidity, wind, air quality (European AQI for places in Europe, US AQI elsewhere, with PM2.5, PM10, ozone and NO₂ on demand)
 - 10-day forecast with temperature range bars and rain probability
-- Favourite cities (up to 10), saved in the browser, listed with their current weather on the start page
+- Favourite cities (up to 10), saved in the browser: shown as cards with current weather, condition and today's high/low on the start page, and as a strip of tiles on city pages
 - Loading, empty and error states with retry
 - 19 interface languages, picked from the system language by default, with a switcher; dates, times, numbers and units follow the locale; right-to-left layout for Arabic and Hebrew
 - Responsive layout, light/dark mode, accessible combobox

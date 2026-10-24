@@ -82,6 +82,7 @@ export const pt: MessagesFactory = ({ num, deg, plural }) => ({
   favorites: {
     title: 'Favoritos',
     save: 'Salvar',
+    saved: 'Salvo',
     add: 'Adicionar aos favoritos',
     remove: 'Remover dos favoritos',
     full: (n) => `Você pode salvar até ${num(n)} cidades`,

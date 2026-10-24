@@ -83,6 +83,7 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
   favorites: {
     title: '收藏的城市',
     save: '收藏',
+    saved: '已收藏',
     add: '添加到收藏',
     remove: '从收藏中移除',
     full: (n) => `最多可收藏${num(n)}个城市`,

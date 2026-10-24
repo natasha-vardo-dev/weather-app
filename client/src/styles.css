@@ -50,6 +50,10 @@
 
 * { box-sizing: border-box; }
 
+/* Always reserve the scrollbar's space, so content width does not jump when a page
+   briefly gets shorter or longer than the window. */
+html { scrollbar-gutter: stable; }
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -181,6 +185,18 @@ body {
 }
 
 .content { display: grid; gap: 2.5rem; transition: opacity 0.2s; }
+
+/* Loading placeholder shaped like the city page */
+.skeleton__block {
+  border-radius: 0.5rem;
+  background: var(--line);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+/* Text-height placeholder inside a line, e.g. a value that is still loading */
+.skeleton__inline { display: inline-block; width: 6.5rem; height: 1.1em; vertical-align: middle; }
+@keyframes skeleton-pulse {
+  50% { opacity: 0.5; }
+}
 .content--stale { opacity: 0.55; }
 
 /* Current weather: the temperature is the one loud element */
@@ -388,9 +404,58 @@ button.aqi { cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) {
   :root, .content { transition: none; }
+  .skeleton__block { animation: none; }
 }
 
 .now__place:focus { outline: none; }
+
+/* Saved cities as a scrolling strip at the top of a city page */
+.fav-strip { margin: 0 0 1.75rem; min-width: 0; }
+.fav-strip__list {
+  /* Contains the absolutely positioned screen-reader text, so the scroller clips it. */
+  position: relative;
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0 0 0.4rem;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-color: var(--line) transparent;
+}
+.fav-strip__list > li { flex: 0 0 auto; scroll-snap-align: start; }
+
+.fav-tile {
+  display: flex;
+  flex-direction: column;
+  width: 7rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+}
+.fav-tile:hover { border-color: var(--ink-soft); }
+.fav-tile:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+.fav-tile--current { border: 1.5px solid var(--ink); background: var(--surface); }
+.fav-tile__name,
+.fav-tile__country {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fav-tile__name { font-weight: 500; font-size: 0.9rem; }
+.fav-tile__country { font-size: 0.8rem; color: var(--ink-soft); }
+.fav-tile__weather {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.6rem;
+  margin-top: 0.2rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
 
 /* Place name and the save button on one line; the button wraps under a long name */
 .now__head {
@@ -415,9 +480,19 @@ button.aqi { cursor: pointer; }
   cursor: pointer;
 }
 .save:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
-.save:disabled { cursor: not-allowed; color: var(--ink-soft); }
+/* Unavailable (list full): dashed outline and dimmed, so it reads differently from a normal state */
+.save[aria-disabled='true'] { cursor: not-allowed; border-style: dashed; opacity: 0.6; }
+
+.save-wrap {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem 0.75rem;
+}
+.save__hint { font-size: 0.85rem; color: var(--ink-soft); }
 .save__star { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
-.save[aria-pressed='true'] .save__star { fill: var(--sun); stroke: var(--sun); }
+.save[data-saved] .save__star { fill: var(--sun); stroke: var(--sun); }
 
 /* Saved cities on the start page */
 .favorites { margin-top: 2.5rem; }
@@ -427,22 +502,45 @@ button.aqi { cursor: pointer; }
   font-weight: 500;
   color: var(--ink-soft);
 }
-.favorites__list { list-style: none; margin: 0; padding: 0; }
-.favorite {
+.fav-grid {
   display: grid;
-  grid-template-columns: 1.5rem 1fr auto;
-  align-items: center;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
   gap: 0.75rem;
-  padding: 0.7rem 0;
-  border-top: 1px solid var(--line);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Contains the screen-reader text, which is absolutely positioned */
+.fav-grid > li { position: relative; min-width: 0; }
+
+.fav-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
   color: inherit;
   text-decoration: none;
 }
-.favorite:hover .favorite__name { text-decoration: underline; text-underline-offset: 3px; }
-.favorite:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; border-radius: 0.25rem; }
-.favorite__icon { display: flex; }
-.favorite__name { font-weight: 500; }
-.favorite__country { color: var(--ink-soft); }
-.favorite__temp { font-weight: 500; font-variant-numeric: tabular-nums; }
+.fav-card:hover { border-color: var(--ink-soft); }
+.fav-card:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+
+.fav-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+.fav-card__place { display: flex; flex-direction: column; min-width: 0; }
+.fav-card__name,
+.fav-card__country { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fav-card__name { font-weight: 500; }
+.fav-card__country { font-size: 0.85rem; color: var(--ink-soft); }
+
+.fav-card__body { display: flex; flex-direction: column; min-height: 4.6rem; margin-top: 0.5rem; }
+.fav-card__temp { font-size: 1.9rem; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.fav-card__meta {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .empty__text a { color: inherit; }

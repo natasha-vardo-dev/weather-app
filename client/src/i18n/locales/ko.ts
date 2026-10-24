@@ -82,6 +82,7 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
   favorites: {
     title: '즐겨찾기',
     save: '저장',
+    saved: '저장됨',
     add: '즐겨찾기에 추가',
     remove: '즐겨찾기에서 삭제',
     full: (n) => `최대 ${num(n)}개 도시까지 저장할 수 있습니다`,

@@ -83,6 +83,7 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
   favorites: {
     title: 'Favorieten',
     save: 'Bewaren',
+    saved: 'Bewaard',
     add: 'Toevoegen aan favorieten',
     remove: 'Verwijderen uit favorieten',
     full: (n) => `Je kunt tot ${num(n)} steden bewaren`,

@@ -104,6 +104,7 @@ export const ar: MessagesFactory = ({ num, deg, plural }) => ({
   favorites: {
     title: 'المفضلة',
     save: 'حفظ',
+    saved: 'محفوظ',
     add: 'إضافة إلى المفضلة',
     remove: 'إزالة من المفضلة',
     full: (n) => `يمكنك حفظ ما يصل إلى ${num(n)} مدن`,

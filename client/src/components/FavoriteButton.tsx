@@ -1,4 +1,5 @@
 import { MAX_FAVORITES, type Favorite } from '@weather/shared';
+import { useId } from 'react';
 import { useFavorites } from '../hooks/useFavorites';
 import { useI18n } from '../i18n/I18nProvider';
 
@@ -11,27 +12,47 @@ function StarIcon() {
 }
 
 /**
- * Toggle button: the label stays "Save" and aria-pressed tells screen readers whether the
- * city is saved; the star fills in for sighted users.
+ * The label shows the state ("Save" / "Saved") and the star fills in. Because the label
+ * already says the state, there is no aria-pressed (screen readers would announce it
+ * twice); for a saved city hidden text adds what pressing does. The accessible name still
+ * starts with the visible word, so voice control ("click Saved") keeps working.
+ *
+ * When the list is full the button is aria-disabled, not disabled: it stays focusable,
+ * and the visible hint is linked with aria-describedby, so keyboard and screen-reader
+ * users learn why saving does nothing (a native disabled button is skipped by Tab).
  */
 export function FavoriteButton({ place }: { place: Favorite }) {
   const { t } = useI18n();
   const { isFavorite, toggle, isFull } = useFavorites();
+  const hintId = useId();
   const saved = isFavorite(place);
   const blocked = !saved && isFull;
 
   return (
-    <button
-      type="button"
-      className="save"
-      aria-pressed={saved}
-      // A full list blocks saving rather than silently dropping another city.
-      disabled={blocked}
-      title={blocked ? t.favorites.full(MAX_FAVORITES) : saved ? t.favorites.remove : t.favorites.add}
-      onClick={() => toggle(place)}
-    >
-      <StarIcon />
-      {t.favorites.save}
-    </button>
+    <span className="save-wrap">
+      <button
+        type="button"
+        className="save"
+        aria-disabled={blocked || undefined}
+        aria-describedby={blocked ? hintId : undefined}
+        // A saved city already explains the action in hidden text; a title would make
+        // screen readers repeat "Remove from favourites" as the description.
+        title={blocked || saved ? undefined : t.favorites.add}
+        data-saved={saved || undefined}
+        onClick={() => {
+          // A full list blocks saving rather than silently dropping another city.
+          if (!blocked) toggle(place);
+        }}
+      >
+        <StarIcon />
+        {saved ? t.favorites.saved : t.favorites.save}
+        {saved && <span className="visually-hidden">: {t.favorites.remove}</span>}
+      </button>
+      {blocked && (
+        <span id={hintId} className="save__hint">
+          {t.favorites.full(MAX_FAVORITES)}
+        </span>
+      )}
+    </span>
   );
 }

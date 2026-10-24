@@ -90,6 +90,7 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
   favorites: {
     title: 'Ulubione',
     save: 'Zapisz',
+    saved: 'Zapisano',
     add: 'Dodaj do ulubionych',
     remove: 'Usuń z ulubionych',
     full: (n) => `Możesz zapisać do ${plural(n, { one: '{n} miasta', other: '{n} miast' })}`,

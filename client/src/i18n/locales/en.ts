@@ -82,6 +82,7 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
   favorites: {
     title: 'Favourites',
     save: 'Save',
+    saved: 'Saved',
     add: 'Add to favourites',
     remove: 'Remove from favourites',
     full: (n) => `You can save up to ${num(n)} cities`,

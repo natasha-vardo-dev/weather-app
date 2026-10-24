@@ -91,6 +91,7 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
   favorites: {
     title: 'Oblíbené',
     save: 'Uložit',
+    saved: 'Uloženo',
     add: 'Přidat do oblíbených',
     remove: 'Odebrat z oblíbených',
     full: (n) => `Můžete uložit až ${plural(n, { one: '{n} město', few: '{n} města', other: '{n} měst' })}`,

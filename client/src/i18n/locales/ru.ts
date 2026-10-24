@@ -96,6 +96,7 @@ export const ru: MessagesFactory = ({ deg, plural }) => ({
   favorites: {
     title: 'Избранное',
     save: 'Сохранить',
+    saved: 'Сохранён',
     add: 'Добавить в избранное',
     remove: 'Убрать из избранного',
     full: (n) => `Можно сохранить до ${plural(n, { one: '{n} города', other: '{n} городов' })}`,

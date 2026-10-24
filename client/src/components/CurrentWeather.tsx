@@ -10,8 +10,8 @@ interface Props {
   forecast: Forecast;
   /** Controls shown next to the place name, e.g. the save button. */
   actions?: ReactNode;
-  /** Null hides the item: still loading, no data for the place, or the request failed. */
-  airQuality: AirQualityView | null;
+  /** Undefined while loading (the slot is kept), null hides the item (no data or error). */
+  airQuality: AirQualityView | null | undefined;
 }
 
 export function CurrentWeather({ name, country, forecast, airQuality, actions }: Props) {
@@ -29,11 +29,12 @@ export function CurrentWeather({ name, country, forecast, airQuality, actions }:
 
   // In an SPA the browser doesn't announce "new page", so move focus to the heading:
   // screen readers read the new city, and keyboard users continue from here.
+  // Runs on mount only: the page remounts this component for every place (keyed by
+  // coordinates), which also starts each place with the pollutants folded. Keying by
+  // place, not by name, matters for two saved cities with the same name.
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
-    // A new city starts with the details folded.
-    setPollutantsOpen(false);
-  }, [name]);
+  }, []);
 
   return (
     <section className="now" aria-labelledby="now-title">
@@ -76,6 +77,15 @@ export function CurrentWeather({ name, country, forecast, airQuality, actions }:
           <dt>{t.current.wind}</dt>
           <dd>{speed(current.windSpeed, units.windSpeed)}</dd>
         </div>
+        {airQuality === undefined && (
+          // Same slot while loading, so the row does not reflow when the value arrives.
+          <div aria-hidden="true">
+            <dt>{t.current.airQuality}</dt>
+            <dd>
+              <span className="skeleton__block skeleton__inline" />
+            </dd>
+          </div>
+        )}
         {airQuality && (
           <AirQualityItem
             airQuality={airQuality}

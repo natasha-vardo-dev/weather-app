@@ -1,18 +1,32 @@
 import { summarizeAirQuality, type AirQuality, type AirQualitySummary } from '@weather/shared';
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
+import { createQueryCache } from '../api/queryCache';
 
 export interface AirQualityView {
   summary: AirQualitySummary;
   pollutants: AirQuality['pollutants'];
 }
 
+/** Shared across the app, 15 minutes like the API's Cache-Control max-age. */
+const airQualityCache = createQueryCache<AirQuality>({ ttlMs: 15 * 60 * 1000 });
+
+function toView(airQuality: AirQuality | undefined): AirQualityView | null {
+  if (!airQuality) return null;
+  const summary = summarizeAirQuality(airQuality);
+  return summary ? { summary, pollutants: airQuality.pollutants } : null;
+}
+
 /**
- * Air quality for a place, or null while loading, without data, or on error.
+ * Air quality for a place: undefined while loading (the UI keeps the slot so nothing
+ * shifts), null without data or on error, otherwise the view.
  * Errors stay silent on purpose: it is extra information, and the forecast
  * (fetched separately) must not fail or show an error because of it.
  */
-export function useAirQuality(latitude: number | null, longitude: number | null) {
+export function useAirQuality(
+  latitude: number | null,
+  longitude: number | null,
+): AirQualityView | null | undefined {
   const key = latitude === null || longitude === null ? null : `${latitude},${longitude}`;
   const [state, setState] = useState<{ key: string | null; view: AirQualityView | null }>({
     key: null,
@@ -22,22 +36,23 @@ export function useAirQuality(latitude: number | null, longitude: number | null)
   useEffect(() => {
     if (latitude === null || longitude === null) return;
     const requestKey = `${latitude},${longitude}`;
-    const controller = new AbortController();
-    api
-      .getAirQuality(latitude, longitude, controller.signal)
+    let cancelled = false;
+    airQualityCache
+      .load(requestKey, () => api.getAirQuality(latitude, longitude))
       .then((airQuality) => {
-        const summary = summarizeAirQuality(airQuality);
-        setState({
-          key: requestKey,
-          view: summary ? { summary, pollutants: airQuality.pollutants } : null,
-        });
+        if (!cancelled) setState({ key: requestKey, view: toView(airQuality) });
       })
       .catch(() => {
-        if (!controller.signal.aborted) setState({ key: requestKey, view: null });
+        if (!cancelled) setState({ key: requestKey, view: null });
       });
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+    };
   }, [latitude, longitude]);
 
-  // Never show the previous city's value while the new one loads.
-  return state.key === key ? state.view : null;
+  // Never the previous city's value; a cached one is shown at once.
+  if (state.key === key) return state.view;
+  if (!key) return null;
+  const cached = airQualityCache.get(key);
+  return cached ? toView(cached) : undefined;
 }

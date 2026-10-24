@@ -47,8 +47,10 @@ export interface Messages {
   pollutants: { title: string; ozone: string; nitrogenDioxide: string };
   favorites: {
     title: string;
-    /** Button label; the saved state is aria-pressed plus the filled star, not the text. */
+    /** Button label for a city that is not saved yet. */
     save: string;
+    /** Button label for a saved city; pressing it removes the city. */
+    saved: string;
     add: string;
     remove: string;
     full: (max: number) => string;

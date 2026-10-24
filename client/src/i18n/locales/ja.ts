@@ -83,6 +83,7 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
   favorites: {
     title: 'お気に入り',
     save: '保存',
+    saved: '保存済み',
     add: 'お気に入りに追加',
     remove: 'お気に入りから削除',
     full: (n) => `保存できるのは${num(n)}都市までです`,

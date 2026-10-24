@@ -1,9 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 import { CurrentWeather } from '../components/CurrentWeather';
 import { FavoriteButton } from '../components/FavoriteButton';
+import { FavoritesStrip } from '../components/FavoritesStrip';
 import { ForecastList } from '../components/ForecastList';
 import { HourlyForecast } from '../components/HourlyForecast';
+import { WeatherSkeleton } from '../components/WeatherSkeleton';
 import { useAirQuality } from '../hooks/useAirQuality';
 import { useForecast } from '../hooks/useForecast';
 import { usePageMeta } from '../hooks/usePageMeta';
@@ -33,8 +35,9 @@ export function WeatherPage() {
     return <NotFoundPage message={t.notFound.badLink} />;
   }
 
+  let body: ReactNode;
   if (error) {
-    return (
+    body = (
       <div className="message" role="alert">
         <p>{t.errors[error.code]}</p>
         {error.canRetry && (
@@ -44,23 +47,33 @@ export function WeatherPage() {
         )}
       </div>
     );
+  } else if (!current) {
+    body = <WeatherSkeleton place={place.name} />;
+  } else {
+    body = (
+      <div className={loading ? 'content content--stale' : 'content'}>
+        <CurrentWeather
+          // A new place gets a fresh component (focus, folded details), even when the
+          // forecast comes straight from the cache and nothing else would remount it.
+          key={`${place.latitude},${place.longitude}`}
+          name={place.name}
+          country={place.country}
+          forecast={current}
+          airQuality={airQuality}
+          actions={<FavoriteButton place={place} />}
+        />
+        <HourlyForecast hours={current.hourly} />
+        <ForecastList days={current.daily} />
+      </div>
+    );
   }
 
-  if (!current) {
-    return <p className="message">{t.weather.loading(place.name)}</p>;
-  }
-
+  // The strip stays above every state (loading, error, forecast): switching cities
+  // should not have to wait for the current one.
   return (
-    <div className={loading ? 'content content--stale' : 'content'}>
-      <CurrentWeather
-        name={place.name}
-        country={place.country}
-        forecast={current}
-        airQuality={airQuality}
-        actions={<FavoriteButton place={place} />}
-      />
-      <HourlyForecast hours={current.hourly} />
-      <ForecastList days={current.daily} />
-    </div>
+    <>
+      <FavoritesStrip place={place} />
+      {body}
+    </>
   );
 }
