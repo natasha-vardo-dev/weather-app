@@ -47,4 +47,10 @@ describe('GET /api/locations', () => {
     expect(res.status).toBe(200);
     expect(res.body.locations[0].name).toBe('Warsaw');
   });
+
+  it('passes the language to the provider', async () => {
+    const { app, provider } = setup();
+    await request(app).get('/api/locations?q=war&lang=pl');
+    expect(provider.searchLocations).toHaveBeenCalledWith('war', 5, 'pl');
+  });
 });

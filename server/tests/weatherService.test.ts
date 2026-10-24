@@ -22,4 +22,16 @@ describe('WeatherService', () => {
 
     expect(provider.searchLocations).toHaveBeenCalledTimes(1);
   });
+
+  it('keeps separate cache entries per language', async () => {
+    const provider = createFakeProvider();
+    const service = new WeatherService(provider);
+
+    await service.searchLocations('Warsaw', 5, 'en');
+    await service.searchLocations('Warsaw', 5, 'pl');
+    await service.searchLocations('Warsaw', 5, 'pl');
+
+    expect(provider.searchLocations).toHaveBeenCalledTimes(2);
+    expect(provider.searchLocations).toHaveBeenLastCalledWith('Warsaw', 5, 'pl');
+  });
 });

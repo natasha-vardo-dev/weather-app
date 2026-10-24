@@ -49,8 +49,13 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
   }
 
   return {
-    async searchLocations(query: string, signal?: AbortSignal): Promise<Location[]> {
+    async searchLocations(
+      query: string,
+      options: { language?: string; signal?: AbortSignal } = {},
+    ): Promise<Location[]> {
+      const { language, signal } = options;
       const params = new URLSearchParams({ q: query });
+      if (language) params.set('lang', language);
       const data = await request<LocationsResponse>(`/api/locations?${params}`, signal);
       return data.locations;
     },

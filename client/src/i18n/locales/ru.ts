@@ -1,0 +1,81 @@
+import type { MessagesFactory } from '../messages';
+
+export const ru: MessagesFactory = ({ deg, plural }) => ({
+  appName: 'Прогноз погоды',
+  language: 'Язык',
+  dataBy: 'Данные о погоде:',
+  home: {
+    title: 'Какая погода там, куда вы едете?',
+    text: (days) =>
+      `Найдите город, чтобы увидеть текущую погоду и прогноз на ${plural(days, { one: '{n} день', few: '{n} дня', many: '{n} дней', other: '{n} дня' })}.`,
+  },
+  notFound: {
+    pageTitle: 'Не найдено',
+    title: 'Здесь ничего нет',
+    pageMissing: 'Такой страницы не существует.',
+    badLink: 'Эта ссылка не ведёт к корректному месту.',
+    goHome: 'Перейти на главную',
+    orSearch: 'или найдите город выше.',
+  },
+  search: {
+    label: 'Поиск города',
+    searching: 'Ищу…',
+    noResults: (q) => `Нет городов, подходящих под «${q}». Проверьте написание.`,
+  },
+  weather: { loading: (place) => `Загружаю прогноз: ${place}…`, tryAgain: 'Попробовать снова' },
+  current: {
+    degrees: (n) =>
+      plural(n, { one: '{n} градус', few: '{n} градуса', many: '{n} градусов', other: '{n} градуса' }),
+    highLow: (h, l) => `Макс. ${deg(h)}, мин. ${deg(l)}`,
+    warmer: (n) => `На ${deg(n)} теплее, чем вчера`,
+    cooler: (n) => `На ${deg(n)} холоднее, чем вчера`,
+    same: 'Примерно как вчера',
+    feelsLike: 'Ощущается как',
+    humidity: 'Влажность',
+    wind: 'Ветер',
+  },
+  hourly: {
+    title: (n) =>
+      plural(n, {
+        one: 'Ближайший {n} час',
+        few: 'Ближайшие {n} часа',
+        many: 'Ближайшие {n} часов',
+        other: 'Ближайшие {n} часа',
+      }),
+    now: 'Сейчас',
+    rainChance: (pct) => `Вероятность дождя ${pct}`,
+  },
+  daily: {
+    title: (n) =>
+      plural(n, {
+        one: 'Ближайший {n} день',
+        few: 'Ближайшие {n} дня',
+        many: 'Ближайшие {n} дней',
+        other: 'Ближайшие {n} дня',
+      }),
+    today: 'Сегодня',
+    yesterday: 'Вчера',
+    rain: (pct) => `дождь ${pct}`,
+  },
+  conditions: {
+    'clear-sky': 'Ясно',
+    'mostly-clear': 'Преимущественно ясно',
+    'partly-cloudy': 'Переменная облачность',
+    overcast: 'Пасмурно',
+    fog: 'Туман',
+    drizzle: 'Морось',
+    rain: 'Дождь',
+    snow: 'Снег',
+    'rain-showers': 'Ливень',
+    'snow-showers': 'Снегопад',
+    thunderstorm: 'Гроза',
+    unknown: 'Неизвестно',
+  },
+  errors: {
+    INVALID_REQUEST: 'Некорректный запрос. Проверьте адрес и попробуйте снова.',
+    PROVIDER_ERROR: 'Сервис погоды не отвечает. Попробуйте чуть позже.',
+    NOT_FOUND: 'Ничего не найдено.',
+    INTERNAL: 'Что-то пошло не так. Попробуйте снова.',
+    NETWORK_ERROR: 'Нет связи с сервером. Проверьте интернет и попробуйте снова.',
+  },
+});

@@ -41,6 +41,16 @@ Weather icons are a small hand-drawn set of filled two-colour SVGs (`WeatherIcon
 Because the browser doesn't treat SPA navigation as a new page, the app updates `document.title` itself and moves focus to the place heading for screen reader and keyboard users.
 Data fetching lives in hooks (`useLocationSearch`, `useForecast`) with debouncing and request cancellation.
 
+## Languages
+
+- **Default:** the first of `navigator.languages` the app supports (matched by base language, so `de-AT` picks German), otherwise English. An explicit choice in the switcher is saved in `localStorage` and wins next time.
+- **Translations** live in `client/src/i18n/locales/`, one typed file per language (19 bundled, ~15 KB gzip in total). The `Messages` type makes a missing key a compile error. No i18n library: plurals use `Intl.PluralRules`, everything else is plain functions. With many more languages or translators working in a TMS, `i18next`/`FormatJS` with lazy-loaded JSON would be the next step.
+- **No string translation for numbers and dates:** weekdays, clock time (12/24-hour by locale), percent and wind units come from `Intl`, so they are right for every locale, not only the translated ones.
+- **The API stays language-neutral:** it returns condition keys (`partly-cloudy`) and error codes, and the client translates them. Only place search takes `lang`, because Open-Meteo returns city, region and country names in that language; `lang` is part of the search cache key.
+- **One digit system per screen:** every number, including temperatures and the `{n}` in plurals, goes through `Intl.NumberFormat` for the user's full locale. Language files are functions of the formatters (`MessagesFactory`), because digits depend on the locale, not the language: `ar-EG` shows `١٤°`, plain `ar` shows `14°`. In right-to-left languages a temperature is wrapped in a bidi isolate (U+2066…U+2069): otherwise the degree sign drifts to the left of Arabic-Indic digits.
+- **Right-to-left:** `<html dir>` is set for Arabic and Hebrew; CSS uses logical alignment (`text-align: end`), and each day's low, bar and high stay one left-to-right block, so the cold-to-warm bar matches its labels.
+- **Known limitation:** the place name in the URL is stored in the language it was searched in, and the provider has no reverse geocoding, so switching language does not rename an open city.
+
 ## Alternatives considered
 
 - Next.js full-stack: simpler deploy, but blurs the client/server boundary
@@ -51,7 +61,7 @@ Data fetching lives in hooks (`useLocationSearch`, `useForecast`) with debouncin
 
 `packages/shared` (`@weather/shared`) is used by the server and the web client, and is ready for a future mobile app.
 
-Included: API types, error codes and error body shape, Zod schemas for request parameters, limits and defaults, weather helpers (`describeWeather`, which returns a label and an icon kind such as `partly-cloudy`, `rangePosition`, `formatDay`, `formatHour`, `compareWithYesterday`) and an environment-neutral API client created with `createApiClient({ baseUrl })`.
+Included: API types, error codes and error body shape, Zod schemas for request parameters, limits and defaults, weather helpers (`describeWeather`, which returns a condition key and an icon kind such as `partly-cloudy`, `rangePosition`, `formatDay`, `formatHour`, `compareWithYesterday`) language helpers (`matchLanguage`, `isRtl`) and an environment-neutral API client created with `createApiClient({ baseUrl })`.
 
 Excluded on purpose: the `WeatherProvider` interface, Open-Meteo response types, cache and services (server internals), React components, hooks and CSS (client-specific), environment configuration.
 

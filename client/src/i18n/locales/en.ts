@@ -1,0 +1,67 @@
+import type { MessagesFactory } from '../messages';
+
+export const en: MessagesFactory = ({ num, deg, plural }) => ({
+  appName: 'Weather forecast',
+  language: 'Language',
+  dataBy: 'Weather data by',
+  home: {
+    title: "What's the weather where you're going?",
+    text: (days) => `Search for a city to see the current conditions and a ${num(days)}-day forecast.`,
+  },
+  notFound: {
+    pageTitle: 'Not found',
+    title: 'Nothing here',
+    pageMissing: "This page doesn't exist.",
+    badLink: "This link doesn't point to a valid location.",
+    goHome: 'Go to the start page',
+    orSearch: 'or search for a city above.',
+  },
+  search: {
+    label: 'Search for a city',
+    searching: 'Searching…',
+    noResults: (q) => `No cities match “${q}”. Check the spelling.`,
+  },
+  weather: { loading: (place) => `Loading forecast for ${place}…`, tryAgain: 'Try again' },
+  current: {
+    degrees: (n) => plural(n, { one: '{n} degree', other: '{n} degrees' }),
+    highLow: (h, l) => `High ${deg(h)}, low ${deg(l)}`,
+    warmer: (n) => `${deg(n)} warmer than yesterday`,
+    cooler: (n) => `${deg(n)} cooler than yesterday`,
+    same: 'About the same as yesterday',
+    feelsLike: 'Feels like',
+    humidity: 'Humidity',
+    wind: 'Wind',
+  },
+  hourly: {
+    title: (n) => plural(n, { one: 'Next hour', other: 'Next {n} hours' }),
+    now: 'Now',
+    rainChance: (pct) => `${pct} chance of rain`,
+  },
+  daily: {
+    title: (n) => plural(n, { one: 'Next day', other: 'Next {n} days' }),
+    today: 'Today',
+    yesterday: 'Yesterday',
+    rain: (pct) => `${pct} rain`,
+  },
+  conditions: {
+    'clear-sky': 'Clear sky',
+    'mostly-clear': 'Mostly clear',
+    'partly-cloudy': 'Partly cloudy',
+    overcast: 'Overcast',
+    fog: 'Fog',
+    drizzle: 'Drizzle',
+    rain: 'Rain',
+    snow: 'Snow',
+    'rain-showers': 'Rain showers',
+    'snow-showers': 'Snow showers',
+    thunderstorm: 'Thunderstorm',
+    unknown: 'Unknown',
+  },
+  errors: {
+    INVALID_REQUEST: "That request doesn't look right. Check the address and try again.",
+    PROVIDER_ERROR: "The weather service isn't responding. Try again in a moment.",
+    NOT_FOUND: 'Nothing found.',
+    INTERNAL: 'Something went wrong. Try again.',
+    NETWORK_ERROR: 'No connection to the server. Check your internet and try again.',
+  },
+});

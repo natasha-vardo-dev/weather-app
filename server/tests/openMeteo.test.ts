@@ -69,12 +69,14 @@ describe('OpenMeteoProvider', () => {
   it('returns an empty list when no city is found', async () => {
     const fetchFn = vi.fn(async () => jsonResponse({}));
     const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
-    expect(await provider.searchLocations('zzzz', 5)).toEqual([]);
+    expect(await provider.searchLocations('zzzz', 5, 'pl')).toEqual([]);
+    const url = new URL(String((fetchFn.mock.calls[0] as unknown[])[0]));
+    expect(url.searchParams.get('language')).toBe('pl');
   });
 
   it('throws ProviderError on a failed response', async () => {
     const fetchFn = vi.fn(async () => jsonResponse({ error: true }, 500));
     const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
-    await expect(provider.searchLocations('Warsaw', 5)).rejects.toBeInstanceOf(ProviderError);
+    await expect(provider.searchLocations('Warsaw', 5, 'en')).rejects.toBeInstanceOf(ProviderError);
   });
 });

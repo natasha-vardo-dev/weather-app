@@ -11,6 +11,7 @@ A web application that shows the current weather and a 10-day forecast for a sel
 - Current conditions: temperature, feels like, humidity, wind
 - 10-day forecast with temperature range bars and rain probability
 - Loading, empty and error states with retry
+- 19 interface languages, picked from the system language by default, with a switcher; dates, times, numbers and units follow the locale; right-to-left layout for Arabic and Hebrew
 - Responsive layout, light/dark mode, accessible combobox
 
 ## Tech stack
@@ -84,7 +85,8 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 
 - [No user accounts needed]
 - [10 days of forecast is enough: beyond that Open-Meteo still returns data (up to 16 days), but accuracy drops sharply]
-- [English UI, metric units]
+- [Metric units only]
+- [UI translations for 19 languages are machine-quality drafts: they need a review by native speakers before a real release]
 
 ## Trade-offs and decisions
 

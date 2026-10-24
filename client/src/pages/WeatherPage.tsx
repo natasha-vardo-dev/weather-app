@@ -5,10 +5,12 @@ import { ForecastList } from '../components/ForecastList';
 import { HourlyForecast } from '../components/HourlyForecast';
 import { useForecast } from '../hooks/useForecast';
 import { usePageMeta } from '../hooks/usePageMeta';
+import { useI18n } from '../i18n/I18nProvider';
 import { parsePlace } from '../locationUrl';
 import { NotFoundPage } from './NotFoundPage';
 
 export function WeatherPage() {
+  const { t } = useI18n();
   const { coords } = useParams();
   const [searchParams] = useSearchParams();
   const place = useMemo(() => parsePlace(coords, searchParams), [coords, searchParams]);
@@ -23,16 +25,16 @@ export function WeatherPage() {
   usePageMeta(place?.name ?? null);
 
   if (!place) {
-    return <NotFoundPage message="This link doesn't point to a valid location." />;
+    return <NotFoundPage message={t.notFound.badLink} />;
   }
 
   if (error) {
     return (
       <div className="message" role="alert">
-        <p>{error.message}</p>
+        <p>{t.errors[error.code]}</p>
         {error.canRetry && (
           <button type="button" onClick={retry}>
-            Try again
+            {t.weather.tryAgain}
           </button>
         )}
       </div>
@@ -40,7 +42,7 @@ export function WeatherPage() {
   }
 
   if (!current) {
-    return <p className="message">Loading forecast for {place.name}…</p>;
+    return <p className="message">{t.weather.loading(place.name)}</p>;
   }
 
   return (

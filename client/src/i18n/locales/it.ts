@@ -1,0 +1,67 @@
+import type { MessagesFactory } from '../messages';
+
+export const it: MessagesFactory = ({ num, deg, plural }) => ({
+  appName: 'Previsioni meteo',
+  language: 'Lingua',
+  dataBy: 'Dati meteo di',
+  home: {
+    title: 'Che tempo fa dove stai andando?',
+    text: (days) => `Cerca una città per vedere il meteo attuale e le previsioni a ${num(days)} giorni.`,
+  },
+  notFound: {
+    pageTitle: 'Non trovato',
+    title: "Qui non c'è niente",
+    pageMissing: 'Questa pagina non esiste.',
+    badLink: 'Questo link non porta a un luogo valido.',
+    goHome: 'Vai alla pagina iniziale',
+    orSearch: 'oppure cerca una città qui sopra.',
+  },
+  search: {
+    label: 'Cerca una città',
+    searching: 'Ricerca in corso…',
+    noResults: (q) => `Nessuna città corrisponde a «${q}». Controlla l'ortografia.`,
+  },
+  weather: { loading: (place) => `Caricamento delle previsioni per ${place}…`, tryAgain: 'Riprova' },
+  current: {
+    degrees: (n) => plural(n, { one: '{n} grado', other: '{n} gradi' }),
+    highLow: (h, l) => `Max ${deg(h)}, min ${deg(l)}`,
+    warmer: (n) => `${deg(n)} in più di ieri`,
+    cooler: (n) => `${deg(n)} in meno di ieri`,
+    same: 'Più o meno come ieri',
+    feelsLike: 'Percepita',
+    humidity: 'Umidità',
+    wind: 'Vento',
+  },
+  hourly: {
+    title: (n) => plural(n, { one: 'Prossima ora', other: 'Prossime {n} ore' }),
+    now: 'Ora',
+    rainChance: (pct) => `${pct} di probabilità di pioggia`,
+  },
+  daily: {
+    title: (n) => plural(n, { one: 'Prossimo giorno', other: 'Prossimi {n} giorni' }),
+    today: 'Oggi',
+    yesterday: 'Ieri',
+    rain: (pct) => `pioggia ${pct}`,
+  },
+  conditions: {
+    'clear-sky': 'Sereno',
+    'mostly-clear': 'Prevalentemente sereno',
+    'partly-cloudy': 'Parzialmente nuvoloso',
+    overcast: 'Coperto',
+    fog: 'Nebbia',
+    drizzle: 'Pioviggine',
+    rain: 'Pioggia',
+    snow: 'Neve',
+    'rain-showers': 'Rovesci',
+    'snow-showers': 'Rovesci di neve',
+    thunderstorm: 'Temporale',
+    unknown: 'Sconosciuto',
+  },
+  errors: {
+    INVALID_REQUEST: "La richiesta non è valida. Controlla l'indirizzo e riprova.",
+    PROVIDER_ERROR: 'Il servizio meteo non risponde. Riprova tra un momento.',
+    NOT_FOUND: 'Nessun risultato.',
+    INTERNAL: 'Qualcosa è andato storto. Riprova.',
+    NETWORK_ERROR: 'Nessuna connessione al server. Controlla la connessione a internet e riprova.',
+  },
+});

@@ -18,6 +18,12 @@ describe('forecastQuerySchema', () => {
 });
 
 describe('locationsQuerySchema', () => {
+  it('defaults the place-name language to English and normalises it', () => {
+    expect(locationsQuerySchema.parse({ q: 'Warsaw' }).lang).toBe('en');
+    expect(locationsQuerySchema.parse({ q: 'Warsaw', lang: 'PL' }).lang).toBe('pl');
+    expect(locationsQuerySchema.safeParse({ q: 'Warsaw', lang: 'pl-PL' }).success).toBe(false);
+  });
+
   it('trims the query and requires 2+ characters', () => {
     expect(locationsQuerySchema.parse({ q: '  wa ' }).q).toBe('wa');
     expect(locationsQuerySchema.safeParse({ q: ' w ' }).success).toBe(false);

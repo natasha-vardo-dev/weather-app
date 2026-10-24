@@ -90,6 +90,21 @@ body {
 
 .page__footer a { color: inherit; }
 
+/* Header: search and language */
+.page__header { display: flex; gap: 0.75rem; align-items: stretch; }
+.page__header > .search { flex: 1; min-width: 0; }
+
+.language select {
+  height: 100%;
+  font: inherit;
+  padding: 0 0.75rem;
+  border: 1px solid var(--field-line);
+  border-radius: 0.75rem;
+  background: var(--field);
+  color: var(--field-ink);
+  cursor: pointer;
+}
+
 /* Search */
 .search { position: relative; }
 
@@ -133,7 +148,7 @@ body {
 .search__option[aria-selected='true'] { background: var(--field-active); }
 
 .search__name { font-weight: 500; }
-.search__meta { color: var(--field-ink-soft); text-align: right; }
+.search__meta { color: var(--field-ink-soft); text-align: end; }
 
 .search__hint { padding: 0.6rem 0.75rem; color: var(--field-ink-soft); }
 .search__hint--error { color: var(--field-danger); }
@@ -264,7 +279,7 @@ body {
 
 .day {
   display: grid;
-  grid-template-columns: 3.5rem 1.5rem 1fr 2.5rem minmax(5rem, 9rem) 2.5rem;
+  grid-template-columns: 3.5rem 1.5rem 1fr auto;
   align-items: center;
   gap: 0.75rem;
   padding: 0.7rem 0;
@@ -275,7 +290,19 @@ body {
 .day__name { font-weight: 500; }
 .day__label { color: var(--ink-soft); }
 .day__rain { color: var(--rain); font-weight: 500; }
-.day__min { text-align: right; color: var(--ink-soft); }
+.day__min { text-align: end; color: var(--ink-soft); }
+
+/*
+ * A temperature scale reads cold-to-warm left to right in every language, so low,
+ * bar and high form one left-to-right block; the rest of the row mirrors in RTL.
+ */
+.day__temps {
+  direction: ltr;
+  display: grid;
+  grid-template-columns: 2.5rem minmax(5rem, 9rem) 2.5rem;
+  align-items: center;
+  gap: 0.75rem;
+}
 
 .day__bar {
   position: relative;
@@ -294,9 +321,10 @@ body {
 
 @media (max-width: 30rem) {
   .day {
-    grid-template-columns: 3rem 1.5rem 1fr 2rem 2rem;
+    grid-template-columns: 3rem 1.5rem 1fr auto;
     row-gap: 0.25rem;
   }
+  .day__temps { grid-template-columns: 2rem 2rem; }
   .day__bar { display: none; }
 }
 

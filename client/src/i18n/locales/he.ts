@@ -1,0 +1,67 @@
+import type { MessagesFactory } from '../messages';
+
+export const he: MessagesFactory = ({ num, deg, plural }) => ({
+  appName: 'תחזית מזג אוויר',
+  language: 'שפה',
+  dataBy: 'נתוני מזג אוויר:',
+  home: {
+    title: 'איך יהיה מזג האוויר לאן שאתם נוסעים?',
+    text: (days) => `חפשו עיר כדי לראות את מזג האוויר הנוכחי ותחזית ל־${num(days)} ימים.`,
+  },
+  notFound: {
+    pageTitle: 'לא נמצא',
+    title: 'אין כאן כלום',
+    pageMissing: 'הדף הזה לא קיים.',
+    badLink: 'הקישור הזה לא מוביל למיקום תקין.',
+    goHome: 'מעבר לדף הבית',
+    orSearch: 'או חפשו עיר למעלה.',
+  },
+  search: {
+    label: 'חיפוש עיר',
+    searching: 'מחפש…',
+    noResults: (q) => `אין עיר שתואמת ל„${q}”. בדקו את האיות.`,
+  },
+  weather: { loading: (place) => `טוען תחזית עבור ${place}…`, tryAgain: 'ניסיון נוסף' },
+  current: {
+    degrees: (n) => plural(n, { one: 'מעלה אחת', two: 'שתי מעלות', other: '{n} מעלות' }),
+    highLow: (h, l) => `מקסימום ${deg(h)}, מינימום ${deg(l)}`,
+    warmer: (n) => `חם ב־${deg(n)} מאתמול`,
+    cooler: (n) => `קר ב־${deg(n)} מאתמול`,
+    same: 'בערך כמו אתמול',
+    feelsLike: 'מורגש כמו',
+    humidity: 'לחות',
+    wind: 'רוח',
+  },
+  hourly: {
+    title: (n) => plural(n, { one: 'השעה הקרובה', two: 'השעתיים הקרובות', other: '{n} השעות הקרובות' }),
+    now: 'עכשיו',
+    rainChance: (pct) => `סיכוי לגשם ${pct}`,
+  },
+  daily: {
+    title: (n) => plural(n, { one: 'היום הקרוב', two: 'היומיים הקרובים', other: '{n} הימים הקרובים' }),
+    today: 'היום',
+    yesterday: 'אתמול',
+    rain: (pct) => `גשם ${pct}`,
+  },
+  conditions: {
+    'clear-sky': 'שמיים בהירים',
+    'mostly-clear': 'בהיר ברובו',
+    'partly-cloudy': 'מעונן חלקית',
+    overcast: 'מעונן',
+    fog: 'ערפל',
+    drizzle: 'טפטוף',
+    rain: 'גשם',
+    snow: 'שלג',
+    'rain-showers': 'ממטרים',
+    'snow-showers': 'ממטרי שלג',
+    thunderstorm: 'סופת רעמים',
+    unknown: 'לא ידוע',
+  },
+  errors: {
+    INVALID_REQUEST: 'הבקשה אינה תקינה. בדקו את הכתובת ונסו שוב.',
+    PROVIDER_ERROR: 'שירות מזג האוויר לא מגיב. נסו שוב בעוד רגע.',
+    NOT_FOUND: 'לא נמצא דבר.',
+    INTERNAL: 'משהו השתבש. נסו שוב.',
+    NETWORK_ERROR: 'אין חיבור לשרת. בדקו את החיבור לאינטרנט ונסו שוב.',
+  },
+});

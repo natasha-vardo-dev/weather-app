@@ -1,0 +1,68 @@
+import type { MessagesFactory } from '../messages';
+
+export const de: MessagesFactory = ({ num, deg, plural }) => ({
+  appName: 'Wettervorhersage',
+  language: 'Sprache',
+  dataBy: 'Wetterdaten von',
+  home: {
+    title: 'Wie wird das Wetter dort, wo du hinwillst?',
+    text: (days) =>
+      `Suche nach einer Stadt, um das aktuelle Wetter und die Vorhersage für ${num(days)} Tage zu sehen.`,
+  },
+  notFound: {
+    pageTitle: 'Nicht gefunden',
+    title: 'Hier ist nichts',
+    pageMissing: 'Diese Seite gibt es nicht.',
+    badLink: 'Dieser Link führt zu keinem gültigen Ort.',
+    goHome: 'Zur Startseite',
+    orSearch: 'oder oben nach einer Stadt suchen.',
+  },
+  search: {
+    label: 'Stadt suchen',
+    searching: 'Suche läuft…',
+    noResults: (q) => `Keine Stadt passt zu „${q}“. Prüfe die Schreibweise.`,
+  },
+  weather: { loading: (place) => `Vorhersage für ${place} wird geladen…`, tryAgain: 'Erneut versuchen' },
+  current: {
+    degrees: (n) => `${num(n)} Grad`,
+    highLow: (h, l) => `Höchstwert ${deg(h)}, Tiefstwert ${deg(l)}`,
+    warmer: (n) => `${deg(n)} wärmer als gestern`,
+    cooler: (n) => `${deg(n)} kälter als gestern`,
+    same: 'Etwa wie gestern',
+    feelsLike: 'Gefühlt',
+    humidity: 'Luftfeuchtigkeit',
+    wind: 'Wind',
+  },
+  hourly: {
+    title: (n) => plural(n, { one: 'Nächste Stunde', other: 'Nächste {n} Stunden' }),
+    now: 'Jetzt',
+    rainChance: (pct) => `Regenwahrscheinlichkeit ${pct}`,
+  },
+  daily: {
+    title: (n) => plural(n, { one: 'Nächster Tag', other: 'Nächste {n} Tage' }),
+    today: 'Heute',
+    yesterday: 'Gestern',
+    rain: (pct) => `${pct} Regen`,
+  },
+  conditions: {
+    'clear-sky': 'Klar',
+    'mostly-clear': 'Überwiegend klar',
+    'partly-cloudy': 'Teilweise bewölkt',
+    overcast: 'Bedeckt',
+    fog: 'Nebel',
+    drizzle: 'Nieselregen',
+    rain: 'Regen',
+    snow: 'Schnee',
+    'rain-showers': 'Regenschauer',
+    'snow-showers': 'Schneeschauer',
+    thunderstorm: 'Gewitter',
+    unknown: 'Unbekannt',
+  },
+  errors: {
+    INVALID_REQUEST: 'Die Anfrage ist ungültig. Prüfe die Adresse und versuche es erneut.',
+    PROVIDER_ERROR: 'Der Wetterdienst antwortet nicht. Versuche es gleich noch einmal.',
+    NOT_FOUND: 'Nichts gefunden.',
+    INTERNAL: 'Etwas ist schiefgelaufen. Versuche es erneut.',
+    NETWORK_ERROR: 'Keine Verbindung zum Server. Prüfe deine Internetverbindung und versuche es erneut.',
+  },
+});

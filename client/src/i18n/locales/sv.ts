@@ -1,0 +1,67 @@
+import type { MessagesFactory } from '../messages';
+
+export const sv: MessagesFactory = ({ num, deg, plural }) => ({
+  appName: 'Väderprognos',
+  language: 'Språk',
+  dataBy: 'Väderdata från',
+  home: {
+    title: 'Hur blir vädret dit du ska?',
+    text: (days) => `Sök efter en stad för att se aktuellt väder och prognosen för ${num(days)} dagar.`,
+  },
+  notFound: {
+    pageTitle: 'Hittades inte',
+    title: 'Här finns inget',
+    pageMissing: 'Den här sidan finns inte.',
+    badLink: 'Den här länken leder inte till en giltig plats.',
+    goHome: 'Gå till startsidan',
+    orSearch: 'eller sök efter en stad ovan.',
+  },
+  search: {
+    label: 'Sök efter en stad',
+    searching: 'Söker…',
+    noResults: (q) => `Ingen stad matchar ”${q}”. Kontrollera stavningen.`,
+  },
+  weather: { loading: (place) => `Laddar prognos för ${place}…`, tryAgain: 'Försök igen' },
+  current: {
+    degrees: (n) => plural(n, { one: '{n} grad', other: '{n} grader' }),
+    highLow: (h, l) => `Högst ${deg(h)}, lägst ${deg(l)}`,
+    warmer: (n) => `${deg(n)} varmare än i går`,
+    cooler: (n) => `${deg(n)} kallare än i går`,
+    same: 'Ungefär som i går',
+    feelsLike: 'Känns som',
+    humidity: 'Luftfuktighet',
+    wind: 'Vind',
+  },
+  hourly: {
+    title: (n) => plural(n, { one: 'Nästa timme', other: 'Kommande {n} timmar' }),
+    now: 'Nu',
+    rainChance: (pct) => `${pct} risk för regn`,
+  },
+  daily: {
+    title: (n) => plural(n, { one: 'Nästa dag', other: 'Kommande {n} dagar' }),
+    today: 'I dag',
+    yesterday: 'I går',
+    rain: (pct) => `${pct} regn`,
+  },
+  conditions: {
+    'clear-sky': 'Klart',
+    'mostly-clear': 'Mestadels klart',
+    'partly-cloudy': 'Växlande molnighet',
+    overcast: 'Mulet',
+    fog: 'Dimma',
+    drizzle: 'Duggregn',
+    rain: 'Regn',
+    snow: 'Snö',
+    'rain-showers': 'Regnskurar',
+    'snow-showers': 'Snöbyar',
+    thunderstorm: 'Åska',
+    unknown: 'Okänt',
+  },
+  errors: {
+    INVALID_REQUEST: 'Begäran är ogiltig. Kontrollera adressen och försök igen.',
+    PROVIDER_ERROR: 'Vädertjänsten svarar inte. Försök igen om en stund.',
+    NOT_FOUND: 'Inget hittades.',
+    INTERNAL: 'Något gick fel. Försök igen.',
+    NETWORK_ERROR: 'Ingen anslutning till servern. Kontrollera internetanslutningen och försök igen.',
+  },
+});

@@ -1,0 +1,67 @@
+import type { MessagesFactory } from '../messages';
+
+export const hi: MessagesFactory = ({ num, deg, plural }) => ({
+  appName: 'मौसम का पूर्वानुमान',
+  language: 'भाषा',
+  dataBy: 'मौसम डेटा:',
+  home: {
+    title: 'आप जहाँ जा रहे हैं, वहाँ मौसम कैसा है?',
+    text: (days) => `मौजूदा मौसम और ${num(days)} दिन का पूर्वानुमान देखने के लिए कोई शहर खोजें।`,
+  },
+  notFound: {
+    pageTitle: 'नहीं मिला',
+    title: 'यहाँ कुछ नहीं है',
+    pageMissing: 'यह पेज मौजूद नहीं है।',
+    badLink: 'यह लिंक किसी मान्य स्थान पर नहीं ले जाता।',
+    goHome: 'शुरुआती पेज पर जाएँ',
+    orSearch: 'या ऊपर कोई शहर खोजें।',
+  },
+  search: {
+    label: 'शहर खोजें',
+    searching: 'खोज रहे हैं…',
+    noResults: (q) => `“${q}” से मेल खाता कोई शहर नहीं मिला। वर्तनी जाँचें।`,
+  },
+  weather: { loading: (place) => `${place} का पूर्वानुमान लोड हो रहा है…`, tryAgain: 'फिर से कोशिश करें' },
+  current: {
+    degrees: (n) => `${num(n)} डिग्री`,
+    highLow: (h, l) => `अधिकतम ${deg(h)}, न्यूनतम ${deg(l)}`,
+    warmer: (n) => `कल से ${deg(n)} ज़्यादा गर्म`,
+    cooler: (n) => `कल से ${deg(n)} ज़्यादा ठंडा`,
+    same: 'लगभग कल जैसा',
+    feelsLike: 'महसूस होता है',
+    humidity: 'नमी',
+    wind: 'हवा',
+  },
+  hourly: {
+    title: (n) => plural(n, { one: 'अगला {n} घंटा', other: 'अगले {n} घंटे' }),
+    now: 'अभी',
+    rainChance: (pct) => `बारिश की संभावना ${pct}`,
+  },
+  daily: {
+    title: (n) => plural(n, { one: 'अगला {n} दिन', other: 'अगले {n} दिन' }),
+    today: 'आज',
+    yesterday: 'बीता कल',
+    rain: (pct) => `बारिश ${pct}`,
+  },
+  conditions: {
+    'clear-sky': 'साफ़ आसमान',
+    'mostly-clear': 'ज़्यादातर साफ़',
+    'partly-cloudy': 'आंशिक रूप से बादल',
+    overcast: 'घने बादल',
+    fog: 'कोहरा',
+    drizzle: 'बूंदाबांदी',
+    rain: 'बारिश',
+    snow: 'बर्फ़बारी',
+    'rain-showers': 'बौछारें',
+    'snow-showers': 'बर्फ़ की बौछारें',
+    thunderstorm: 'आंधी-तूफ़ान',
+    unknown: 'अज्ञात',
+  },
+  errors: {
+    INVALID_REQUEST: 'अनुरोध मान्य नहीं है। पता जाँचें और फिर से कोशिश करें।',
+    PROVIDER_ERROR: 'मौसम सेवा जवाब नहीं दे रही है। थोड़ी देर में फिर से कोशिश करें।',
+    NOT_FOUND: 'कुछ नहीं मिला।',
+    INTERNAL: 'कुछ गड़बड़ हो गई। फिर से कोशिश करें।',
+    NETWORK_ERROR: 'सर्वर से कनेक्शन नहीं है। इंटरनेट जाँचें और फिर से कोशिश करें।',
+  },
+});

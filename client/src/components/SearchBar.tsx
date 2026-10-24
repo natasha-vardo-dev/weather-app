@@ -1,6 +1,7 @@
 import { SEARCH_MIN_LENGTH, type Location } from '@weather/shared';
 import { useId, useState, type KeyboardEvent } from 'react';
 import { useLocationSearch } from '../hooks/useLocationSearch';
+import { useI18n } from '../i18n/I18nProvider';
 
 interface Props {
   onSelect: (location: Location) => void;
@@ -14,7 +15,8 @@ export function SearchBar({ onSelect }: Props) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
-  const { results, loading, error, searchedFor } = useLocationSearch(query);
+  const { t, language } = useI18n();
+  const { results, loading, error, searchedFor } = useLocationSearch(query, language);
   const listId = useId();
 
   const showList = open && searchedFor.length >= SEARCH_MIN_LENGTH;
@@ -44,12 +46,12 @@ export function SearchBar({ onSelect }: Props) {
   return (
     <div className="search">
       <label htmlFor="city-search" className="visually-hidden">
-        Search for a city
+        {t.search.label}
       </label>
       <input
         id="city-search"
         type="search"
-        placeholder="Search for a city"
+        placeholder={t.search.label}
         autoComplete="off"
         value={query}
         role="combobox"
@@ -67,10 +69,10 @@ export function SearchBar({ onSelect }: Props) {
       />
       {showList && (
         <ul id={listId} role="listbox" className="search__list">
-          {loading && results.length === 0 && <li className="search__hint">Searching…</li>}
-          {error && <li className="search__hint search__hint--error">{error}</li>}
+          {loading && results.length === 0 && <li className="search__hint">{t.search.searching}</li>}
+          {error && <li className="search__hint search__hint--error">{t.errors[error]}</li>}
           {!loading && !error && results.length === 0 && (
-            <li className="search__hint">No cities match “{searchedFor}”. Check the spelling.</li>
+            <li className="search__hint">{t.search.noResults(searchedFor)}</li>
           )}
           {results.map((location, i) => (
             <li

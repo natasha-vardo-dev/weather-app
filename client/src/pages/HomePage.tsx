@@ -1,12 +1,15 @@
+import { FORECAST_DEFAULT_DAYS } from '@weather/shared';
 import { usePageMeta } from '../hooks/usePageMeta';
+import { useI18n } from '../i18n/I18nProvider';
 
 export function HomePage() {
   usePageMeta(null);
+  const { t } = useI18n();
 
   return (
     <div className="empty">
-      <h1 className="empty__title">What's the weather where you're going?</h1>
-      <p className="empty__text">Search for a city to see the current conditions and a 10-day forecast.</p>
+      <h1 className="empty__title">{t.home.title}</h1>
+      <p className="empty__text">{t.home.text(FORECAST_DEFAULT_DAYS)}</p>
     </div>
   );
 }
