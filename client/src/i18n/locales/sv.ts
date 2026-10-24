@@ -79,6 +79,13 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
     ozone: 'Ozon',
     nitrogenDioxide: 'Kvävedioxid',
   },
+  favorites: {
+    title: 'Favoriter',
+    save: 'Spara',
+    add: 'Lägg till i favoriter',
+    remove: 'Ta bort från favoriter',
+    full: (n) => `Du kan spara upp till ${num(n)} städer`,
+  },
   errors: {
     INVALID_REQUEST: 'Begäran är ogiltig. Kontrollera adressen och försök igen.',
     PROVIDER_ERROR: 'Vädertjänsten svarar inte. Försök igen om en stund.',

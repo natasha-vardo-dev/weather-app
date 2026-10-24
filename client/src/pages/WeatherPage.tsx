@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 import { CurrentWeather } from '../components/CurrentWeather';
+import { FavoriteButton } from '../components/FavoriteButton';
 import { ForecastList } from '../components/ForecastList';
 import { HourlyForecast } from '../components/HourlyForecast';
 import { useAirQuality } from '../hooks/useAirQuality';
@@ -56,6 +57,7 @@ export function WeatherPage() {
         country={place.country}
         forecast={current}
         airQuality={airQuality}
+        actions={<FavoriteButton place={place} />}
       />
       <HourlyForecast hours={current.hourly} />
       <ForecastList days={current.daily} />

@@ -88,6 +88,13 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     ozone: 'Ozon',
     nitrogenDioxide: 'Oxid dusičitý',
   },
+  favorites: {
+    title: 'Oblíbené',
+    save: 'Uložit',
+    add: 'Přidat do oblíbených',
+    remove: 'Odebrat z oblíbených',
+    full: (n) => `Můžete uložit až ${plural(n, { one: '{n} město', few: '{n} města', other: '{n} měst' })}`,
+  },
   errors: {
     INVALID_REQUEST: 'Neplatný požadavek. Zkontrolujte adresu a zkuste to znovu.',
     PROVIDER_ERROR: 'Služba počasí neodpovídá. Zkuste to za chvíli znovu.',

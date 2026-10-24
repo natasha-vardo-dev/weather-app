@@ -80,6 +80,13 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
     ozone: '臭氧',
     nitrogenDioxide: '二氧化氮',
   },
+  favorites: {
+    title: '收藏的城市',
+    save: '收藏',
+    add: '添加到收藏',
+    remove: '从收藏中移除',
+    full: (n) => `最多可收藏${num(n)}个城市`,
+  },
   errors: {
     INVALID_REQUEST: '请求无效。请检查地址后重试。',
     PROVIDER_ERROR: '天气服务没有响应。请稍后重试。',

@@ -45,6 +45,14 @@ export interface Messages {
   airQualityScales: Record<AirQualitySummary['scale'], string>;
   /** Names spoken by screen readers; the screen shows formulas (O₃, NO₂). */
   pollutants: { title: string; ozone: string; nitrogenDioxide: string };
+  favorites: {
+    title: string;
+    /** Button label; the saved state is aria-pressed plus the filled star, not the text. */
+    save: string;
+    add: string;
+    remove: string;
+    full: (max: number) => string;
+  };
   errors: Record<ErrorCode, string>;
 }
 

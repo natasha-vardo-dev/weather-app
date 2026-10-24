@@ -80,6 +80,13 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
     ozone: 'オゾン',
     nitrogenDioxide: '二酸化窒素',
   },
+  favorites: {
+    title: 'お気に入り',
+    save: '保存',
+    add: 'お気に入りに追加',
+    remove: 'お気に入りから削除',
+    full: (n) => `保存できるのは${num(n)}都市までです`,
+  },
   errors: {
     INVALID_REQUEST: 'リクエストが正しくありません。アドレスを確認して、もう一度お試しください。',
     PROVIDER_ERROR: '気象サービスが応答していません。しばらくしてからもう一度お試しください。',

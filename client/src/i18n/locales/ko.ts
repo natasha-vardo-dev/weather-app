@@ -79,6 +79,13 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
     ozone: '오존',
     nitrogenDioxide: '이산화질소',
   },
+  favorites: {
+    title: '즐겨찾기',
+    save: '저장',
+    add: '즐겨찾기에 추가',
+    remove: '즐겨찾기에서 삭제',
+    full: (n) => `최대 ${num(n)}개 도시까지 저장할 수 있습니다`,
+  },
   errors: {
     INVALID_REQUEST: '요청이 올바르지 않습니다. 주소를 확인하고 다시 시도하세요.',
     PROVIDER_ERROR: '날씨 서비스가 응답하지 않습니다. 잠시 후 다시 시도하세요.',

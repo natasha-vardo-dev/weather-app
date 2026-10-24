@@ -1,5 +1,5 @@
 import { compareWithYesterday, describeWeather, type Forecast } from '@weather/shared';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { AirQualityView } from '../hooks/useAirQuality';
 import { useI18n } from '../i18n/I18nProvider';
 import { AirQualityItem, hasPollutants, PollutantsPanel } from './AirQualityDetails';
@@ -8,11 +8,13 @@ interface Props {
   name: string;
   country?: string;
   forecast: Forecast;
+  /** Controls shown next to the place name, e.g. the save button. */
+  actions?: ReactNode;
   /** Null hides the item: still loading, no data for the place, or the request failed. */
   airQuality: AirQualityView | null;
 }
 
-export function CurrentWeather({ name, country, forecast, airQuality }: Props) {
+export function CurrentWeather({ name, country, forecast, airQuality, actions }: Props) {
   const { t, deg, speed, percent } = useI18n();
   const { current, units } = forecast;
   const label = t.conditions[describeWeather(current.weatherCode).condition];
@@ -35,10 +37,13 @@ export function CurrentWeather({ name, country, forecast, airQuality }: Props) {
 
   return (
     <section className="now" aria-labelledby="now-title">
-      <h1 id="now-title" className="now__place" ref={headingRef} tabIndex={-1}>
-        {name}
-        {country && <span className="now__country">{country}</span>}
-      </h1>
+      <div className="now__head">
+        <h1 id="now-title" className="now__place" ref={headingRef} tabIndex={-1}>
+          {name}
+          {country && <span className="now__country">{country}</span>}
+        </h1>
+        {actions}
+      </div>
       <p className="now__temp" aria-label={t.current.degrees(Math.round(current.temperature))}>
         {deg(Math.round(current.temperature))}
       </p>

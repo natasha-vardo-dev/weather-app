@@ -87,6 +87,13 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     ozone: 'Ozon',
     nitrogenDioxide: 'Dwutlenek azotu',
   },
+  favorites: {
+    title: 'Ulubione',
+    save: 'Zapisz',
+    add: 'Dodaj do ulubionych',
+    remove: 'Usuń z ulubionych',
+    full: (n) => `Możesz zapisać do ${plural(n, { one: '{n} miasta', other: '{n} miast' })}`,
+  },
   errors: {
     INVALID_REQUEST: 'Nieprawidłowe zapytanie. Sprawdź adres i spróbuj ponownie.',
     PROVIDER_ERROR: 'Serwis pogodowy nie odpowiada. Spróbuj ponownie za chwilę.',

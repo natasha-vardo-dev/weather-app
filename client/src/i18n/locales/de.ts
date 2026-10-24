@@ -80,6 +80,13 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
     ozone: 'Ozon',
     nitrogenDioxide: 'Stickstoffdioxid',
   },
+  favorites: {
+    title: 'Favoriten',
+    save: 'Merken',
+    add: 'Zu Favoriten hinzufügen',
+    remove: 'Aus Favoriten entfernen',
+    full: (n) => `Du kannst bis zu ${num(n)} Städte speichern`,
+  },
   errors: {
     INVALID_REQUEST: 'Die Anfrage ist ungültig. Prüfe die Adresse und versuche es erneut.',
     PROVIDER_ERROR: 'Der Wetterdienst antwortet nicht. Versuche es gleich noch einmal.',

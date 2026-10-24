@@ -79,6 +79,13 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
     ozone: 'אוזון',
     nitrogenDioxide: 'חנקן דו־חמצני',
   },
+  favorites: {
+    title: 'מועדפים',
+    save: 'שמירה',
+    add: 'הוספה למועדפים',
+    remove: 'הסרה מהמועדפים',
+    full: (n) => `אפשר לשמור עד ${num(n)} ערים`,
+  },
   errors: {
     INVALID_REQUEST: 'הבקשה אינה תקינה. בדקו את הכתובת ונסו שוב.',
     PROVIDER_ERROR: 'שירות מזג האוויר לא מגיב. נסו שוב בעוד רגע.',

@@ -79,6 +79,13 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
     ozone: 'Ozono',
     nitrogenDioxide: 'Dióxido de nitrógeno',
   },
+  favorites: {
+    title: 'Favoritos',
+    save: 'Guardar',
+    add: 'Añadir a favoritos',
+    remove: 'Quitar de favoritos',
+    full: (n) => `Puedes guardar hasta ${num(n)} ciudades`,
+  },
   errors: {
     INVALID_REQUEST: 'La solicitud no es válida. Revisa la dirección e inténtalo de nuevo.',
     PROVIDER_ERROR: 'El servicio meteorológico no responde. Inténtalo de nuevo en un momento.',

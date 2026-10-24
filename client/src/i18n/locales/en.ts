@@ -79,6 +79,13 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
     ozone: 'Ozone',
     nitrogenDioxide: 'Nitrogen dioxide',
   },
+  favorites: {
+    title: 'Favourites',
+    save: 'Save',
+    add: 'Add to favourites',
+    remove: 'Remove from favourites',
+    full: (n) => `You can save up to ${num(n)} cities`,
+  },
   errors: {
     INVALID_REQUEST: "That request doesn't look right. Check the address and try again.",
     PROVIDER_ERROR: "The weather service isn't responding. Try again in a moment.",

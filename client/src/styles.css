@@ -392,4 +392,57 @@ button.aqi { cursor: pointer; }
 
 .now__place:focus { outline: none; }
 
+/* Place name and the save button on one line; the button wraps under a long name */
+.now__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.save {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.save:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+.save:disabled { cursor: not-allowed; color: var(--ink-soft); }
+.save__star { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.save[aria-pressed='true'] .save__star { fill: var(--sun); stroke: var(--sun); }
+
+/* Saved cities on the start page */
+.favorites { margin-top: 2.5rem; }
+.favorites__title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+.favorites__list { list-style: none; margin: 0; padding: 0; }
+.favorite {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--line);
+  color: inherit;
+  text-decoration: none;
+}
+.favorite:hover .favorite__name { text-decoration: underline; text-underline-offset: 3px; }
+.favorite:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; border-radius: 0.25rem; }
+.favorite__icon { display: flex; }
+.favorite__name { font-weight: 500; }
+.favorite__country { color: var(--ink-soft); }
+.favorite__temp { font-weight: 500; font-variant-numeric: tabular-nums; }
+
 .empty__text a { color: inherit; }

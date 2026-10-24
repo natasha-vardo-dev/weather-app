@@ -44,6 +44,15 @@ Weather icons are a small hand-drawn set of filled two-colour SVGs (`WeatherIcon
 Because the browser doesn't treat SPA navigation as a new page, the app updates `document.title` itself and moves focus to the place heading for screen reader and keyboard users.
 Data fetching lives in hooks (`useLocationSearch`, `useForecast`) with debouncing and request cancellation.
 
+## Favourites
+
+Saved cities live in the browser (`localStorage`, key `favorites:v1`), with no accounts and no server state. That keeps the backend stateless and avoids sign-in, a database and per-user data protection, at the cost of no sync between devices.
+
+- **Model and rules in `shared`** (`favorites.ts`): a favourite is coordinates plus display name and country; places are matched by coordinates rounded to ~1 km, like place URLs, so a city is never saved twice. New ones go to the top; the list is capped at 10, and a full list disables the save button instead of silently dropping a city. `parseFavorites` validates what comes out of storage, because it is untrusted (edited by hand, an older format). A React Native app can reuse all of it with its own storage.
+- **Client:** `useFavorites` reads storage through `useSyncExternalStore`; the `storage` event keeps every open tab in sync. The city page has a "Save" toggle (`aria-pressed`, star fills in); the start page lists saved cities with their current weather. Each row makes the same forecast request as the city page, so they share the server and HTTP caches and opening a saved city is instant.
+- **Cost:** one forecast request per saved city on the start page. A batch forecast endpoint would make it one request.
+- **Path to accounts:** keep the same hook API and swap its source for a server; on first sign-in, merge the local list into the account so nothing is lost. The server side would need a `favorite_locations` table, a session cookie, owner checks on every request (IDOR) and `Cache-Control: private, no-store` on personal responses.
+
 ## Languages
 
 - **Default:** the first of `navigator.languages` the app supports (matched by base language, so `de-AT` picks German), otherwise English. An explicit choice in the switcher is saved in `localStorage` and wins next time.

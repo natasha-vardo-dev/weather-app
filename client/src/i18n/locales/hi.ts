@@ -79,6 +79,13 @@ export const hi: MessagesFactory = ({ num, deg, plural }) => ({
     ozone: 'ओज़ोन',
     nitrogenDioxide: 'नाइट्रोजन डाइऑक्साइड',
   },
+  favorites: {
+    title: 'पसंदीदा',
+    save: 'सहेजें',
+    add: 'पसंदीदा में जोड़ें',
+    remove: 'पसंदीदा से हटाएँ',
+    full: (n) => `आप अधिकतम ${num(n)} शहर सहेज सकते हैं`,
+  },
   errors: {
     INVALID_REQUEST: 'अनुरोध मान्य नहीं है। पता जाँचें और फिर से कोशिश करें।',
     PROVIDER_ERROR: 'मौसम सेवा जवाब नहीं दे रही है। थोड़ी देर में फिर से कोशिश करें।',

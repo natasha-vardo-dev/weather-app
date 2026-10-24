@@ -10,6 +10,7 @@ A web application that shows the current weather and a 10-day forecast for a sel
 - Shareable links for each place, e.g. `/weather/52.23,21.01?name=Warsaw&country=Poland`; back/forward and refresh work
 - Current conditions: temperature, feels like, humidity, wind, air quality (European AQI for places in Europe, US AQI elsewhere, with PM2.5, PM10, ozone and NO₂ on demand)
 - 10-day forecast with temperature range bars and rain probability
+- Favourite cities (up to 10), saved in the browser, listed with their current weather on the start page
 - Loading, empty and error states with retry
 - 19 interface languages, picked from the system language by default, with a switcher; dates, times, numbers and units follow the locale; right-to-left layout for Arabic and Hebrew
 - Responsive layout, light/dark mode, accessible combobox
@@ -84,7 +85,7 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 
 ## Assumptions
 
-- [No user accounts needed]
+- [No user accounts needed: favourites live in the browser (`localStorage`), so they do not sync between devices]
 - [10 days of forecast is enough: beyond that Open-Meteo still returns data (up to 16 days), but accuracy drops sharply]
 - [Metric units only]
 - [UI translations for 19 languages are machine-quality drafts: they need a review by native speakers before a real release]
@@ -99,6 +100,6 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 
 ## What I would do next
 
-- [Geolocation, favourite cities, °C/°F toggle]
+- [Geolocation, °C/°F toggle; accounts so favourites sync between devices]
 - [ESLint, component and e2e tests with Playwright]
 - [Redis cache and rate limiting, monitoring]

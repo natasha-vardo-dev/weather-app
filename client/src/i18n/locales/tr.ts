@@ -80,6 +80,13 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
     ozone: 'Ozon',
     nitrogenDioxide: 'Azot dioksit',
   },
+  favorites: {
+    title: 'Favoriler',
+    save: 'Kaydet',
+    add: 'Favorilere ekle',
+    remove: 'Favorilerden çıkar',
+    full: (n) => `En fazla ${num(n)} şehir kaydedebilirsin`,
+  },
   errors: {
     INVALID_REQUEST: 'İstek geçersiz. Adresi kontrol edip tekrar dene.',
     PROVIDER_ERROR: 'Hava durumu servisi yanıt vermiyor. Biraz sonra tekrar dene.',

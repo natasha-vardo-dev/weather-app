@@ -93,6 +93,13 @@ export const uk: MessagesFactory = ({ deg, plural }) => ({
     ozone: 'Озон',
     nitrogenDioxide: 'Діоксид азоту',
   },
+  favorites: {
+    title: 'Обране',
+    save: 'Зберегти',
+    add: 'Додати до обраного',
+    remove: 'Видалити з обраного',
+    full: (n) => `Можна зберегти до ${plural(n, { one: '{n} міста', other: '{n} міст' })}`,
+  },
   errors: {
     INVALID_REQUEST: 'Некоректний запит. Перевірте адресу й спробуйте ще раз.',
     PROVIDER_ERROR: 'Сервіс погоди не відповідає. Спробуйте трохи пізніше.',

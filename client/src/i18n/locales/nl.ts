@@ -80,6 +80,13 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     ozone: 'Ozon',
     nitrogenDioxide: 'Stikstofdioxide',
   },
+  favorites: {
+    title: 'Favorieten',
+    save: 'Bewaren',
+    add: 'Toevoegen aan favorieten',
+    remove: 'Verwijderen uit favorieten',
+    full: (n) => `Je kunt tot ${num(n)} steden bewaren`,
+  },
   errors: {
     INVALID_REQUEST: 'Het verzoek is ongeldig. Controleer het adres en probeer het opnieuw.',
     PROVIDER_ERROR: 'De weerdienst reageert niet. Probeer het zo opnieuw.',
