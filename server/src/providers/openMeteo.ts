@@ -3,19 +3,34 @@ import { ProviderError } from '../errors.js';
 import type { AirQuality, Forecast, Location, WeatherProvider } from './types.js';
 
 const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+const GEOCODING_GET_URL = 'https://geocoding-api.open-meteo.com/v1/get';
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 const AIR_QUALITY_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
+interface GeocodingResult {
+  id: number;
+  name: string;
+  country?: string;
+  admin1?: string;
+  latitude: number;
+  longitude: number;
+  timezone?: string;
+}
+
 interface GeocodingResponse {
-  results?: Array<{
-    id: number;
-    name: string;
-    country?: string;
-    admin1?: string;
-    latitude: number;
-    longitude: number;
-    timezone?: string;
-  }>;
+  results?: GeocodingResult[];
+}
+
+function toLocation(r: GeocodingResult): Location {
+  return {
+    id: r.id,
+    name: r.name,
+    country: r.country ?? '',
+    region: r.admin1,
+    latitude: r.latitude,
+    longitude: r.longitude,
+    timezone: r.timezone,
+  };
 }
 
 interface ForecastResponse {
@@ -63,6 +78,11 @@ interface AirQualityResponse {
 
 type FetchFn = typeof fetch;
 
+interface RequestOptions {
+  /** Which failed responses mean "no such thing" (null) rather than a provider error. */
+  isNotFound: (status: number, body: string) => boolean;
+}
+
 export class OpenMeteoProvider implements WeatherProvider {
   constructor(
     private readonly fetchFn: FetchFn = fetch,
@@ -77,15 +97,21 @@ export class OpenMeteoProvider implements WeatherProvider {
     url.searchParams.set('format', 'json');
 
     const data = await this.request<GeocodingResponse>(url);
-    return (data.results ?? []).map((r) => ({
-      id: r.id,
-      name: r.name,
-      country: r.country ?? '',
-      region: r.admin1,
-      latitude: r.latitude,
-      longitude: r.longitude,
-      timezone: r.timezone,
-    }));
+    return (data.results ?? []).map(toLocation);
+  }
+
+  /** Used to show a saved place's name in the current language. */
+  async getLocation(id: number, language: string): Promise<Location | null> {
+    const url = new URL(GEOCODING_GET_URL);
+    url.searchParams.set('id', String(id));
+    url.searchParams.set('language', language);
+    // Open-Meteo answers an unknown id with 400 {"reason": "Location ID not found."}. Other
+    // 400s (a parameter it rejects, say after an API change) stay errors: as "not found"
+    // they would be cached for a day and never reach the log.
+    const data = await this.request<GeocodingResult>(url, {
+      isNotFound: (status, body) => status === 400 && /location id not found/i.test(body),
+    });
+    return data ? toLocation(data) : null;
   }
 
   async getForecast(latitude: number, longitude: number, days: number): Promise<Forecast> {
@@ -178,15 +204,32 @@ export class OpenMeteoProvider implements WeatherProvider {
     };
   }
 
-  private async request<T>(url: URL): Promise<T> {
+  /**
+   * Node's fetch reports every network failure as "TypeError: fetch failed"; the real
+   * reason (DNS, refused or reset connection, TLS) is in `cause`, often with a code.
+   */
+  private describeFailure(err: unknown): string {
+    if (err instanceof Error && err.name === 'TimeoutError') return `timeout after ${this.timeoutMs} ms`;
+    const cause = err instanceof Error ? (err.cause as { code?: string; message?: string } | undefined) : undefined;
+    const detail = cause ? [cause.code, cause.message].filter(Boolean).join(' ') : '';
+    return detail ? `${String(err)} (${detail})` : String(err);
+  }
+
+  private async request<T>(url: URL): Promise<T>;
+  private async request<T>(url: URL, options: RequestOptions): Promise<T | null>;
+  private async request<T>(url: URL, options?: RequestOptions): Promise<T | null> {
     let response: Response;
+    const where = `${url.host}${url.pathname}`;
     try {
       response = await this.fetchFn(url, { signal: AbortSignal.timeout(this.timeoutMs) });
-    } catch {
-      throw new ProviderError();
+    } catch (err) {
+      throw new ProviderError(`${where}: ${this.describeFailure(err)}`);
     }
     if (!response.ok) {
-      throw new ProviderError();
+      // Open-Meteo explains failures in {"reason": "..."}, e.g. "Minutely API request limit exceeded".
+      const body = await response.text().catch(() => '');
+      if (options?.isNotFound(response.status, body)) return null;
+      throw new ProviderError(`${where}: HTTP ${response.status} ${body.slice(0, 200)}`.trim());
     }
     return (await response.json()) as T;
   }

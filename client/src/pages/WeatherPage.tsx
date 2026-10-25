@@ -1,11 +1,15 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 import { CurrentWeather } from '../components/CurrentWeather';
+import { FavoriteButton } from '../components/FavoriteButton';
+import { FavoritesStrip } from '../components/FavoritesStrip';
 import { ForecastList } from '../components/ForecastList';
 import { HourlyForecast } from '../components/HourlyForecast';
+import { WeatherSkeleton } from '../components/WeatherSkeleton';
 import { useAirQuality } from '../hooks/useAirQuality';
 import { useForecast } from '../hooks/useForecast';
 import { usePageMeta } from '../hooks/usePageMeta';
+import { useLocalizedPlace } from '../hooks/useLocalizedPlace';
 import { useI18n } from '../i18n/I18nProvider';
 import { parsePlace } from '../locationUrl';
 import { NotFoundPage } from './NotFoundPage';
@@ -22,43 +26,65 @@ export function WeatherPage() {
   );
 
   // Fetched in parallel with the forecast and never blocks it.
-  const airQuality = useAirQuality(place?.latitude ?? null, place?.longitude ?? null);
+  const { airQuality, retry: retryAirQuality } = useAirQuality(place?.latitude ?? null, place?.longitude ?? null);
 
   const current = forecast;
 
-  usePageMeta(place?.name ?? null);
+  // The URL carries the name in the language it was found in; show the current one.
+  const names = useLocalizedPlace(place);
+  // An invalid link renders NotFoundPage inside this page; parent effects run after the
+  // child's, so this page must set the same title or it would overwrite "Not found".
+  usePageMeta(place ? (names?.name ?? null) : t.notFound.pageTitle);
 
   if (!place) {
     return <NotFoundPage message={t.notFound.badLink} />;
   }
 
+  let body: ReactNode;
   if (error) {
-    return (
+    body = (
       <div className="message" role="alert">
         <p>{t.errors[error.code]}</p>
         {error.canRetry && (
-          <button type="button" onClick={retry}>
+          <button
+            type="button"
+            onClick={() => {
+              retry();
+              retryAirQuality();
+            }}
+          >
             {t.weather.tryAgain}
           </button>
         )}
       </div>
     );
+  } else if (!current) {
+    body = <WeatherSkeleton place={names?.name ?? place.name} />;
+  } else {
+    body = (
+      <div className={loading ? 'content content--stale' : 'content'}>
+        <CurrentWeather
+          // A new place gets a fresh component (focus, folded details), even when the
+          // forecast comes straight from the cache and nothing else would remount it.
+          key={`${place.latitude},${place.longitude}`}
+          name={names?.name ?? place.name}
+          country={names ? names.country : place.country}
+          forecast={current}
+          airQuality={airQuality}
+          actions={<FavoriteButton place={place} />}
+        />
+        <HourlyForecast hours={current.hourly} />
+        <ForecastList days={current.daily} />
+      </div>
+    );
   }
 
-  if (!current) {
-    return <p className="message">{t.weather.loading(place.name)}</p>;
-  }
-
+  // The strip stays above every state (loading, error, forecast): switching cities
+  // should not have to wait for the current one.
   return (
-    <div className={loading ? 'content content--stale' : 'content'}>
-      <CurrentWeather
-        name={place.name}
-        country={place.country}
-        forecast={current}
-        airQuality={airQuality}
-      />
-      <HourlyForecast hours={current.hourly} />
-      <ForecastList days={current.daily} />
-    </div>
+    <>
+      <FavoritesStrip place={place} />
+      {body}
+    </>
   );
 }

@@ -12,7 +12,20 @@ export class AppError extends Error {
 }
 
 export class ProviderError extends AppError {
-  constructor(message = 'The weather service is not responding. Try again in a minute.') {
+  /**
+   * @param detail What went wrong, for the server log only ("timeout", "HTTP 429: …").
+   *   The client gets the generic message: provider details are not its business.
+   */
+  constructor(
+    public readonly detail?: string,
+    message = 'The weather service is not responding. Try again in a minute.',
+  ) {
     super(message, 502, ERROR_CODES.PROVIDER_ERROR);
+  }
+}
+
+export class NotFoundError extends AppError {
+  constructor(message = 'Nothing found.') {
+    super(message, 404, ERROR_CODES.NOT_FOUND);
   }
 }

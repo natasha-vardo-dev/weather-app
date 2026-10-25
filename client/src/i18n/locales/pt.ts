@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 export const pt: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'Previsão do tempo',
   language: 'Idioma',
+  temperatureUnit: 'Unidade de temperatura',
   dataBy: 'Dados meteorológicos de',
   home: {
     title: 'Como está o tempo para onde você vai?',
@@ -78,6 +79,17 @@ export const pt: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'Poluentes',
     ozone: 'Ozônio',
     nitrogenDioxide: 'Dióxido de nitrogênio',
+  },
+  favorites: {
+    title: 'Favoritos',
+    save: 'Salvar',
+    saved: 'Salvo',
+    add: 'Adicionar aos favoritos',
+    remove: 'Remover dos favoritos',
+    full: (n) => `Você pode salvar até ${num(n)} cidades`,
+    setHome: 'Definir como casa',
+    homeCity: 'Cidade de casa',
+    unsetHome: 'Deixar de usar como cidade de casa',
   },
   errors: {
     INVALID_REQUEST: 'A solicitação não é válida. Verifique o endereço e tente novamente.',

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parsePlace, placePath } from '../src/locationUrl';
+import { coordinatesLabel, parsePlace, placePath } from '../src/locationUrl';
 
 describe('placePath', () => {
   it('rounds coordinates and encodes display info', () => {
@@ -30,9 +30,21 @@ describe('parsePlace', () => {
 
   it('falls back to coordinates as the name', () => {
     expect(parsePlace('52.23,21.01', new URLSearchParams())?.name).toBe('52.23, 21.01');
+    // useLocalizedPlace relies on this to skip a pointless name search.
+    expect(parsePlace('52.23,21.01', new URLSearchParams())?.name).toBe(coordinatesLabel(52.23, 21.01));
   });
 
   it.each(['', 'abc', '52.23', '91,0', '0,181', '1,2,3', ',5'])('rejects %j', (coords) => {
     expect(parsePlace(coords, new URLSearchParams())).toBeNull();
+  });
+
+  it('carries the provider id, ignoring a broken one', () => {
+    expect(placePath({ latitude: 52.2297, longitude: 21.0122, name: 'Warsaw', id: 756135 })).toBe(
+      '/weather/52.23,21.01?name=Warsaw&id=756135',
+    );
+    expect(parsePlace('52.23,21.01', new URLSearchParams('name=Warsaw&id=756135'))?.id).toBe(756135);
+    expect(parsePlace('52.23,21.01', new URLSearchParams('name=Warsaw&id=abc'))?.id).toBeUndefined();
+    // Larger than a 32-bit id: the provider would reject it.
+    expect(parsePlace('52.23,21.01', new URLSearchParams('name=Warsaw&id=99999999999'))?.id).toBeUndefined();
   });
 });

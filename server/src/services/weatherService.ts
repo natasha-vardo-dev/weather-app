@@ -6,6 +6,8 @@ export class WeatherService {
   private readonly forecastCache: TtlCache<Forecast>;
   private readonly locationCache: TtlCache<Location[]>;
   private readonly airQualityCache: TtlCache<AirQuality>;
+  /** null caches "unknown id" too, so a bad id does not hit the provider every time. */
+  private readonly locationByIdCache: TtlCache<Location | null>;
 
   constructor(
     private readonly provider: WeatherProvider,
@@ -16,6 +18,7 @@ export class WeatherService {
     this.locationCache = new TtlCache(24 * 60 * 60 * 1000);
     // The provider updates air quality hourly, so it can live longer than forecasts.
     this.airQualityCache = new TtlCache(30 * 60 * 1000);
+    this.locationByIdCache = new TtlCache(24 * 60 * 60 * 1000);
   }
 
   async searchLocations(query: string, limit = 5, language = 'en'): Promise<Location[]> {
@@ -38,6 +41,17 @@ export class WeatherService {
     const forecast = await this.provider.getForecast(latitude, longitude, days);
     this.forecastCache.set(key, forecast);
     return forecast;
+  }
+
+  /** Place names change only when the provider's data does, so they share the search TTL. */
+  async getLocation(id: number, language = 'en'): Promise<Location | null> {
+    const key = `id:${language}:${id}`;
+    const cached = this.locationByIdCache.get(key);
+    if (cached !== undefined) return cached;
+
+    const location = await this.provider.getLocation(id, language);
+    this.locationByIdCache.set(key, location);
+    return location;
   }
 
   async getAirQuality(latitude: number, longitude: number): Promise<AirQuality> {

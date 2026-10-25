@@ -94,6 +94,32 @@ describe('OpenMeteoProvider', () => {
     expect(url.host).toBe('air-quality-api.open-meteo.com');
   });
 
+  it('gets a place by id in a language, and null for an unknown id', async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({ id: 756135, name: 'Варшава', country: 'Польша', latitude: 52.2, longitude: 21 }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ error: true, reason: 'Location ID not found.' }, 400));
+    const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
+
+    expect(await provider.getLocation(756135, 'ru')).toMatchObject({ name: 'Варшава', country: 'Польша' });
+    const url = new URL(String(fetchFn.mock.calls[0][0]));
+    expect(url.pathname).toBe('/v1/get');
+    expect(url.searchParams.get('language')).toBe('ru');
+    expect(await provider.getLocation(1, 'ru')).toBeNull();
+  });
+
+  it('treats other 400s from the id lookup as provider errors, not "not found"', async () => {
+    const fetchFn = vi.fn(async () =>
+      jsonResponse({ error: true, reason: "Value was not of type 'Int32' at path 'id'." }, 400),
+    );
+    const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
+    const err = await provider.getLocation(756135, 'ru').catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ProviderError);
+    expect((err as ProviderError).detail).toMatch(/HTTP 400 .*Int32/);
+  });
+
   it('returns an empty list when no city is found', async () => {
     const fetchFn = vi.fn(async () => jsonResponse({}));
     const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
@@ -106,5 +132,34 @@ describe('OpenMeteoProvider', () => {
     const fetchFn = vi.fn(async () => jsonResponse({ error: true }, 500));
     const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
     await expect(provider.searchLocations('Warsaw', 5, 'en')).rejects.toBeInstanceOf(ProviderError);
+  });
+
+  it('keeps the reason of a failure for the server log', async () => {
+    const fetchFn = vi.fn(async () =>
+      jsonResponse({ error: true, reason: 'Minutely API request limit exceeded' }, 429),
+    );
+    const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
+    const err = await provider.searchLocations('Warsaw', 5, 'en').catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ProviderError);
+    expect((err as ProviderError).detail).toMatch(/HTTP 429 .*Minutely API request limit exceeded/);
+  });
+
+  it('reports the cause of a network failure', async () => {
+    const fetchFn = vi.fn(async () => {
+      const cause = Object.assign(new Error('getaddrinfo ENOTFOUND example.com'), { code: 'ENOTFOUND' });
+      throw new TypeError('fetch failed', { cause });
+    });
+    const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
+    const err = await provider.searchLocations('Warsaw', 5, 'en').catch((e: unknown) => e);
+    expect((err as ProviderError).detail).toMatch(/fetch failed \(ENOTFOUND getaddrinfo ENOTFOUND/);
+  });
+
+  it('reports a timeout as such', async () => {
+    const fetchFn = vi.fn(async () => {
+      throw new DOMException('The operation timed out.', 'TimeoutError');
+    });
+    const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
+    const err = await provider.searchLocations('Warsaw', 5, 'en').catch((e: unknown) => e);
+    expect((err as ProviderError).detail).toMatch(/timeout after 5000 ms/);
   });
 });

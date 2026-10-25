@@ -27,6 +27,15 @@ describe('createApiClient', () => {
     );
   });
 
+  it('gets a place by id in a language', async () => {
+    const fetchFn = vi.fn(async () => json({ id: 756135, name: 'Варшава' }));
+    const api = createApiClient({ baseUrl: '', fetchFn });
+
+    await api.getLocation(756135, { language: 'ru' });
+
+    expect(fetchFn).toHaveBeenCalledWith('/api/locations/756135?lang=ru', expect.anything());
+  });
+
   it('turns API error bodies into ApiError with the server code', async () => {
     const fetchFn = vi.fn(async () =>
       json({ error: { code: 'PROVIDER_ERROR', message: 'Down' } }, 502),

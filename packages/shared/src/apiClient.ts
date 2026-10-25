@@ -73,6 +73,14 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
       return request<Forecast>(`/api/forecast?${params}`, options.signal);
     },
 
+    /** One place by provider id, with names in `language`. */
+    getLocation(id: number, options: { language?: string; signal?: AbortSignal } = {}): Promise<Location> {
+      const params = new URLSearchParams();
+      if (options.language) params.set('lang', options.language);
+      const query = params.toString();
+      return request<Location>(`/api/locations/${id}${query ? `?${query}` : ''}`, options.signal);
+    },
+
     getAirQuality(latitude: number, longitude: number, signal?: AbortSignal): Promise<AirQuality> {
       const params = new URLSearchParams({ lat: String(latitude), lon: String(longitude) });
       return request<AirQuality>(`/api/air-quality?${params}`, signal);

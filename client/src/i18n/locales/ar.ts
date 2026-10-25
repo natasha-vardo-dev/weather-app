@@ -1,9 +1,10 @@
 import type { MessagesFactory } from '../messages';
 
 // Arabic has six plural forms: zero, one, two, few (3–10), many (11–99), other.
-export const ar: MessagesFactory = ({ deg, plural }) => ({
+export const ar: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'توقعات الطقس',
   language: 'اللغة',
+  temperatureUnit: 'وحدة درجة الحرارة',
   dataBy: 'بيانات الطقس من',
   home: {
     title: 'كيف سيكون الطقس حيث تذهب؟',
@@ -100,6 +101,17 @@ export const ar: MessagesFactory = ({ deg, plural }) => ({
     title: 'الملوثات',
     ozone: 'الأوزون',
     nitrogenDioxide: 'ثاني أكسيد النيتروجين',
+  },
+  favorites: {
+    title: 'المفضلة',
+    save: 'حفظ',
+    saved: 'محفوظ',
+    add: 'إضافة إلى المفضلة',
+    remove: 'إزالة من المفضلة',
+    full: (n) => `يمكنك حفظ ما يصل إلى ${num(n)} مدن`,
+    setHome: 'تعيين كمدينة المنزل',
+    homeCity: 'مدينة المنزل',
+    unsetHome: 'إيقاف استخدامها كمدينة المنزل',
   },
   errors: {
     INVALID_REQUEST: 'الطلب غير صالح. تحقق من العنوان وحاول مرة أخرى.',

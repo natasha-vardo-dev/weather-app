@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 export const tr: MessagesFactory = ({ num, deg }) => ({
   appName: 'Hava durumu',
   language: 'Dil',
+  temperatureUnit: 'Sıcaklık birimi',
   dataBy: 'Hava durumu verileri:',
   home: {
     title: 'Gideceğin yerde hava nasıl?',
@@ -79,6 +80,17 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
     title: 'Kirleticiler',
     ozone: 'Ozon',
     nitrogenDioxide: 'Azot dioksit',
+  },
+  favorites: {
+    title: 'Favoriler',
+    save: 'Kaydet',
+    saved: 'Kaydedildi',
+    add: 'Favorilere ekle',
+    remove: 'Favorilerden çıkar',
+    full: (n) => `En fazla ${num(n)} şehir kaydedebilirsin`,
+    setHome: 'Ev olarak ayarla',
+    homeCity: 'Ev şehri',
+    unsetHome: 'Ev şehri olarak kullanmayı bırak',
   },
   errors: {
     INVALID_REQUEST: 'İstek geçersiz. Adresi kontrol edip tekrar dene.',

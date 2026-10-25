@@ -50,6 +50,10 @@
 
 * { box-sizing: border-box; }
 
+/* Always reserve the scrollbar's space, so content width does not jump when a page
+   briefly gets shorter or longer than the window. */
+html { scrollbar-gutter: stable; }
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -94,7 +98,7 @@ body {
 .page__header { display: flex; gap: 0.75rem; align-items: stretch; }
 .page__header > .search { flex: 1; min-width: 0; }
 
-.language select {
+.dropdown__button {
   height: 100%;
   font: inherit;
   padding: 0 0.75rem;
@@ -104,6 +108,66 @@ body {
   color: var(--field-ink);
   cursor: pointer;
 }
+
+/* Header switches (°C/°F, language): custom lists, so they always open below the button */
+.dropdown { position: relative; }
+
+/* Fixed widths: labels differ ("°F" is wider than "°C", "Nederlands" than "Dansk"),
+   and the search field next to them must not jump when the choice changes. */
+.dropdown__button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.dropdown--unit .dropdown__button { width: 4.25rem; }
+.dropdown--language .dropdown__button { width: 8.75rem; }
+
+.dropdown__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown__chevron { flex: none; opacity: 0.7; }
+
+.dropdown__list {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 0.35rem);
+  inset-inline-start: 0;
+  min-width: 100%;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  background: var(--field-list);
+  color: var(--field-ink);
+  border: 1px solid var(--field-line);
+  border-radius: 0.75rem;
+}
+
+/* 19 languages: scroll within the window instead of running past its bottom. */
+.dropdown--language .dropdown__list {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  max-height: min(22rem, 70vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.dropdown__list:focus { outline: none; }
+.dropdown__list:focus-visible .dropdown__option--active { outline: 2px solid var(--field-query); outline-offset: -2px; }
+
+.dropdown__option {
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dropdown__option--active { background: var(--field-active); }
+.dropdown__option[aria-selected='true'] { font-weight: 600; }
 
 /* Search */
 .search { position: relative; }
@@ -181,6 +245,18 @@ body {
 }
 
 .content { display: grid; gap: 2.5rem; transition: opacity 0.2s; }
+
+/* Loading placeholder shaped like the city page */
+.skeleton__block {
+  border-radius: 0.5rem;
+  background: var(--line);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+/* Text-height placeholder inside a line, e.g. a value that is still loading */
+.skeleton__inline { display: inline-block; width: 6.5rem; height: 1.1em; vertical-align: middle; }
+@keyframes skeleton-pulse {
+  50% { opacity: 0.5; }
+}
 .content--stale { opacity: 0.55; }
 
 /* Current weather: the temperature is the one loud element */
@@ -305,10 +381,9 @@ button.aqi { cursor: pointer; }
   justify-items: center;
   gap: 0.2rem;
   min-width: 3.5rem;
+  /* No border or fill: spacing alone separates the hours (a translucent fill would also
+     drop text contrast below 4.5:1 on the blue background). */
   padding: 0.6rem 0.5rem;
-  /* A border, not a fill: a translucent fill drops text contrast below 4.5:1 on the blue background. */
-  border: 1px solid var(--line);
-  border-radius: 0.75rem;
   font-variant-numeric: tabular-nums;
   scroll-snap-align: start;
 }
@@ -384,12 +459,166 @@ button.aqi { cursor: pointer; }
   .day__temps { grid-template-columns: 2rem 2rem; }
   .pollutants { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .day__bar { display: none; }
+  /* Search gets the full width; the unit and language switches go to the line below. */
+  .page__header { flex-wrap: wrap; }
+  .page__header > .search { flex-basis: 100%; }
+  .page__header > .dropdown--unit { margin-inline-start: auto; }
+  .dropdown__button { padding-block: 0.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root, .content { transition: none; }
+  .skeleton__block { animation: none; }
 }
 
 .now__place:focus { outline: none; }
+
+/* Saved cities as a scrolling strip at the top of a city page */
+.fav-strip { margin: 0 0 1.75rem; min-width: 0; }
+.fav-strip__list {
+  /* Contains the absolutely positioned screen-reader text, so the scroller clips it. */
+  position: relative;
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0 0 0.4rem;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-color: var(--line) transparent;
+}
+.fav-strip__list > li { flex: 0 0 auto; scroll-snap-align: start; }
+
+.fav-tile {
+  display: flex;
+  flex-direction: column;
+  width: 7rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+}
+.fav-tile:hover { border-color: var(--ink-soft); }
+.fav-tile:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+.fav-tile--current { border: 1.5px solid var(--ink); background: var(--surface); }
+.fav-tile__name,
+.fav-tile__country {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fav-tile__name { font-weight: 500; font-size: 0.9rem; }
+.fav-tile__country { font-size: 0.8rem; color: var(--ink-soft); }
+.fav-tile__weather {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.6rem;
+  margin-top: 0.2rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Place name and the save button on one line; the button wraps under a long name */
+.now__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.save {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.save:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+/* Unavailable (list full): dashed outline and dimmed, so it reads differently from a normal state */
+.save[aria-disabled='true'] { cursor: not-allowed; border-style: dashed; opacity: 0.6; }
+
+.save-wrap {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem 0.75rem;
+}
+.save__hint { font-size: 0.85rem; color: var(--ink-soft); }
+.save__star { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.save[data-saved] .save__star { fill: var(--sun); stroke: var(--sun); }
+
+/* Home city: house outline on the button, filled yellow when this is the home city */
+.home__icon { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.save[data-home] .home__icon { fill: var(--sun); stroke: var(--sun); }
+/* Small filled house before the home city's name in the strip and on cards */
+.home-mark {
+  display: inline-block;
+  margin-inline-end: 0.25rem;
+  vertical-align: -0.1em;
+  fill: var(--sun);
+  stroke: var(--sun);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+/* Saved cities on the start page */
+.favorites { margin-top: 2.5rem; }
+.favorites__title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+.fav-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Contains the screen-reader text, which is absolutely positioned */
+.fav-grid > li { position: relative; min-width: 0; }
+
+.fav-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  color: inherit;
+  text-decoration: none;
+}
+.fav-card:hover { border-color: var(--ink-soft); }
+.fav-card:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+
+.fav-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+.fav-card__place { display: flex; flex-direction: column; min-width: 0; }
+.fav-card__name,
+.fav-card__country { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fav-card__name { font-weight: 500; }
+.fav-card__country { font-size: 0.85rem; color: var(--ink-soft); }
+
+.fav-card__body { display: flex; flex-direction: column; min-height: 4.6rem; margin-top: 0.5rem; }
+.fav-card__temp { font-size: 1.9rem; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.fav-card__meta {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .empty__text a { color: inherit; }

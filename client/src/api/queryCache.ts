@@ -1,0 +1,58 @@
+/**
+ * Small in-memory cache for API responses, shared by every component in the tab.
+ *
+ * - A fresh value is available synchronously, so a component that mounts for an already
+ *   loaded place renders it at once instead of flashing a loading state.
+ * - Concurrent loads of one key share a single request (a favourite tile and the city
+ *   page asking for the same forecast).
+ * - Errors are not cached: the next load tries again.
+ *
+ * The TTL should not exceed the server's Cache-Control max-age: caches stack, so a longer
+ * client TTL would only show older data.
+ */
+export interface QueryCache<T> {
+  /** Fresh value or undefined. */
+  get(key: string): T | undefined;
+  /** Cached value, the in-flight request, or a new request. */
+  load(key: string, fetcher: () => Promise<T>): Promise<T>;
+}
+
+export function createQueryCache<T>(options: {
+  ttlMs: number;
+  maxEntries?: number;
+  now?: () => number;
+}): QueryCache<T> {
+  const { ttlMs, maxEntries = 50, now = Date.now } = options;
+  const values = new Map<string, { value: T; storedAt: number }>();
+  const inFlight = new Map<string, Promise<T>>();
+
+  function get(key: string): T | undefined {
+    const entry = values.get(key);
+    if (!entry) return undefined;
+    if (now() - entry.storedAt > ttlMs) {
+      values.delete(key);
+      return undefined;
+    }
+    return entry.value;
+  }
+
+  function load(key: string, fetcher: () => Promise<T>): Promise<T> {
+    const cached = get(key);
+    if (cached !== undefined) return Promise.resolve(cached);
+    const pending = inFlight.get(key);
+    if (pending) return pending;
+
+    const request = fetcher()
+      .then((value) => {
+        values.delete(key); // re-insert so Map order stays oldest-first
+        values.set(key, { value, storedAt: now() });
+        if (values.size > maxEntries) values.delete(values.keys().next().value!);
+        return value;
+      })
+      .finally(() => inFlight.delete(key));
+    inFlight.set(key, request);
+    return request;
+  }
+
+  return { get, load };
+}

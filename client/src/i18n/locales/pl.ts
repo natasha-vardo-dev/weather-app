@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 export const pl: MessagesFactory = ({ deg, plural }) => ({
   appName: 'Prognoza pogody',
   language: 'Język',
+  temperatureUnit: 'Jednostka temperatury',
   dataBy: 'Dane pogodowe:',
   home: {
     title: 'Jaka pogoda czeka cię u celu?',
@@ -86,6 +87,17 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     title: 'Zanieczyszczenia',
     ozone: 'Ozon',
     nitrogenDioxide: 'Dwutlenek azotu',
+  },
+  favorites: {
+    title: 'Ulubione',
+    save: 'Zapisz',
+    saved: 'Zapisano',
+    add: 'Dodaj do ulubionych',
+    remove: 'Usuń z ulubionych',
+    full: (n) => `Możesz zapisać do ${plural(n, { one: '{n} miasta', other: '{n} miast' })}`,
+    setHome: 'Ustaw jako dom',
+    homeCity: 'Miasto domowe',
+    unsetHome: 'Przestań używać jako miasta domowego',
   },
   errors: {
     INVALID_REQUEST: 'Nieprawidłowe zapytanie. Sprawdź adres i spróbuj ponownie.',

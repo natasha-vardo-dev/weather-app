@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 export const de: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'Wettervorhersage',
   language: 'Sprache',
+  temperatureUnit: 'Temperatureinheit',
   dataBy: 'Wetterdaten von',
   home: {
     title: 'Wie wird das Wetter dort, wo du hinwillst?',
@@ -79,6 +80,17 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'Schadstoffe',
     ozone: 'Ozon',
     nitrogenDioxide: 'Stickstoffdioxid',
+  },
+  favorites: {
+    title: 'Favoriten',
+    save: 'Merken',
+    saved: 'Gemerkt',
+    add: 'Zu Favoriten hinzufügen',
+    remove: 'Aus Favoriten entfernen',
+    full: (n) => `Du kannst bis zu ${num(n)} Städte speichern`,
+    setHome: 'Als Zuhause festlegen',
+    homeCity: 'Heimatstadt',
+    unsetHome: 'Nicht mehr als Heimatstadt verwenden',
   },
   errors: {
     INVALID_REQUEST: 'Die Anfrage ist ungültig. Prüfe die Adresse und versuche es erneut.',

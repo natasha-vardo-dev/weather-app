@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 export const he: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'תחזית מזג אוויר',
   language: 'שפה',
+  temperatureUnit: 'יחידת טמפרטורה',
   dataBy: 'נתוני מזג אוויר:',
   home: {
     title: 'איך יהיה מזג האוויר לאן שאתם נוסעים?',
@@ -78,6 +79,17 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'מזהמים',
     ozone: 'אוזון',
     nitrogenDioxide: 'חנקן דו־חמצני',
+  },
+  favorites: {
+    title: 'מועדפים',
+    save: 'שמירה',
+    saved: 'נשמר',
+    add: 'הוספה למועדפים',
+    remove: 'הסרה מהמועדפים',
+    full: (n) => `אפשר לשמור עד ${num(n)} ערים`,
+    setHome: 'הגדרה כבית',
+    homeCity: 'עיר הבית',
+    unsetHome: 'הפסקת השימוש כעיר הבית',
   },
   errors: {
     INVALID_REQUEST: 'הבקשה אינה תקינה. בדקו את הכתובת ונסו שוב.',

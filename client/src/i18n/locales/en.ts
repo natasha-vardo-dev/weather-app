@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 export const en: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'Weather forecast',
   language: 'Language',
+  temperatureUnit: 'Temperature unit',
   dataBy: 'Weather data by',
   home: {
     title: "What's the weather where you're going?",
@@ -78,6 +79,17 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'Pollutants',
     ozone: 'Ozone',
     nitrogenDioxide: 'Nitrogen dioxide',
+  },
+  favorites: {
+    title: 'Favourites',
+    save: 'Save',
+    saved: 'Saved',
+    add: 'Add to favourites',
+    remove: 'Remove from favourites',
+    full: (n) => `You can save up to ${num(n)} cities`,
+    setHome: 'Set as home',
+    homeCity: 'Home city',
+    unsetHome: 'Stop using as home city',
   },
   errors: {
     INVALID_REQUEST: "That request doesn't look right. Check the address and try again.",
