@@ -31,6 +31,15 @@ describe('GET /api/forecast', () => {
     provider.getForecast.mockRejectedValueOnce(new ProviderError());
     const res = await request(app).get('/api/forecast?lat=1&lon=1');
     expect(res.status).toBe(502);
+    expect(res.headers['cache-control']).toBe('no-store');
+  });
+
+  it('does not let browsers cache a failed air quality response', async () => {
+    const { app, provider } = setup();
+    provider.getAirQuality.mockRejectedValueOnce(new ProviderError());
+    const res = await request(app).get('/api/air-quality?lat=1&lon=1');
+    expect(res.status).toBe(502);
+    expect(res.headers['cache-control']).toBe('no-store');
   });
 });
 
@@ -46,6 +55,27 @@ describe('GET /api/air-quality', () => {
     const { app } = setup();
     const res = await request(app).get('/api/air-quality?lat=abc&lon=21');
     expect(res.status).toBe(400);
+  });
+});
+
+describe('GET /api/locations/:id', () => {
+  it('returns the place with names in the requested language', async () => {
+    const { app } = setup();
+    const res = await request(app).get('/api/locations/756135?lang=ru');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ id: 756135, name: 'Варшава', country: 'Польша' });
+  });
+
+  it('answers 404 for an unknown id and 400 for a malformed one', async () => {
+    const { app } = setup();
+    expect((await request(app).get('/api/locations/1')).status).toBe(404);
+    expect((await request(app).get('/api/locations/abc')).status).toBe(400);
+  });
+
+  it('answers 400 for an id too large for the provider, without asking it', async () => {
+    const { app, provider } = setup();
+    expect((await request(app).get('/api/locations/99999999999')).status).toBe(400);
+    expect(provider.getLocation).not.toHaveBeenCalled();
   });
 });
 

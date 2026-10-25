@@ -9,6 +9,8 @@ export type { AirQuality, CurrentWeather, DailyForecast, Forecast, Location } fr
 export interface WeatherProvider {
   /** `language`: ISO 639-1 code for place and country names. */
   searchLocations(query: string, limit: number, language: string): Promise<Location[]>;
+  /** One place by its provider id, with names in `language`; null if the id is unknown. */
+  getLocation(id: number, language: string): Promise<Location | null>;
   getForecast(latitude: number, longitude: number, days: number): Promise<Forecast>;
   getAirQuality(latitude: number, longitude: number): Promise<AirQuality>;
 }

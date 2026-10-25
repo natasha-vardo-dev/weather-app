@@ -9,6 +9,8 @@ import type { Plural } from './plural';
 export interface Messages {
   appName: string;
   language: string;
+  /** Label of the °C / °F switch, for screen readers. */
+  temperatureUnit: string;
   dataBy: string;
   home: { title: string; text: (days: number) => string };
   notFound: {
@@ -54,6 +56,12 @@ export interface Messages {
     add: string;
     remove: string;
     full: (max: number) => string;
+    /** Button label for a city that is not the home city. */
+    setHome: string;
+    /** Button label for the home city; also marks it in lists for screen readers. */
+    homeCity: string;
+    /** Hidden text: what pressing "Home city" does. */
+    unsetHome: string;
   };
   errors: Record<ErrorCode, string>;
 }

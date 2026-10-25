@@ -1,9 +1,11 @@
 import type { Favorite } from '@weather/shared';
 import { Link } from 'react-router';
 import { useCurrentWeather } from '../hooks/useCurrentWeather';
+import { useLocalizedPlace } from '../hooks/useLocalizedPlace';
 import { useFavorites } from '../hooks/useFavorites';
 import { useI18n } from '../i18n/I18nProvider';
 import { placePath } from '../locationUrl';
+import { HomeIcon } from './FavoriteButton';
 import { WeatherIcon } from './WeatherIcon';
 
 /**
@@ -11,9 +13,11 @@ import { WeatherIcon } from './WeatherIcon';
  * today's high/low. It uses the same request as the city page (shared cache), so
  * opening the city is instant.
  */
-function FavoriteCard({ favorite }: { favorite: Favorite }) {
+function FavoriteCard({ favorite, home }: { favorite: Favorite; home: boolean }) {
   const { t, deg } = useI18n();
   const weather = useCurrentWeather(favorite.latitude, favorite.longitude);
+  // Names in the current UI language, not the one the city was saved in.
+  const { name, country } = useLocalizedPlace(favorite);
   const high = weather?.high ?? null;
   const low = weather?.low ?? null;
   const range = high !== null && low !== null ? { high, low } : null;
@@ -24,8 +28,9 @@ function FavoriteCard({ favorite }: { favorite: Favorite }) {
         {/* One sentence for screen readers; the visual parts below are hidden from them. */}
         <span className="visually-hidden">
           {[
-            favorite.name,
-            favorite.country,
+            name,
+            country,
+            home && t.favorites.homeCity,
             weather && t.conditions[weather.condition],
             weather && t.current.degrees(weather.temperature),
             range && t.current.highLow(range.high, range.low),
@@ -35,8 +40,11 @@ function FavoriteCard({ favorite }: { favorite: Favorite }) {
         </span>
         <span className="fav-card__head" aria-hidden="true">
           <span className="fav-card__place">
-            <span className="fav-card__name">{favorite.name}</span>
-            {favorite.country && <span className="fav-card__country">{favorite.country}</span>}
+            <span className="fav-card__name">
+              {home && <HomeIcon className="home-mark" size={13} />}
+              {name}
+            </span>
+            {country && <span className="fav-card__country">{country}</span>}
           </span>
           {weather && <WeatherIcon icon={weather.icon} isDay={weather.isDay} size={32} />}
         </span>
@@ -62,7 +70,7 @@ function FavoriteCard({ favorite }: { favorite: Favorite }) {
 /** Saved cities on the start page as a grid of cards; nothing until the first one is saved. */
 export function FavoritesList() {
   const { t } = useI18n();
-  const { favorites } = useFavorites();
+  const { favorites, isHome } = useFavorites();
   if (favorites.length === 0) return null;
 
   return (
@@ -72,7 +80,11 @@ export function FavoritesList() {
       </h2>
       <ul className="fav-grid">
         {favorites.map((favorite) => (
-          <FavoriteCard key={`${favorite.latitude},${favorite.longitude}`} favorite={favorite} />
+          <FavoriteCard
+            key={`${favorite.latitude},${favorite.longitude}`}
+            favorite={favorite}
+            home={isHome(favorite)}
+          />
         ))}
       </ul>
     </section>

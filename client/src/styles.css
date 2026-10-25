@@ -98,7 +98,7 @@ body {
 .page__header { display: flex; gap: 0.75rem; align-items: stretch; }
 .page__header > .search { flex: 1; min-width: 0; }
 
-.language select {
+.dropdown__button {
   height: 100%;
   font: inherit;
   padding: 0 0.75rem;
@@ -108,6 +108,66 @@ body {
   color: var(--field-ink);
   cursor: pointer;
 }
+
+/* Header switches (°C/°F, language): custom lists, so they always open below the button */
+.dropdown { position: relative; }
+
+/* Fixed widths: labels differ ("°F" is wider than "°C", "Nederlands" than "Dansk"),
+   and the search field next to them must not jump when the choice changes. */
+.dropdown__button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.dropdown--unit .dropdown__button { width: 4.25rem; }
+.dropdown--language .dropdown__button { width: 8.75rem; }
+
+.dropdown__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown__chevron { flex: none; opacity: 0.7; }
+
+.dropdown__list {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 0.35rem);
+  inset-inline-start: 0;
+  min-width: 100%;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  background: var(--field-list);
+  color: var(--field-ink);
+  border: 1px solid var(--field-line);
+  border-radius: 0.75rem;
+}
+
+/* 19 languages: scroll within the window instead of running past its bottom. */
+.dropdown--language .dropdown__list {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  max-height: min(22rem, 70vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.dropdown__list:focus { outline: none; }
+.dropdown__list:focus-visible .dropdown__option--active { outline: 2px solid var(--field-query); outline-offset: -2px; }
+
+.dropdown__option {
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dropdown__option--active { background: var(--field-active); }
+.dropdown__option[aria-selected='true'] { font-weight: 600; }
 
 /* Search */
 .search { position: relative; }
@@ -321,10 +381,9 @@ button.aqi { cursor: pointer; }
   justify-items: center;
   gap: 0.2rem;
   min-width: 3.5rem;
+  /* No border or fill: spacing alone separates the hours (a translucent fill would also
+     drop text contrast below 4.5:1 on the blue background). */
   padding: 0.6rem 0.5rem;
-  /* A border, not a fill: a translucent fill drops text contrast below 4.5:1 on the blue background. */
-  border: 1px solid var(--line);
-  border-radius: 0.75rem;
   font-variant-numeric: tabular-nums;
   scroll-snap-align: start;
 }
@@ -400,6 +459,11 @@ button.aqi { cursor: pointer; }
   .day__temps { grid-template-columns: 2rem 2rem; }
   .pollutants { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .day__bar { display: none; }
+  /* Search gets the full width; the unit and language switches go to the line below. */
+  .page__header { flex-wrap: wrap; }
+  .page__header > .search { flex-basis: 100%; }
+  .page__header > .dropdown--unit { margin-inline-start: auto; }
+  .dropdown__button { padding-block: 0.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -493,6 +557,20 @@ button.aqi { cursor: pointer; }
 .save__hint { font-size: 0.85rem; color: var(--ink-soft); }
 .save__star { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
 .save[data-saved] .save__star { fill: var(--sun); stroke: var(--sun); }
+
+/* Home city: house outline on the button, filled yellow when this is the home city */
+.home__icon { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.save[data-home] .home__icon { fill: var(--sun); stroke: var(--sun); }
+/* Small filled house before the home city's name in the strip and on cards */
+.home-mark {
+  display: inline-block;
+  margin-inline-end: 0.25rem;
+  vertical-align: -0.1em;
+  fill: var(--sun);
+  stroke: var(--sun);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
 
 /* Saved cities on the start page */
 .favorites { margin-top: 2.5rem; }

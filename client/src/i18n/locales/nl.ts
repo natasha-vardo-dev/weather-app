@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 export const nl: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'Weersverwachting',
   language: 'Taal',
+  temperatureUnit: 'Temperatuureenheid',
   dataBy: 'Weergegevens van',
   home: {
     title: 'Wat voor weer is het waar je heen gaat?',
@@ -87,6 +88,9 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     add: 'Toevoegen aan favorieten',
     remove: 'Verwijderen uit favorieten',
     full: (n) => `Je kunt tot ${num(n)} steden bewaren`,
+    setHome: 'Instellen als thuis',
+    homeCity: 'Thuisstad',
+    unsetHome: 'Niet meer als thuisstad gebruiken',
   },
   errors: {
     INVALID_REQUEST: 'Het verzoek is ongeldig. Controleer het adres en probeer het opnieuw.',

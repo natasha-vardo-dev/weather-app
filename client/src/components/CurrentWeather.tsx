@@ -2,6 +2,7 @@ import { compareWithYesterday, describeWeather, type Forecast } from '@weather/s
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { AirQualityView } from '../hooks/useAirQuality';
 import { useI18n } from '../i18n/I18nProvider';
+import { useUnits } from '../units/UnitProvider';
 import { AirQualityItem, hasPollutants, PollutantsPanel } from './AirQualityDetails';
 
 interface Props {
@@ -16,12 +17,14 @@ interface Props {
 
 export function CurrentWeather({ name, country, forecast, airQuality, actions }: Props) {
   const { t, deg, speed, percent } = useI18n();
+  const { temp } = useUnits();
   const { current, units } = forecast;
   const label = t.conditions[describeWeather(current.weatherCode).condition];
   const today = forecast.daily[0];
+  // Compared in the chosen unit, so the difference reads in that unit too (2 °C apart is 4 °F).
   const trend =
     today && forecast.yesterday
-      ? compareWithYesterday(today.tempMax, forecast.yesterday.tempMax)
+      ? compareWithYesterday(temp(today.tempMax), temp(forecast.yesterday.tempMax))
       : null;
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [pollutantsOpen, setPollutantsOpen] = useState(false);
@@ -45,15 +48,17 @@ export function CurrentWeather({ name, country, forecast, airQuality, actions }:
         </h1>
         {actions}
       </div>
-      <p className="now__temp" aria-label={t.current.degrees(Math.round(current.temperature))}>
-        {deg(Math.round(current.temperature))}
+      {/* aria-label is not allowed on a paragraph and often ignored: hidden text instead. */}
+      <p className="now__temp">
+        <span className="visually-hidden">{t.current.degrees(temp(current.temperature))}</span>
+        <span aria-hidden="true">{deg(temp(current.temperature))}</span>
       </p>
       <p className="now__label">
         {label}
         {today && (
           <span className="now__hilo">
             {' '}
-            {t.current.highLow(Math.round(today.tempMax), Math.round(today.tempMin))}
+            {t.current.highLow(temp(today.tempMax), temp(today.tempMin))}
           </span>
         )}
       </p>
@@ -67,7 +72,7 @@ export function CurrentWeather({ name, country, forecast, airQuality, actions }:
       <dl className="now__details">
         <div>
           <dt>{t.current.feelsLike}</dt>
-          <dd>{deg(Math.round(current.apparentTemperature))}</dd>
+          <dd>{deg(temp(current.apparentTemperature))}</dd>
         </div>
         <div>
           <dt>{t.current.humidity}</dt>

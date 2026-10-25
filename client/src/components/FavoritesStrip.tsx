@@ -1,14 +1,18 @@
 import { isFavorite, type Favorite } from '@weather/shared';
 import { Link } from 'react-router';
 import { useCurrentWeather } from '../hooks/useCurrentWeather';
+import { useLocalizedPlace } from '../hooks/useLocalizedPlace';
 import { useFavorites } from '../hooks/useFavorites';
 import { useI18n } from '../i18n/I18nProvider';
 import { placePath } from '../locationUrl';
+import { HomeIcon } from './FavoriteButton';
 import { WeatherIcon } from './WeatherIcon';
 
-function FavoriteTile({ favorite, current }: { favorite: Favorite; current: boolean }) {
+function FavoriteTile({ favorite, current, home }: { favorite: Favorite; current: boolean; home: boolean }) {
   const { t, deg } = useI18n();
   const weather = useCurrentWeather(favorite.latitude, favorite.longitude);
+  // Names in the current UI language, not the one the city was saved in.
+  const { name, country } = useLocalizedPlace(favorite);
 
   return (
     <li>
@@ -17,13 +21,14 @@ function FavoriteTile({ favorite, current }: { favorite: Favorite; current: bool
         to={placePath(favorite)}
         aria-current={current ? 'page' : undefined}
         // Full name on hover, since long names and countries are cut with an ellipsis.
-        title={[favorite.name, favorite.country].filter(Boolean).join(', ')}
+        title={[name, country].filter(Boolean).join(', ')}
       >
         {/* One sentence for screen readers instead of four loose pieces. */}
         <span className="visually-hidden">
           {[
-            favorite.name,
-            favorite.country,
+            name,
+            country,
+            home && t.favorites.homeCity,
             weather && t.conditions[weather.condition],
             weather && t.current.degrees(weather.temperature),
           ]
@@ -31,11 +36,12 @@ function FavoriteTile({ favorite, current }: { favorite: Favorite; current: bool
             .join(', ')}
         </span>
         <span className="fav-tile__name" aria-hidden="true">
-          {favorite.name}
+          {home && <HomeIcon className="home-mark" size={11} />}
+          {name}
         </span>
-        {favorite.country && (
+        {country && (
           <span className="fav-tile__country" aria-hidden="true">
-            {favorite.country}
+            {country}
           </span>
         )}
         <span className="fav-tile__weather" aria-hidden="true">
@@ -58,7 +64,7 @@ function FavoriteTile({ favorite, current }: { favorite: Favorite; current: bool
  */
 export function FavoritesStrip({ place }: { place: Favorite }) {
   const { t } = useI18n();
-  const { favorites } = useFavorites();
+  const { favorites, isHome } = useFavorites();
   if (favorites.length === 0) return null;
 
   return (
@@ -69,6 +75,7 @@ export function FavoritesStrip({ place }: { place: Favorite }) {
             key={`${favorite.latitude},${favorite.longitude}`}
             favorite={favorite}
             current={isFavorite([favorite], place)}
+            home={isHome(favorite)}
           />
         ))}
       </ul>

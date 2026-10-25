@@ -1,13 +1,14 @@
 import { describeWeather, type WeatherCondition, type WeatherIcon } from '@weather/shared';
+import { useUnits } from '../units/UnitProvider';
 import { useForecast } from './useForecast';
 
 export interface CurrentWeatherSummary {
   condition: WeatherCondition;
   icon: WeatherIcon;
   isDay: boolean;
-  /** Rounded, as shown on screen. */
+  /** In the chosen unit, rounded, as shown on screen. */
   temperature: number;
-  /** Today's high and low at the place, rounded; null if the forecast has no days. */
+  /** Today's high and low at the place, like temperature; null if the forecast has no days. */
   high: number | null;
   low: number | null;
 }
@@ -18,6 +19,7 @@ export interface CurrentWeatherSummary {
  */
 export function useCurrentWeather(latitude: number, longitude: number): CurrentWeatherSummary | null {
   const { forecast } = useForecast(latitude, longitude);
+  const { temp } = useUnits();
   const current = forecast?.current;
   if (!current) return null;
   const { condition, icon } = describeWeather(current.weatherCode);
@@ -26,8 +28,8 @@ export function useCurrentWeather(latitude: number, longitude: number): CurrentW
     condition,
     icon,
     isDay: current.isDay,
-    temperature: Math.round(current.temperature),
-    high: today ? Math.round(today.tempMax) : null,
-    low: today ? Math.round(today.tempMin) : null,
+    temperature: temp(current.temperature),
+    high: today ? temp(today.tempMax) : null,
+    low: today ? temp(today.tempMin) : null,
   };
 }

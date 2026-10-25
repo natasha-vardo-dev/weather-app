@@ -10,9 +10,11 @@ A web application that shows the current weather and a 10-day forecast for a sel
 - Shareable links for each place, e.g. `/weather/52.23,21.01?name=Warsaw&country=Poland`; back/forward and refresh work
 - Current conditions: temperature, feels like, humidity, wind, air quality (European AQI for places in Europe, US AQI elsewhere, with PM2.5, PM10, ozone and NO₂ on demand)
 - 10-day forecast with temperature range bars and rain probability
+- A home city: one saved city, shown first and marked with a house
 - Favourite cities (up to 10), saved in the browser: shown as cards with current weather, condition and today's high/low on the start page, and as a strip of tiles on city pages
 - Loading, empty and error states with retry
 - 19 interface languages, picked from the system language by default, with a switcher; dates, times, numbers and units follow the locale; right-to-left layout for Arabic and Hebrew
+- °C or °F: Fahrenheit by default for the US and a few other regions (from the system locale), Celsius elsewhere; a switcher in the header remembers the choice
 - Responsive layout, light/dark mode, accessible combobox
 
 ## Tech stack
@@ -70,6 +72,7 @@ npm run build      # production build
 | Method | Endpoint                                 | Description            |
 |--------|------------------------------------------|------------------------|
 | GET    | `/api/locations?q=warsaw&limit=5`        | Search cities          |
+| GET    | `/api/locations/756135?lang=ru`          | One place by id, names in a language |
 | GET    | `/api/forecast?lat=52.23&lon=21.01&days=10` | Current weather, next 24 hours, yesterday and daily forecast |
 | GET    | `/api/air-quality?lat=52.23&lon=21.01`   | Current air quality (European and US AQI) |
 | GET    | `/api/health`                            | Health check           |
@@ -87,7 +90,7 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 
 - [No user accounts needed: favourites live in the browser (`localStorage`), so they do not sync between devices]
 - [10 days of forecast is enough: beyond that Open-Meteo still returns data (up to 16 days), but accuracy drops sharply]
-- [Metric units only]
+- [Only temperature has a unit switch (°C/°F); wind stays in km/h]
 - [UI translations for 19 languages are machine-quality drafts: they need a review by native speakers before a real release]
 
 ## Trade-offs and decisions
@@ -100,6 +103,6 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 
 ## What I would do next
 
-- [Geolocation, °C/°F toggle; accounts so favourites sync between devices]
+- [Geolocation, wind unit setting; accounts so favourites sync between devices]
 - [ESLint, component and e2e tests with Playwright]
 - [Redis cache and rate limiting, monitoring]

@@ -4,6 +4,7 @@ import type { MessagesFactory } from '../messages';
 export const ja: MessagesFactory = ({ num, deg }) => ({
   appName: '天気予報',
   language: '言語',
+  temperatureUnit: '温度の単位',
   dataBy: '気象データ提供:',
   home: {
     title: '行き先の天気は？',
@@ -87,6 +88,9 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
     add: 'お気に入りに追加',
     remove: 'お気に入りから削除',
     full: (n) => `保存できるのは${num(n)}都市までです`,
+    setHome: 'ホームに設定',
+    homeCity: 'ホームの都市',
+    unsetHome: 'ホームの都市を解除',
   },
   errors: {
     INVALID_REQUEST: 'リクエストが正しくありません。アドレスを確認して、もう一度お試しください。',

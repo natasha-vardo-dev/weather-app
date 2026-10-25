@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 export const hi: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'मौसम का पूर्वानुमान',
   language: 'भाषा',
+  temperatureUnit: 'तापमान की इकाई',
   dataBy: 'मौसम डेटा:',
   home: {
     title: 'आप जहाँ जा रहे हैं, वहाँ मौसम कैसा है?',
@@ -86,6 +87,9 @@ export const hi: MessagesFactory = ({ num, deg, plural }) => ({
     add: 'पसंदीदा में जोड़ें',
     remove: 'पसंदीदा से हटाएँ',
     full: (n) => `आप अधिकतम ${num(n)} शहर सहेज सकते हैं`,
+    setHome: 'होम के रूप में सेट करें',
+    homeCity: 'होम शहर',
+    unsetHome: 'होम शहर के रूप में उपयोग बंद करें',
   },
   errors: {
     INVALID_REQUEST: 'अनुरोध मान्य नहीं है। पता जाँचें और फिर से कोशिश करें।',

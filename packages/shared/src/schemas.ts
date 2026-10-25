@@ -7,7 +7,14 @@ import {
   SEARCH_MAX_LIMIT,
   SEARCH_MIN_LENGTH,
 } from './constants.js';
-import { LATITUDE_RANGE, LONGITUDE_RANGE } from './coordinates.js';
+import { LATITUDE_RANGE, LONGITUDE_RANGE, MAX_LOCATION_ID } from './coordinates.js';
+
+/** ISO 639-1 code for place names. The provider falls back to English for unknown ones. */
+const languageSchema = z
+  .string()
+  .regex(/^[a-z]{2}$/i)
+  .transform((value) => value.toLowerCase())
+  .default('en');
 
 export const locationsQuerySchema = z.object({
   q: z
@@ -16,12 +23,14 @@ export const locationsQuerySchema = z.object({
     .min(SEARCH_MIN_LENGTH, `Type at least ${SEARCH_MIN_LENGTH} characters to search.`)
     .max(SEARCH_MAX_LENGTH),
   limit: z.coerce.number().int().min(1).max(SEARCH_MAX_LIMIT).default(SEARCH_DEFAULT_LIMIT),
-  /** ISO 639-1 code for place names. The provider falls back to English for unknown ones. */
-  lang: z
-    .string()
-    .regex(/^[a-z]{2}$/i)
-    .transform((value) => value.toLowerCase())
-    .default('en'),
+  lang: languageSchema,
+});
+
+/** GET /api/locations/:id — one place by provider id, names in `lang`. */
+export const locationByIdSchema = z.object({
+  // Bounded, so an impossible id is answered with 400 here, not sent to the provider.
+  id: z.coerce.number().int().positive().max(MAX_LOCATION_ID),
+  lang: languageSchema,
 });
 
 export const forecastQuerySchema = z.object({
@@ -39,6 +48,7 @@ export const airQualityQuerySchema = z.object({
 export type LocationsQuery = z.infer<typeof locationsQuerySchema>;
 export type ForecastQuery = z.infer<typeof forecastQuerySchema>;
 export type AirQualityQuery = z.infer<typeof airQualityQuerySchema>;
+export type LocationByIdQuery = z.infer<typeof locationByIdSchema>;
 
 /** Re-exported so the server checks errors against the same zod instance the schemas use. */
 export { ZodError } from 'zod';

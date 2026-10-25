@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 export const cs: MessagesFactory = ({ deg, plural }) => ({
   appName: 'Předpověď počasí',
   language: 'Jazyk',
+  temperatureUnit: 'Jednotka teploty',
   dataBy: 'Data o počasí:',
   home: {
     title: 'Jaké bude počasí tam, kam jedete?',
@@ -95,6 +96,9 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     add: 'Přidat do oblíbených',
     remove: 'Odebrat z oblíbených',
     full: (n) => `Můžete uložit až ${plural(n, { one: '{n} město', few: '{n} města', other: '{n} měst' })}`,
+    setHome: 'Nastavit jako domov',
+    homeCity: 'Domovské město',
+    unsetHome: 'Přestat používat jako domovské město',
   },
   errors: {
     INVALID_REQUEST: 'Neplatný požadavek. Zkontrolujte adresu a zkuste to znovu.',

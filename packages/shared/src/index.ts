@@ -8,3 +8,4 @@ export * from './language.js';
 export * from './schemas.js';
 export * from './types.js';
 export * from './weather.js';
+export * from './temperature.js';

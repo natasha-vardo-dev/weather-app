@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 export const it: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'Previsioni meteo',
   language: 'Lingua',
+  temperatureUnit: 'Unità di temperatura',
   dataBy: 'Dati meteo di',
   home: {
     title: 'Che tempo fa dove stai andando?',
@@ -86,6 +87,9 @@ export const it: MessagesFactory = ({ num, deg, plural }) => ({
     add: 'Aggiungi ai preferiti',
     remove: 'Rimuovi dai preferiti',
     full: (n) => `Puoi salvare fino a ${num(n)} città`,
+    setHome: 'Imposta come casa',
+    homeCity: 'Città di casa',
+    unsetHome: 'Non usare più come città di casa',
   },
   errors: {
     INVALID_REQUEST: "La richiesta non è valida. Controlla l'indirizzo e riprova.",

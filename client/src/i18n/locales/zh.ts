@@ -4,6 +4,7 @@ import type { MessagesFactory } from '../messages';
 export const zh: MessagesFactory = ({ num, deg }) => ({
   appName: '天气预报',
   language: '语言',
+  temperatureUnit: '温度单位',
   dataBy: '天气数据来源：',
   home: {
     title: '你要去的地方天气如何？',
@@ -87,6 +88,9 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
     add: '添加到收藏',
     remove: '从收藏中移除',
     full: (n) => `最多可收藏${num(n)}个城市`,
+    setHome: '设为常驻城市',
+    homeCity: '常驻城市',
+    unsetHome: '取消常驻城市',
   },
   errors: {
     INVALID_REQUEST: '请求无效。请检查地址后重试。',

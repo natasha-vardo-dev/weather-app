@@ -1,5 +1,5 @@
 import { SEARCH_MIN_LENGTH, type Location } from '@weather/shared';
-import { useId, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useState, type KeyboardEvent } from 'react';
 import { useLocationSearch } from '../hooks/useLocationSearch';
 import { useI18n } from '../i18n/I18nProvider';
 
@@ -21,6 +21,9 @@ export function SearchBar({ onSelect }: Props) {
 
   const showList = open && searchedFor.length >= SEARCH_MIN_LENGTH;
 
+  // Results arrive after a debounce: the user may have moved down a longer, older list.
+  useEffect(() => setActive(0), [results]);
+
   function choose(location: Location) {
     onSelect(location);
     setQuery('');
@@ -37,7 +40,8 @@ export function SearchBar({ onSelect }: Props) {
       setActive((i) => (i - 1 + results.length) % results.length);
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      choose(results[active]);
+      const location = results[active];
+      if (location) choose(location);
     } else if (e.key === 'Escape') {
       setOpen(false);
     }

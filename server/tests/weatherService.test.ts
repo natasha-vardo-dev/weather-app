@@ -23,6 +23,19 @@ describe('WeatherService', () => {
     expect(provider.getAirQuality).toHaveBeenCalledTimes(1);
   });
 
+  it('caches places by id per language, including unknown ids', async () => {
+    const provider = createFakeProvider();
+    const service = new WeatherService(provider);
+
+    await service.getLocation(756135, 'ru');
+    await service.getLocation(756135, 'ru');
+    await service.getLocation(756135, 'en');
+    expect(await service.getLocation(1, 'en')).toBeNull();
+    expect(await service.getLocation(1, 'en')).toBeNull();
+
+    expect(provider.getLocation).toHaveBeenCalledTimes(3);
+  });
+
   it('treats location queries case-insensitively for caching', async () => {
     const provider = createFakeProvider();
     const service = new WeatherService(provider);

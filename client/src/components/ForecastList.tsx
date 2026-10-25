@@ -1,5 +1,6 @@
 import { describeWeather, formatDay, rangePosition, type DailyForecast } from '@weather/shared';
 import { useI18n } from '../i18n/I18nProvider';
+import { useUnits } from '../units/UnitProvider';
 import { WeatherIcon } from './WeatherIcon';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 
 export function ForecastList({ days }: Props) {
   const { t, locale, deg, percent } = useI18n();
+  const { temp } = useUnits();
   const today = days[0]?.date ?? '';
   const weekMin = Math.min(...days.map((d) => d.tempMin));
   const weekMax = Math.max(...days.map((d) => d.tempMax));
@@ -41,11 +43,11 @@ export function ForecastList({ days }: Props) {
               </span>
               {/* One left-to-right block, so "low ▬ high" matches the cold-to-warm bar in RTL too. */}
               <span className="day__temps">
-                <span className="day__min">{deg(Math.round(day.tempMin))}</span>
+                <span className="day__min">{deg(temp(day.tempMin))}</span>
                 <span className="day__bar" aria-hidden="true">
                   <span className="day__range" style={{ left: `${left}%`, width: `${width}%` }} />
                 </span>
-                <span className="day__max">{deg(Math.round(day.tempMax))}</span>
+                <span className="day__max">{deg(temp(day.tempMax))}</span>
               </span>
             </li>
           );

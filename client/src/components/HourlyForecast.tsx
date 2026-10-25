@@ -1,5 +1,6 @@
 import { describeWeather, formatHour, type HourlyForecast as Hour } from '@weather/shared';
 import { useI18n } from '../i18n/I18nProvider';
+import { useUnits } from '../units/UnitProvider';
 import { WeatherIcon } from './WeatherIcon';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 /** Horizontally scrolling strip for the next 24 hours. */
 export function HourlyForecast({ hours }: Props) {
   const { t, locale, deg, percent } = useI18n();
+  const { temp } = useUnits();
   if (hours.length === 0) return null;
 
   return (
@@ -20,7 +22,7 @@ export function HourlyForecast({ hours }: Props) {
       <ol className="hours__list" tabIndex={0} aria-labelledby="hours-title">
         {hours.map((hour, i) => {
           const name = formatHour(hour.time, i, { locale, nowLabel: t.hourly.now });
-          const temperature = Math.round(hour.temperature);
+          const temperature = temp(hour.temperature);
           const rain =
             hour.precipitationProbability !== null && hour.precipitationProbability >= 30
               ? hour.precipitationProbability

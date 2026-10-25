@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 export const ko: MessagesFactory = ({ num, deg }) => ({
   appName: '날씨 예보',
   language: '언어',
+  temperatureUnit: '온도 단위',
   dataBy: '날씨 데이터 제공:',
   home: {
     title: '가는 곳의 날씨는 어떨까요?',
@@ -86,6 +87,9 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
     add: '즐겨찾기에 추가',
     remove: '즐겨찾기에서 삭제',
     full: (n) => `최대 ${num(n)}개 도시까지 저장할 수 있습니다`,
+    setHome: '홈으로 설정',
+    homeCity: '홈 도시',
+    unsetHome: '홈 도시 해제',
   },
   errors: {
     INVALID_REQUEST: '요청이 올바르지 않습니다. 주소를 확인하고 다시 시도하세요.',

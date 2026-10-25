@@ -39,5 +39,16 @@ export function createFakeProvider() {
     ]),
     getForecast: vi.fn(async () => sampleForecast),
     getAirQuality: vi.fn(async () => sampleAirQuality),
+    getLocation: vi.fn(async (id: number, language: string) =>
+      id === 756135
+        ? {
+            id,
+            name: language === 'ru' ? 'Варшава' : 'Warsaw',
+            country: language === 'ru' ? 'Польша' : 'Poland',
+            latitude: 52.23,
+            longitude: 21.01,
+          }
+        : null,
+    ),
   } satisfies WeatherProvider;
 }

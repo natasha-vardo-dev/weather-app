@@ -1,5 +1,6 @@
 import { LANGUAGES, type Language } from '../i18n';
 import { useI18n } from '../i18n/I18nProvider';
+import { Dropdown } from './Dropdown';
 
 /** Each language in its own script ("Deutsch", "日本語"), so people can find theirs in any UI language. */
 function nativeName(language: Language): string {
@@ -11,22 +12,10 @@ function nativeName(language: Language): string {
   }
 }
 
-const OPTIONS = LANGUAGES.map((code) => ({ code, name: nativeName(code) }));
+// In the order of LANGUAGES; each name is in its own language, hence `lang` on every option.
+const OPTIONS = LANGUAGES.map((code) => ({ value: code, label: nativeName(code), lang: code }));
 
 export function LanguageSelect() {
   const { language, setLanguage, t } = useI18n();
-
-  return (
-    <label className="language">
-      <span className="visually-hidden">{t.language}</span>
-      <select value={language} onChange={(e) => setLanguage(e.target.value as Language)}>
-        {OPTIONS.map(({ code, name }) => (
-          // lang lets screen readers pronounce each name correctly.
-          <option key={code} value={code} lang={code}>
-            {name}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+  return <Dropdown label={t.language} value={language} options={OPTIONS} onChange={setLanguage} variant="language" />;
 }

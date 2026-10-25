@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 export const uk: MessagesFactory = ({ deg, plural }) => ({
   appName: 'Прогноз погоди',
   language: 'Мова',
+  temperatureUnit: 'Одиниця температури',
   dataBy: 'Дані про погоду:',
   home: {
     title: 'Яка погода там, куди ви їдете?',
@@ -100,6 +101,9 @@ export const uk: MessagesFactory = ({ deg, plural }) => ({
     add: 'Додати до обраного',
     remove: 'Видалити з обраного',
     full: (n) => `Можна зберегти до ${plural(n, { one: '{n} міста', other: '{n} міст' })}`,
+    setHome: 'Зробити домашнім',
+    homeCity: 'Домашнє місто',
+    unsetHome: 'Більше не використовувати як домашнє',
   },
   errors: {
     INVALID_REQUEST: 'Некоректний запит. Перевірте адресу й спробуйте ще раз.',

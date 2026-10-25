@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 export const sv: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'Väderprognos',
   language: 'Språk',
+  temperatureUnit: 'Temperaturenhet',
   dataBy: 'Väderdata från',
   home: {
     title: 'Hur blir vädret dit du ska?',
@@ -86,6 +87,9 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
     add: 'Lägg till i favoriter',
     remove: 'Ta bort från favoriter',
     full: (n) => `Du kan spara upp till ${num(n)} städer`,
+    setHome: 'Ange som hem',
+    homeCity: 'Hemstad',
+    unsetHome: 'Sluta använda som hemstad',
   },
   errors: {
     INVALID_REQUEST: 'Begäran är ogiltig. Kontrollera adressen och försök igen.',
