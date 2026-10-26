@@ -7,10 +7,16 @@ export const ar: MessagesFactory = ({ num, deg, plural }) => ({
   temperatureUnit: 'وحدة درجة الحرارة',
   placesBy: 'أسماء الأماكن',
   dataBy: 'بيانات الطقس من',
+  offline: 'أنت غير متصل. يُعرض آخر توقع تم تحميله، وقد لا يكون محدّثًا.',
   home: {
     title: 'كيف سيكون الطقس حيث تذهب؟',
     text: (days) =>
       `ابحث عن مدينة لمعرفة الطقس الحالي وتوقعات ${plural(days, { one: 'يوم واحد', two: 'يومين', few: '{n} أيام', other: '{n} يومًا' })}.`,
+  },
+  installHint: {
+    title: 'أضِفه إلى الشاشة الرئيسية',
+    steps: 'اضغط على {icon} «مشاركة»، ثم «إضافة إلى الشاشة الرئيسية».',
+    dismiss: 'إغلاق',
   },
   notFound: {
     pageTitle: 'غير موجود',

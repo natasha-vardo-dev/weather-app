@@ -2,14 +2,19 @@ import { summarizeAirQuality, type AirQuality, type AirQualitySummary } from '@w
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import { createQueryCache } from '../api/queryCache';
+import { isSavedValue } from '../api/savedResponses';
+import { useReportSaved } from './useReportSaved';
 
 export interface AirQualityView {
   summary: AirQualitySummary;
   pollutants: AirQuality['pollutants'];
 }
 
-/** Shared across the app, 15 minutes like the API's Cache-Control max-age. */
-const airQualityCache = createQueryCache<AirQuality>({ ttlMs: 15 * 60 * 1000 });
+/** Shared across the app, 15 minutes like the API's Cache-Control max-age; old saved answers are not kept. */
+const airQualityCache = createQueryCache<AirQuality>({
+  ttlMs: 15 * 60 * 1000,
+  keep: (airQuality) => !isSavedValue(airQuality),
+});
 
 /**
  * After a failure, one quiet retry this much later: most provider hiccups are short, and
@@ -38,9 +43,10 @@ export function useAirQuality(
   longitude: number | null,
 ): { airQuality: AirQualityView | null | undefined; retry: () => void } {
   const key = latitude === null || longitude === null ? null : `${latitude},${longitude}`;
-  const [state, setState] = useState<{ key: string | null; view: AirQualityView | null }>({
+  const [state, setState] = useState<{ key: string | null; view: AirQualityView | null; saved: boolean }>({
     key: null,
     view: null,
+    saved: false,
   });
   const [attempt, setAttempt] = useState(0);
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
@@ -61,11 +67,11 @@ export function useAirQuality(
     airQualityCache
       .load(requestKey, () => api.getAirQuality(latitude, longitude))
       .then((airQuality) => {
-        if (!cancelled) setState({ key: requestKey, view: toView(airQuality) });
+        if (!cancelled) setState({ key: requestKey, view: toView(airQuality), saved: isSavedValue(airQuality) });
       })
       .catch(() => {
         if (cancelled) return;
-        setState({ key: requestKey, view: null });
+        setState({ key: requestKey, view: null, saved: false });
         if (autoRetriedFor.current !== requestKey) {
           autoRetriedFor.current = requestKey;
           retryTimer = setTimeout(retry, AIR_QUALITY_RETRY_MS);
@@ -79,11 +85,15 @@ export function useAirQuality(
 
   // Never the previous city's value; a cached one is shown at once.
   let airQuality: AirQualityView | null | undefined;
-  if (state.key === key) airQuality = state.view;
-  else if (!key) airQuality = null;
+  let saved = false;
+  if (state.key === key) {
+    airQuality = state.view;
+    saved = state.saved && state.view !== null;
+  } else if (!key) airQuality = null;
   else {
     const cached = airQualityCache.get(key);
     airQuality = cached ? toView(cached) : undefined;
   }
+  useReportSaved(saved);
   return { airQuality, retry };
 }

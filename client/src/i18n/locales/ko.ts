@@ -6,9 +6,15 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
   temperatureUnit: '온도 단위',
   placesBy: '지명',
   dataBy: '날씨 데이터 제공:',
+  offline: '오프라인 상태입니다. 마지막으로 불러온 예보를 표시하며, 최신이 아닐 수 있습니다.',
   home: {
     title: '가는 곳의 날씨는 어떨까요?',
     text: (days) => `도시를 검색하면 현재 날씨와 ${num(days)}일 예보를 볼 수 있습니다.`,
+  },
+  installHint: {
+    title: '홈 화면에 추가',
+    steps: '{icon}‘공유’를 탭한 다음 ‘홈 화면에 추가’를 선택하세요.',
+    dismiss: '닫기',
   },
   notFound: {
     pageTitle: '찾을 수 없음',

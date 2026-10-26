@@ -6,10 +6,16 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
   temperatureUnit: 'Jednostka temperatury',
   placesBy: 'Nazwy miejsc',
   dataBy: 'Dane pogodowe:',
+  offline: 'Jesteś offline. Pokazujemy ostatnio pobraną prognozę, może być nieaktualna.',
   home: {
     title: 'Jaka pogoda czeka cię u celu?',
     text: (days) =>
       `Wyszukaj miasto, aby zobaczyć aktualną pogodę i prognozę na ${plural(days, { one: '{n} dzień', other: '{n} dni' })}.`,
+  },
+  installHint: {
+    title: 'Dodaj do ekranu początkowego',
+    steps: 'Stuknij {icon} „Udostępnij”, a potem „Do ekranu początkowego”.',
+    dismiss: 'Zamknij',
   },
   notFound: {
     pageTitle: 'Nie znaleziono',

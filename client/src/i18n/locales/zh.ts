@@ -7,9 +7,15 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
   temperatureUnit: '温度单位',
   placesBy: '地名',
   dataBy: '天气数据来源：',
+  offline: '您已离线。显示的是上次加载的预报，可能已过时。',
   home: {
     title: '你要去的地方天气如何？',
     text: (days) => `搜索城市，查看当前天气和未来${num(days)}天的预报。`,
+  },
+  installHint: {
+    title: '添加到主屏幕',
+    steps: '轻点{icon}“共享”，然后选择“添加到主屏幕”。',
+    dismiss: '关闭',
   },
   notFound: {
     pageTitle: '未找到',

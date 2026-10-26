@@ -6,10 +6,16 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
   temperatureUnit: 'Jednotka teploty',
   placesBy: 'Názvy míst',
   dataBy: 'Data o počasí:',
+  offline: 'Jste offline. Zobrazuje se naposledy načtená předpověď, může být zastaralá.',
   home: {
     title: 'Jaké bude počasí tam, kam jedete?',
     text: (days) =>
       `Vyhledejte město a uvidíte aktuální počasí a předpověď na ${plural(days, { one: '{n} den', few: '{n} dny', other: '{n} dní' })}.`,
+  },
+  installHint: {
+    title: 'Přidat na plochu',
+    steps: 'Klepněte na {icon} „Sdílet“ a pak na „Přidat na plochu“.',
+    dismiss: 'Zavřít',
   },
   notFound: {
     pageTitle: 'Nenalezeno',

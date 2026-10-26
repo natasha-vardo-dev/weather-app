@@ -6,10 +6,16 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
   temperatureUnit: 'Unité de température',
   placesBy: 'Noms de lieux',
   dataBy: 'Données météo fournies par',
+  offline: 'Vous êtes hors ligne. Dernières prévisions chargées affichées, elles peuvent être dépassées.',
   home: {
     title: 'Quel temps fera-t-il là où vous allez ?',
     text: (days) =>
       `Recherchez une ville pour voir la météo actuelle et les prévisions sur ${num(days)} jours.`,
+  },
+  installHint: {
+    title: 'Ajouter à l’écran d’accueil',
+    steps: 'Touchez {icon} « Partager », puis « Sur l’écran d’accueil ».',
+    dismiss: 'Fermer',
   },
   notFound: {
     pageTitle: 'Introuvable',

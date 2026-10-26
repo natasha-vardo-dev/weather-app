@@ -6,9 +6,15 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
   temperatureUnit: 'Sıcaklık birimi',
   placesBy: 'Yer adları',
   dataBy: 'Hava durumu verileri:',
+  offline: 'Çevrimdışısınız. Son yüklenen tahmin gösteriliyor, güncel olmayabilir.',
   home: {
     title: 'Gideceğin yerde hava nasıl?',
     text: (days) => `Güncel hava durumunu ve ${num(days)} günlük tahmini görmek için bir şehir ara.`,
+  },
+  installHint: {
+    title: 'Ana Ekrana ekleyin',
+    steps: '{icon} “Paylaş”a, ardından “Ana Ekrana Ekle”ye dokunun.',
+    dismiss: 'Kapat',
   },
   notFound: {
     pageTitle: 'Bulunamadı',
