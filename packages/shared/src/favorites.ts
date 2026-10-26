@@ -1,4 +1,4 @@
-import { isValidCoordinates, isValidLocationId } from './coordinates.js';
+import { CITY_MATCH_KM, distanceKm, isValidCoordinates, isValidLocationId } from './coordinates.js';
 
 /** A saved place. Coordinates identify it; name and country are only for display. */
 export interface Favorite {
@@ -68,6 +68,26 @@ export function parseFavorites(raw: unknown): Favorite[] {
 /** Same place: coordinates equal after the ~1 km rounding used everywhere. */
 export function isSamePlace(a: Favorite, b: Favorite): boolean {
   return key(a) === key(b);
+}
+
+/**
+ * The saved city a found place belongs to, if any: same coordinates, the same provider
+ * id, or the same name within CITY_MATCH_KM (the nearest). For the user's location, whose
+ * coordinates are their own ~1 km cell, not the city centre a saved city has: without it
+ * the page said "Save" for a city already saved, and saving added it a second time.
+ * Names are compared as stored, case-insensitively; another language just means no match.
+ */
+export function findSavedCity(favorites: readonly Favorite[], place: Favorite): Favorite | null {
+  const exact = favorites.find((f) => isSamePlace(f, place) || (place.id !== undefined && f.id === place.id));
+  if (exact) return exact;
+  const name = place.name.trim().toLowerCase();
+  let best: { favorite: Favorite; km: number } | null = null;
+  for (const favorite of favorites) {
+    if (favorite.name.trim().toLowerCase() !== name) continue;
+    const km = distanceKm(favorite, place);
+    if (km <= CITY_MATCH_KM && (!best || km < best.km)) best = { favorite, km };
+  }
+  return best?.favorite ?? null;
 }
 
 /**

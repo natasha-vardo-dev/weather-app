@@ -4,6 +4,7 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
   appName: '날씨 예보',
   language: '언어',
   temperatureUnit: '온도 단위',
+  placesBy: '지명',
   dataBy: '날씨 데이터 제공:',
   home: {
     title: '가는 곳의 날씨는 어떨까요?',
@@ -79,6 +80,19 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
     title: '오염 물질',
     ozone: '오존',
     nitrogenDioxide: '이산화질소',
+  },
+  location: {
+    useMine: '내 위치 사용',
+    locating: '위치를 찾는 중…',
+    here: '현재 위치',
+    approximate: 'IP 기반 대략적 위치',
+    suggest: (city) => `${city}에 계신 것 같아요`,
+    errors: {
+      denied: '위치 접근이 차단되었습니다. 브라우저 설정에서 허용하거나 도시를 검색하세요.',
+      unavailable: '위치를 찾을 수 없습니다. 다시 시도하거나 도시를 검색하세요.',
+      timeout: '위치를 찾는 데 시간이 너무 오래 걸렸습니다. 다시 시도하세요.',
+      unsupported: '이 브라우저는 위치를 공유할 수 없습니다. 도시를 검색하세요.',
+    },
   },
   favorites: {
     title: '즐겨찾기',

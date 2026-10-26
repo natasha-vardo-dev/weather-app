@@ -4,6 +4,7 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'Pronóstico del tiempo',
   language: 'Idioma',
   temperatureUnit: 'Unidad de temperatura',
+  placesBy: 'Nombres de lugares',
   dataBy: 'Datos meteorológicos de',
   home: {
     title: '¿Qué tiempo hará adonde vas?',
@@ -79,6 +80,19 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'Contaminantes',
     ozone: 'Ozono',
     nitrogenDioxide: 'Dióxido de nitrógeno',
+  },
+  location: {
+    useMine: 'Usar mi ubicación',
+    locating: 'Buscando tu ubicación…',
+    here: 'Estás aquí',
+    approximate: 'Aproximado, por IP',
+    suggest: (city) => `Parece que estás en ${city}`,
+    errors: {
+      denied: 'El acceso a la ubicación está bloqueado. Permítelo en la configuración del navegador o busca una ciudad.',
+      unavailable: 'No se pudo encontrar tu ubicación. Inténtalo de nuevo o busca una ciudad.',
+      timeout: 'Encontrar tu ubicación tardó demasiado. Inténtalo de nuevo.',
+      unsupported: 'Este navegador no puede compartir tu ubicación. Busca una ciudad.',
+    },
   },
   favorites: {
     title: 'Favoritos',

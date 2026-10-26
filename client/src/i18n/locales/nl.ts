@@ -4,6 +4,7 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'Weersverwachting',
   language: 'Taal',
   temperatureUnit: 'Temperatuureenheid',
+  placesBy: 'Plaatsnamen',
   dataBy: 'Weergegevens van',
   home: {
     title: 'Wat voor weer is het waar je heen gaat?',
@@ -80,6 +81,19 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'Verontreinigende stoffen',
     ozone: 'Ozon',
     nitrogenDioxide: 'Stikstofdioxide',
+  },
+  location: {
+    useMine: 'Mijn locatie gebruiken',
+    locating: 'Je locatie wordt bepaald…',
+    here: 'Je bent hier',
+    approximate: 'Ongeveer, via IP',
+    suggest: (city) => `Je lijkt in ${city} te zijn`,
+    errors: {
+      denied: 'Toegang tot je locatie is geblokkeerd. Sta die toe in de browserinstellingen of zoek een stad.',
+      unavailable: 'Je locatie kon niet worden bepaald. Probeer het opnieuw of zoek een stad.',
+      timeout: 'Het bepalen van je locatie duurde te lang. Probeer het opnieuw.',
+      unsupported: 'Deze browser kan je locatie niet delen. Zoek in plaats daarvan een stad.',
+    },
   },
   favorites: {
     title: 'Favorieten',

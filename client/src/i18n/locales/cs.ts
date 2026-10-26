@@ -4,6 +4,7 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
   appName: 'Předpověď počasí',
   language: 'Jazyk',
   temperatureUnit: 'Jednotka teploty',
+  placesBy: 'Názvy míst',
   dataBy: 'Data o počasí:',
   home: {
     title: 'Jaké bude počasí tam, kam jedete?',
@@ -88,6 +89,19 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     title: 'Znečišťující látky',
     ozone: 'Ozon',
     nitrogenDioxide: 'Oxid dusičitý',
+  },
+  location: {
+    useMine: 'Použít moji polohu',
+    locating: 'Zjišťuji vaši polohu…',
+    here: 'Jste zde',
+    approximate: 'Přibližně, podle IP',
+    suggest: (city) => `Zdá se, že jste tady: ${city}`,
+    errors: {
+      denied: 'Přístup k poloze je blokován. Povolte ho v nastavení prohlížeče nebo vyhledejte město.',
+      unavailable: 'Vaši polohu se nepodařilo zjistit. Zkuste to znovu nebo vyhledejte město.',
+      timeout: 'Zjišťování polohy trvalo příliš dlouho. Zkuste to znovu.',
+      unsupported: 'Tento prohlížeč neumí sdílet vaši polohu. Vyhledejte město.',
+    },
   },
   favorites: {
     title: 'Oblíbené',

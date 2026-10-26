@@ -1,6 +1,6 @@
 import { FORECAST_DEFAULT_DAYS } from './constants.js';
 import { ERROR_CODES, type ApiErrorBody, type ErrorCode } from './errors.js';
-import type { AirQuality, Forecast, Location, LocationsResponse } from './types.js';
+import type { AirQuality, Forecast, Location, LocationsResponse, ReversePlace } from './types.js';
 
 export class ApiError extends Error {
   constructor(
@@ -79,6 +79,31 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
       if (options.language) params.set('lang', options.language);
       const query = params.toString();
       return request<Location>(`/api/locations/${id}${query ? `?${query}` : ''}`, options.signal);
+    },
+
+    /**
+     * The place at coordinates (the user's location), named in `language`; the city's own
+     * coordinates and id when it is known to search. Rejects with 404 if there is none.
+     */
+    reverseGeocode(
+      latitude: number,
+      longitude: number,
+      options: { language?: string; signal?: AbortSignal } = {},
+    ): Promise<ReversePlace> {
+      const params = new URLSearchParams({ lat: String(latitude), lon: String(longitude) });
+      if (options.language) params.set('lang', options.language);
+      return request<ReversePlace>(`/api/places/reverse?${params}`, options.signal);
+    },
+
+    /**
+     * The user's city guessed from their IP address, for when the browser can't locate
+     * them: city level, can be wrong behind a VPN. Rejects with 404 if it can't be told.
+     */
+    approximateLocation(options: { language?: string; signal?: AbortSignal } = {}): Promise<ReversePlace> {
+      const params = new URLSearchParams();
+      if (options.language) params.set('lang', options.language);
+      const query = params.toString();
+      return request<ReversePlace>(`/api/places/approximate${query ? `?${query}` : ''}`, options.signal);
     },
 
     getAirQuality(latitude: number, longitude: number, signal?: AbortSignal): Promise<AirQuality> {

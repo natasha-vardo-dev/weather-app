@@ -71,3 +71,21 @@ export interface AirQuality {
 export interface LocationsResponse {
   locations: Location[];
 }
+
+/** What to call a place found by coordinates. */
+export interface PlaceName {
+  name: string;
+  country?: string;
+}
+
+/**
+ * GET /api/places/reverse: the place at the user's location. When the city is in the search
+ * geocoder, these are that city's coordinates and id, the same as when it is found by
+ * search, so a saved city and "my location" are one place, not two.
+ */
+export interface ReversePlace extends PlaceName {
+  latitude: number;
+  longitude: number;
+  /** Search geocoder id, when the city was matched. */
+  id?: number;
+}

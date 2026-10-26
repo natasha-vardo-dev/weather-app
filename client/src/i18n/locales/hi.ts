@@ -4,6 +4,7 @@ export const hi: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'मौसम का पूर्वानुमान',
   language: 'भाषा',
   temperatureUnit: 'तापमान की इकाई',
+  placesBy: 'स्थानों के नाम',
   dataBy: 'मौसम डेटा:',
   home: {
     title: 'आप जहाँ जा रहे हैं, वहाँ मौसम कैसा है?',
@@ -79,6 +80,19 @@ export const hi: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'प्रदूषक',
     ozone: 'ओज़ोन',
     nitrogenDioxide: 'नाइट्रोजन डाइऑक्साइड',
+  },
+  location: {
+    useMine: 'मेरी लोकेशन इस्तेमाल करें',
+    locating: 'आपकी लोकेशन ढूँढी जा रही है…',
+    here: 'आप यहाँ हैं',
+    approximate: 'अनुमानित, IP से',
+    suggest: (city) => `लगता है आप यहाँ हैं: ${city}`,
+    errors: {
+      denied: 'लोकेशन की अनुमति बंद है। ब्राउज़र सेटिंग में इसे चालू करें या कोई शहर खोजें।',
+      unavailable: 'आपकी लोकेशन नहीं मिली। फिर से कोशिश करें या कोई शहर खोजें।',
+      timeout: 'लोकेशन ढूँढने में बहुत देर लगी। फिर से कोशिश करें।',
+      unsupported: 'यह ब्राउज़र आपकी लोकेशन साझा नहीं कर सकता। कोई शहर खोजें।',
+    },
   },
   favorites: {
     title: 'पसंदीदा',
