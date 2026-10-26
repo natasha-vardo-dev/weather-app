@@ -32,6 +32,7 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
     same: 'Ungefär som i går',
     feelsLike: 'Känns som',
     humidity: 'Luftfuktighet',
+    precipitation: 'Nederbörd',
     wind: 'Vind',
     airQuality: 'Luftkvalitet',
   },
@@ -80,6 +81,7 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'Föroreningar',
     ozone: 'Ozon',
     nitrogenDioxide: 'Kvävedioxid',
+    guideline: 'WHO:s dygnsriktvärde',
   },
   location: {
     useMine: 'Använd min plats',

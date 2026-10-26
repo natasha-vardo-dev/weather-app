@@ -33,6 +33,7 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
     same: '和昨天差不多',
     feelsLike: '体感温度',
     humidity: '湿度',
+    precipitation: '降水',
     wind: '风',
     airQuality: '空气质量',
   },
@@ -81,6 +82,7 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
     title: '污染物',
     ozone: '臭氧',
     nitrogenDioxide: '二氧化氮',
+    guideline: '世卫组织日均指导值',
   },
   location: {
     useMine: '使用我的位置',

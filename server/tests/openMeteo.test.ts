@@ -29,6 +29,8 @@ describe('OpenMeteoProvider', () => {
         hourly: {
           time: ['2026-10-15T12:00', '2026-10-15T13:00'],
           temperature_2m: [12, 13],
+          relative_humidity_2m: [80, 75],
+          wind_speed_10m: [14, 16.2],
           weather_code: [61, 3],
           precipitation_probability: [80, null],
           is_day: [1, 1],
@@ -51,8 +53,24 @@ describe('OpenMeteoProvider', () => {
     expect(url.searchParams.get('forecast_hours')).toBe('24');
     expect(forecast.current).toMatchObject({ temperature: 12, weatherCode: 61, isDay: true });
     expect(forecast.hourly).toEqual([
-      { time: '2026-10-15T12:00', temperature: 12, weatherCode: 61, precipitationProbability: 80, isDay: true },
-      { time: '2026-10-15T13:00', temperature: 13, weatherCode: 3, precipitationProbability: null, isDay: true },
+      {
+        time: '2026-10-15T12:00',
+        temperature: 12,
+        humidity: 80,
+        windSpeed: 14,
+        weatherCode: 61,
+        precipitationProbability: 80,
+        isDay: true,
+      },
+      {
+        time: '2026-10-15T13:00',
+        temperature: 13,
+        humidity: 75,
+        windSpeed: 16.2,
+        weatherCode: 3,
+        precipitationProbability: null,
+        isDay: true,
+      },
     ]);
     expect(forecast.yesterday).toEqual({
       date: '2026-10-14',

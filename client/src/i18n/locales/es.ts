@@ -32,6 +32,7 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
     same: 'Más o menos como ayer',
     feelsLike: 'Sensación térmica',
     humidity: 'Humedad',
+    precipitation: 'Precipitación',
     wind: 'Viento',
     airQuality: 'Calidad del aire',
   },
@@ -80,6 +81,7 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'Contaminantes',
     ozone: 'Ozono',
     nitrogenDioxide: 'Dióxido de nitrógeno',
+    guideline: 'Guía diaria de la OMS',
   },
   location: {
     useMine: 'Usar mi ubicación',

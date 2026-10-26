@@ -32,6 +32,10 @@ export interface HourlyForecast {
   /** Local time at the place, "YYYY-MM-DDTHH:mm". */
   time: string;
   temperature: number;
+  /** Relative humidity, %. */
+  humidity: number;
+  /** In `units.windSpeed`, like the current wind. */
+  windSpeed: number;
   weatherCode: number;
   precipitationProbability: number | null;
   isDay: boolean;

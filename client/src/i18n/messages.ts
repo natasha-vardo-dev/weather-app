@@ -34,6 +34,8 @@ export interface Messages {
     same: string;
     feelsLike: string;
     humidity: string;
+    /** Chance of precipitation this hour, in the details. */
+    precipitation: string;
     wind: string;
     airQuality: string;
   };
@@ -49,7 +51,13 @@ export interface Messages {
   /** Which index the value is on; shown as a tooltip. */
   airQualityScales: Record<AirQualitySummary['scale'], string>;
   /** Names spoken by screen readers; the screen shows formulas (O₃, NO₂). */
-  pollutants: { title: string; ozone: string; nitrogenDioxide: string };
+  pollutants: {
+    title: string;
+    ozone: string;
+    nitrogenDioxide: string;
+    /** The mark on each pollutant's bar: WHO's 24-hour (ozone: 8-hour) guideline. */
+    guideline: string;
+  };
   /** The user's location: the crosshair in the search field and its errors. */
   location: {
     /** Name of the crosshair button. */

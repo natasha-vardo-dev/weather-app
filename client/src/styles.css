@@ -353,14 +353,24 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.now__label { margin: 0.5rem 0 0; font-size: 1.25rem; }
+/* Two groups under the number: "feels like" is a small caption tight to it (it qualifies
+   the number); after a clear gap, the day: condition, high/low, change since yesterday. */
+/* The number's box has empty room under the glyph (the font's descent): pull the caption
+   up by about that much, in proportion to the number's size, so it sits right under it. */
+.now__feels {
+  margin: calc(clamp(6rem, 26vw, 11rem) * -0.07) 0 0;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+.now__label { margin: 1.1rem 0 0; font-size: 1.25rem; }
 .now__hilo { color: var(--ink-soft); font-size: 1rem; }
-.now__trend { margin: 0.35rem 0 0; }
+.now__trend { margin: 0.25rem 0 0; }
 
 .now__details {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 2rem;
+  /* Rows a little apart, so the items' enlarged hit areas never touch. */
+  gap: 0.75rem 2rem;
   margin: 1.25rem 0 0;
 }
 
@@ -378,12 +388,84 @@ body {
 button.aqi { cursor: pointer; }
 .aqi:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
 
-.aqi__more {
-  fill: var(--ink-soft);
-  padding: 1px;
-  border-radius: 0.3rem;
+/* Every detail value is a button that opens what is behind it below the list: a 24-hour
+   chart, or the pollutants. One arrow for all, turned up on the open one. */
+.detail {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
 }
-.aqi[aria-expanded='true'] .aqi__more { fill: var(--ink); background: var(--line); }
+/* The hit area is the whole item (label and value), stretched over it from the button:
+   ~54 px tall, at least the 44 px touch guidelines ask for. The focus ring and hover
+   follow that area, so what reacts is what is highlighted. */
+.detail-item { position: relative; isolation: isolate; }
+/* On top and transparent: takes the clicks on the label too. */
+.detail::after {
+  content: '';
+  position: absolute;
+  inset: -0.25rem -0.5rem;
+  border-radius: 0.6rem;
+}
+/* Behind the text: the hover tint (a tint on top would wash the text out). Faint, so white
+   text keeps 4.5:1 on the blue background (--surface would drop it just below). */
+.detail-item::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -0.25rem -0.5rem;
+  border-radius: 0.6rem;
+}
+.detail-item:hover::before { background: rgba(255, 255, 255, 0.05); }
+/* The open item: a lighter fill and outline, so it is clear which detail the panel shows.
+   Its label turns from soft to full white: on the lighter fill the soft colour would fall
+   below 4.5:1, white stays above (4.7:1 on the blue background). */
+.detail-item--open::before {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+.detail-item--open dt { color: var(--ink); }
+.detail:focus-visible { outline: none; }
+.detail:focus-visible::after { outline: 2px solid var(--cool); }
+.detail__chevron { flex: none; color: var(--ink-soft); transition: transform 0.15s; }
+.detail:hover .detail__chevron { color: var(--ink); }
+.detail[aria-expanded='true'] .detail__chevron { color: var(--ink); transform: rotate(180deg); }
+
+.detail-panel {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
+.detail-panel__title { margin: 0 0 0.25rem; font-size: 0.85rem; color: var(--ink-soft); }
+
+/* 24-hour chart: time runs left to right in every language, like the hourly strip's bar. */
+.hchart { position: relative; direction: ltr; }
+/* Reserves the chart's height before its width is measured, so the panel doesn't grow
+   a moment after opening (and scrolling to it lands in the right place). */
+.hchart { min-height: 120px; }
+.hchart__svg { display: block; overflow: visible; }
+.hchart__grid { stroke: var(--line); stroke-width: 1; }
+.hchart__tick { fill: var(--ink-soft); font-size: 11px; font-variant-numeric: tabular-nums; }
+.hchart__line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.hchart__svg--wind .hchart__line { stroke: var(--ink); }
+.hchart__svg--humidity .hchart__line { stroke: var(--cool); }
+.hchart__bar { fill: var(--cool); }
+.hchart__focus line { stroke: var(--ink-soft); stroke-width: 1; }
+.hchart__focus circle { fill: var(--sky); stroke: var(--ink); stroke-width: 2; }
+.hchart__tip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 10px));
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.4rem;
+  background: var(--field);
+  color: var(--field-ink);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
 
 /*
  * Level colours follow each index's official palette, lightened where the darkest bands
@@ -410,18 +492,40 @@ button.aqi { cursor: pointer; }
 .aqi__dot[data-scale='us'][data-level='very-unhealthy'] { background: #a95fd6; }
 .aqi__dot[data-scale='us'][data-level='hazardous'] { background: #c0304e; }
 
-.pollutants {
+.pollutants { margin: 0; padding: 0; list-style: none; }
+/* Four rows the height of a 24-hour chart (120 px), so switching details doesn't move the page. */
+.pollutants__row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.5rem 1rem;
-  margin: 1rem 0 0;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: 0.75rem;
+  grid-template-columns: 3.25rem minmax(0, 1fr) 4.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  height: 30px;
 }
-.pollutants[hidden] { display: none; }
-.pollutants dt { font-size: 0.85rem; color: var(--ink-soft); }
-.pollutants dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; }
+.pollutants__code { font-size: 0.85rem; color: var(--ink-soft); }
+.pollutants__track { position: relative; height: 0.5rem; border-radius: 0.25rem; background: var(--line); }
+.pollutants__fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: 0.25rem;
+  background: var(--cool);
+}
+/* The guideline: a white tick across the bar, the same mark as in the panel title. */
+.pollutants__mark {
+  position: absolute;
+  inset-block: -0.25rem;
+  width: 2px;
+  margin-inline-start: -1px;
+  background: var(--ink);
+}
+.pollutants__legend {
+  display: inline-block;
+  width: 2px;
+  height: 0.8em;
+  vertical-align: -0.1em;
+  background: var(--ink);
+}
+.pollutants__value { font-weight: 500; font-variant-numeric: tabular-nums; text-align: end; white-space: nowrap; }
 .pollutants__unit { font-size: 0.8rem; font-weight: 400; color: var(--ink-soft); }
 
 /* Hourly strip */
@@ -530,7 +634,6 @@ button.aqi { cursor: pointer; }
     row-gap: 0.25rem;
   }
   .day__temps { grid-template-columns: 2rem 2rem; }
-  .pollutants { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .day__bar { display: none; }
   /* Search gets the full width; the unit and language switches go to the line below. */
   .page__header { flex-wrap: wrap; }
@@ -541,6 +644,7 @@ button.aqi { cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) {
   :root, .content { transition: none; }
+  .detail__chevron { transition: none; }
   /* Slower, not stopped: a frozen spinner would look broken. */
   .spinner { animation-duration: 2.5s; }
   .skeleton__block { animation: none; }

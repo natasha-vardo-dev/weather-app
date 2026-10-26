@@ -33,6 +33,7 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     same: 'Ongeveer hetzelfde als gisteren',
     feelsLike: 'Gevoelstemperatuur',
     humidity: 'Luchtvochtigheid',
+    precipitation: 'Neerslag',
     wind: 'Wind',
     airQuality: 'Luchtkwaliteit',
   },
@@ -81,6 +82,7 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'Verontreinigende stoffen',
     ozone: 'Ozon',
     nitrogenDioxide: 'Stikstofdioxide',
+    guideline: 'Dagelijkse WHO-richtwaarde',
   },
   location: {
     useMine: 'Mijn locatie gebruiken',

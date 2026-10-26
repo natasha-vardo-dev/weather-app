@@ -34,6 +34,7 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     same: 'Přibližně jako včera',
     feelsLike: 'Pocitově',
     humidity: 'Vlhkost',
+    precipitation: 'Srážky',
     wind: 'Vítr',
     airQuality: 'Kvalita ovzduší',
   },
@@ -89,6 +90,7 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     title: 'Znečišťující látky',
     ozone: 'Ozon',
     nitrogenDioxide: 'Oxid dusičitý',
+    guideline: 'Denní limit WHO',
   },
   location: {
     useMine: 'Použít moji polohu',

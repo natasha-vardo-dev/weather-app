@@ -1,11 +1,58 @@
 import { compareWithYesterday, describeWeather, type Forecast } from '@weather/shared';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { chartScale } from '../chartScale';
+import type { Whereabouts } from '../geolocation';
 import type { AirQualityView } from '../hooks/useAirQuality';
 import { useI18n } from '../i18n/I18nProvider';
 import { useUnits } from '../units/UnitProvider';
 import { AirQualityItem, hasPollutants, PollutantsPanel } from './AirQualityDetails';
-import type { Whereabouts } from '../geolocation';
+import { ChevronIcon } from './ChevronIcon';
+import { HourlyChart } from './HourlyChart';
 import { PinIcon } from './LocationIcons';
+
+/** Which detail is expanded below the list: a 24-hour chart, or the pollutants. */
+type Detail = 'precipitation' | 'wind' | 'humidity' | 'airQuality';
+
+interface DetailItemProps {
+  label: string;
+  value: string;
+  /** False without hourly data for it: a plain value, nothing to open. */
+  canOpen: boolean;
+  open: boolean;
+  onToggle: () => void;
+  panelId: string;
+  /** Hidden text after the value, so the button says what it opens ("…, Next 24 hours"). */
+  opens: string;
+}
+
+/**
+ * One detail: the value is a button that opens its 24-hour chart below the list, like
+ * air quality opens its pollutants. Every item has the same arrow, turned up when open.
+ * The button stays on the value (a dt can't sit inside a button), but its hit area covers
+ * the whole item, label included: at least 44 px tall, easy to hit on a phone.
+ */
+function DetailItem({ label, value, canOpen, open, onToggle, panelId, opens }: DetailItemProps) {
+  if (!canOpen) {
+    return (
+      <div>
+        <dt>{label}</dt>
+        <dd>{value}</dd>
+      </div>
+    );
+  }
+  return (
+    <div className={open ? 'detail-item detail-item--open' : 'detail-item'}>
+      <dt>{label}</dt>
+      <dd>
+        <button type="button" className="detail" aria-expanded={open} aria-controls={panelId} onClick={onToggle}>
+          {value}
+          <span className="visually-hidden">, {opens}</span>
+          <ChevronIcon className="detail__chevron" />
+        </button>
+      </dd>
+    </div>
+  );
+}
 
 interface Props {
   name: string;
@@ -20,7 +67,7 @@ interface Props {
 }
 
 export function CurrentWeather({ name, country, forecast, airQuality, actions, here }: Props) {
-  const { t, deg, speed, percent } = useI18n();
+  const { t, deg, speed, percent, num } = useI18n();
   const { temp } = useUnits();
   const { current, units } = forecast;
   const label = t.conditions[describeWeather(current.weatherCode).condition];
@@ -31,8 +78,68 @@ export function CurrentWeather({ name, country, forecast, airQuality, actions, h
       ? compareWithYesterday(temp(today.tempMax), temp(forecast.yesterday.tempMax))
       : null;
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const [pollutantsOpen, setPollutantsOpen] = useState(false);
-  const pollutantsId = useId();
+  // One expanded detail at a time; a new place starts with all folded (remounted per place).
+  const [open, setOpen] = useState<Detail | null>(null);
+  const toggle = (detail: Detail) => setOpen((current) => (current === detail ? null : detail));
+  const id = useId();
+  const panelId = (detail: Detail) => `${id}-${detail}`;
+
+  // Opening a panel below the bottom of the screen would look like nothing happened: bring
+  // it into view. Only when opening from closed (switching keeps the panel where it is),
+  // only as far as needed ('nearest'), and without smooth motion if the user asked for less.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open && !wasOpen.current) {
+      const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      document.getElementById(panelId(open))?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+    }
+    wasOpen.current = open !== null;
+  }, [open]);
+
+  const hours = forecast.hourly;
+  const next = t.hourly.title(hours.length);
+  // Missing values are gaps, never NaN: a forecast cached before a field existed (client
+  // and server deploy separately, answers stay cached for minutes) may not have it.
+  const finite = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
+  const series = {
+    precipitation: hours.map((hour) => finite(hour.precipitationProbability)),
+    wind: hours.map((hour) => finite(hour.windSpeed)),
+    humidity: hours.map((hour) => finite(hour.humidity)),
+  };
+  const hasData = (values: (number | null)[]) => values.some((value) => value !== null);
+  const precipitationNow = series.precipitation[0] ?? null;
+  const charts = [
+    {
+      detail: 'precipitation' as const,
+      title: `${t.current.precipitation} · ${next}`,
+      values: series.precipitation,
+      scale: chartScale([], { fixed: [0, 100] }),
+      kind: 'bar' as const,
+      variant: 'precipitation' as const,
+      formatTick: percent,
+      formatValue: percent,
+    },
+    {
+      detail: 'wind' as const,
+      title: `${t.current.wind} · ${next}`,
+      values: series.wind,
+      scale: chartScale(series.wind, { fromZero: true }),
+      kind: 'line' as const,
+      variant: 'wind' as const,
+      formatTick: num,
+      formatValue: (v: number) => speed(v, units.windSpeed),
+    },
+    {
+      detail: 'humidity' as const,
+      title: `${t.current.humidity} · ${next}`,
+      values: series.humidity,
+      scale: chartScale([], { fixed: [0, 100] }),
+      kind: 'line' as const,
+      variant: 'humidity' as const,
+      formatTick: percent,
+      formatValue: percent,
+    },
+  ];
 
   // In an SPA the browser doesn't announce "new page", so move focus to the heading:
   // screen readers read the new city, and keyboard users continue from here.
@@ -64,6 +171,11 @@ export function CurrentWeather({ name, country, forecast, airQuality, actions, h
         <span className="visually-hidden">{t.current.degrees(temp(current.temperature))}</span>
         <span aria-hidden="true">{deg(temp(current.temperature))}</span>
       </p>
+      {/* Next to the temperature it qualifies, as a line, not a detail: its chart would
+          mostly repeat the hourly strip. */}
+      <p className="now__feels">
+        {t.current.feelsLike} {deg(temp(current.apparentTemperature))}
+      </p>
       <p className="now__label">
         {label}
         {today && (
@@ -81,18 +193,35 @@ export function CurrentWeather({ name, country, forecast, airQuality, actions, h
         </p>
       )}
       <dl className="now__details">
-        <div>
-          <dt>{t.current.feelsLike}</dt>
-          <dd>{deg(temp(current.apparentTemperature))}</dd>
-        </div>
-        <div>
-          <dt>{t.current.humidity}</dt>
-          <dd>{percent(current.humidity)}</dd>
-        </div>
-        <div>
-          <dt>{t.current.wind}</dt>
-          <dd>{speed(current.windSpeed, units.windSpeed)}</dd>
-        </div>
+        {precipitationNow !== null && (
+          <DetailItem
+            label={t.current.precipitation}
+            value={percent(precipitationNow)}
+            canOpen={hasData(series.precipitation)}
+            open={open === 'precipitation'}
+            onToggle={() => toggle('precipitation')}
+            panelId={panelId('precipitation')}
+            opens={next}
+          />
+        )}
+        <DetailItem
+          label={t.current.wind}
+          value={speed(current.windSpeed, units.windSpeed)}
+          canOpen={hasData(series.wind)}
+          open={open === 'wind'}
+          onToggle={() => toggle('wind')}
+          panelId={panelId('wind')}
+          opens={next}
+        />
+        <DetailItem
+          label={t.current.humidity}
+          value={percent(current.humidity)}
+          canOpen={hasData(series.humidity)}
+          open={open === 'humidity'}
+          onToggle={() => toggle('humidity')}
+          panelId={panelId('humidity')}
+          opens={next}
+        />
         {airQuality === undefined && (
           // Same slot while loading, so the row does not reflow when the value arrives.
           <div aria-hidden="true">
@@ -105,14 +234,31 @@ export function CurrentWeather({ name, country, forecast, airQuality, actions, h
         {airQuality && (
           <AirQualityItem
             airQuality={airQuality}
-            open={pollutantsOpen}
-            onToggle={() => setPollutantsOpen((open) => !open)}
-            panelId={pollutantsId}
+            open={open === 'airQuality'}
+            onToggle={() => toggle('airQuality')}
+            panelId={panelId('airQuality')}
           />
         )}
       </dl>
+      {charts
+        .filter((chart) => hasData(chart.values))
+        .map(({ detail, ...chart }) => (
+          // All panels exist (aria-controls must point at something); only the open one shows.
+          <section
+            key={detail}
+            id={panelId(detail)}
+            className="detail-panel"
+            aria-label={chart.title}
+            hidden={open !== detail}
+          >
+            <p className="detail-panel__title" aria-hidden="true">
+              {chart.title}
+            </p>
+            {open === detail && <HourlyChart hours={hours} {...chart} />}
+          </section>
+        ))}
       {airQuality && hasPollutants(airQuality) && (
-        <PollutantsPanel airQuality={airQuality} open={pollutantsOpen} id={pollutantsId} />
+        <PollutantsPanel airQuality={airQuality} open={open === 'airQuality'} id={panelId('airQuality')} />
       )}
     </section>
   );

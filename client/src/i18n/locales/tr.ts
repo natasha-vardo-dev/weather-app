@@ -33,6 +33,7 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
     same: 'Dünle hemen hemen aynı',
     feelsLike: 'Hissedilen',
     humidity: 'Nem',
+    precipitation: 'Yağış',
     wind: 'Rüzgâr',
     airQuality: 'Hava kalitesi',
   },
@@ -81,6 +82,7 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
     title: 'Kirleticiler',
     ozone: 'Ozon',
     nitrogenDioxide: 'Azot dioksit',
+    guideline: 'DSÖ günlük sınırı',
   },
   location: {
     useMine: 'Konumumu kullan',

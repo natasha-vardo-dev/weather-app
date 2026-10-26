@@ -32,6 +32,7 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
     same: 'בערך כמו אתמול',
     feelsLike: 'מורגש כמו',
     humidity: 'לחות',
+    precipitation: 'משקעים',
     wind: 'רוח',
     airQuality: 'איכות אוויר',
   },
@@ -80,6 +81,7 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'מזהמים',
     ozone: 'אוזון',
     nitrogenDioxide: 'חנקן דו־חמצני',
+    guideline: 'הנחיה יומית של ארגון הבריאות העולמי',
   },
   location: {
     useMine: 'שימוש במיקום שלי',
