@@ -1,0 +1,51 @@
+import type { ReversePlace } from '@weather/shared';
+import type { IpLocator } from '../providers/types.js';
+import { TtlCache } from './cache.js';
+import type { PlaceService } from './placeService.js';
+
+/** Loopback, private (RFC 1918), link-local and unique-local addresses, IPv4 and IPv6. */
+export function isPrivateIp(ip: string): boolean {
+  const v4 = ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+  if (/^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(v4)) return true;
+  const m = /^172\.(\d+)\./.exec(v4);
+  if (m && Number(m[1]) >= 16 && Number(m[1]) <= 31) return true;
+  const lower = ip.toLowerCase();
+  return lower === '::1' || lower === '::' || /^(fc|fd|fe80)/.test(lower);
+}
+
+/**
+ * "Looks like you're in Warsaw": the user's city from their IP, offered when the browser
+ * can't give a position. The position then goes through PlaceService, so it becomes the
+ * city with its id, like the crosshair's answer.
+ *
+ * The client's IP comes from Express (`req.ip`, which respects `trust proxy`). Behind
+ * Vercel and Render it is in X-Forwarded-For, so TRUST_PROXY must be set there. A private
+ * address means the request did not come from the internet: in development that is the
+ * developer's own machine, so the service's own public address is looked up instead
+ * (allowSelfLookup, opt-in with IP_SELF_LOOKUP=1). On a server that would locate the data
+ * centre, so without the opt-in it answers "unknown" instead.
+ */
+export class ApproximateLocationService {
+  /** Per IP; null caches "no location for this address" too. */
+  private readonly cache = new TtlCache<{ latitude: number; longitude: number } | null>(24 * 60 * 60 * 1000);
+
+  constructor(
+    private readonly locator: IpLocator,
+    private readonly places: PlaceService,
+    private readonly allowSelfLookup: boolean,
+  ) {}
+
+  async approximate(ip: string | undefined, language = 'en'): Promise<ReversePlace | null> {
+    const publicIp = ip && !isPrivateIp(ip) ? ip : null;
+    if (!publicIp && !this.allowSelfLookup) return null;
+
+    const key = publicIp ?? 'self';
+    let position = this.cache.get(key);
+    if (position === undefined) {
+      position = await this.locator.locate(publicIp);
+      this.cache.set(key, position);
+    }
+    if (!position) return null;
+    return (await this.places.reverse(position.latitude, position.longitude, language)).place;
+  }
+}

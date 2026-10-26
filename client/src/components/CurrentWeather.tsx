@@ -4,6 +4,7 @@ import type { AirQualityView } from '../hooks/useAirQuality';
 import { useI18n } from '../i18n/I18nProvider';
 import { useUnits } from '../units/UnitProvider';
 import { AirQualityItem, hasPollutants, PollutantsPanel } from './AirQualityDetails';
+import type { Whereabouts } from '../geolocation';
 import { PinIcon } from './LocationIcons';
 
 interface Props {
@@ -14,8 +15,8 @@ interface Props {
   actions?: ReactNode;
   /** Undefined while loading (the slot is kept), null hides the item (no data or error). */
   airQuality: AirQualityView | null | undefined;
-  /** The place is the user's position: marked "You are here". */
-  here?: boolean;
+  /** The place is the user's: "You are here", or "Approximate, by IP" when guessed from the address. */
+  here?: Whereabouts | null;
 }
 
 export function CurrentWeather({ name, country, forecast, airQuality, actions, here }: Props) {
@@ -50,9 +51,9 @@ export function CurrentWeather({ name, country, forecast, airQuality, actions, h
           {country && <span className="now__country">{country}</span>}
           {/* In the heading, so screen readers hear it with the place name. */}
           {here && (
-            <span className="now__here">
+            <span className={here === 'approximate' ? 'now__here now__here--approximate' : 'now__here'}>
               <PinIcon />
-              {t.location.here}
+              {here === 'approximate' ? t.location.approximate : t.location.here}
             </span>
           )}
         </h1>

@@ -15,7 +15,7 @@ A web application that shows the current weather and a 10-day forecast for a sel
 - Loading, empty and error states with retry
 - 19 interface languages, picked from the system language by default, with a switcher; dates, times, numbers and units follow the locale; right-to-left layout for Arabic and Hebrew
 - °C or °F: Fahrenheit by default for the US and a few other regions (from the system locale), Celsius elsewhere; a switcher in the header remembers the choice
-- Weather for your location: a crosshair in the search field (the browser asks for permission only when it is pressed). Place names come from OpenStreetMap
+- Weather for your location: a crosshair in the search field (the browser asks for permission only when it is pressed). If the browser can't tell the position, the message offers "Try again" and the city guessed from the IP address ("Looks like you're in Warsaw"), marked as approximate. Place names come from OpenStreetMap
 - Responsive layout, light/dark mode, accessible combobox
 
 ## Tech stack
@@ -76,6 +76,7 @@ npm run build      # production build
 | GET    | `/api/locations/756135?lang=ru`          | One place by id, names in a language |
 | GET    | `/api/forecast?lat=52.23&lon=21.01&days=10` | Current weather, next 24 hours, yesterday and daily forecast |
 | GET    | `/api/air-quality?lat=52.23&lon=21.01`   | Current air quality (European and US AQI) |
+| GET    | `/api/places/approximate?lang=ru` | The user's city guessed from their IP address (fallback when the browser can't locate them); never cached |
 | GET    | `/api/places/reverse?lat=52.25&lon=21.05&lang=ru` | The place at the user's location: the city with its coordinates and id (as from search), named via OpenStreetMap Nominatim |
 | GET    | `/api/health`                            | Health check           |
 
@@ -84,7 +85,7 @@ Errors use one format: `{ "error": { "code": "INVALID_REQUEST", "message": "..."
 ## Deployment
 
 - Frontend: Vercel, root directory `client`. `client/vercel.json` rewrites `/api/*` to the backend (replace `YOUR-API` with the real URL) and serves `index.html` for all other paths, so client-side routes survive a refresh.
-- Backend: Render, root directory `server`.
+- Backend: Render, root directory `server`. Do not set `IP_SELF_LOOKUP` there (it is for local development). Set `TRUST_PROXY=2` (Vercel's rewrite and Render's proxy), so the approximate location sees the user's IP; only that many proxies are trusted with `X-Forwarded-For`, otherwise anyone could fake their address.
 
 Serving the API from the frontend's domain avoids CORS and keeps future auth cookies first-party.
 

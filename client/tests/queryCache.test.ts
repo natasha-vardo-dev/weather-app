@@ -41,4 +41,13 @@ describe('createQueryCache', () => {
     expect(cache.get('a')).toBeUndefined();
     expect([cache.get('b'), cache.get('c')]).toEqual([2, 3]);
   });
+
+  it('does not cache values that keep() rejects', async () => {
+    const cache = createQueryCache<string>({ ttlMs: 1000, keep: (v) => v !== 'fallback' });
+    const fetcher = vi.fn(async () => 'fallback');
+    await cache.load('a', fetcher);
+    expect(cache.get('a')).toBeUndefined();
+    await cache.load('a', fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
 });

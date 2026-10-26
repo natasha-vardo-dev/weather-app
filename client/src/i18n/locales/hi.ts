@@ -85,6 +85,8 @@ export const hi: MessagesFactory = ({ num, deg, plural }) => ({
     useMine: 'मेरी लोकेशन इस्तेमाल करें',
     locating: 'आपकी लोकेशन ढूँढी जा रही है…',
     here: 'आप यहाँ हैं',
+    approximate: 'अनुमानित, IP से',
+    suggest: (city) => `लगता है आप यहाँ हैं: ${city}`,
     errors: {
       denied: 'लोकेशन की अनुमति बंद है। ब्राउज़र सेटिंग में इसे चालू करें या कोई शहर खोजें।',
       unavailable: 'आपकी लोकेशन नहीं मिली। फिर से कोशिश करें या कोई शहर खोजें।',

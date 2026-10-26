@@ -86,6 +86,8 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     useMine: 'Mijn locatie gebruiken',
     locating: 'Je locatie wordt bepaald…',
     here: 'Je bent hier',
+    approximate: 'Ongeveer, via IP',
+    suggest: (city) => `Je lijkt in ${city} te zijn`,
     errors: {
       denied: 'Toegang tot je locatie is geblokkeerd. Sta die toe in de browserinstellingen of zoek een stad.',
       unavailable: 'Je locatie kon niet worden bepaald. Probeer het opnieuw of zoek een stad.',

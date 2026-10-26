@@ -107,6 +107,8 @@ export const ar: MessagesFactory = ({ num, deg, plural }) => ({
     useMine: 'استخدام موقعي',
     locating: 'جارٍ تحديد موقعك…',
     here: 'أنت هنا',
+    approximate: 'تقريبي، حسب IP',
+    suggest: (city) => `يبدو أنك في ${city}`,
     errors: {
       denied: 'الوصول إلى الموقع محظور. اسمح به في إعدادات المتصفح أو ابحث عن مدينة.',
       unavailable: 'تعذّر تحديد موقعك. حاول مرة أخرى أو ابحث عن مدينة.',

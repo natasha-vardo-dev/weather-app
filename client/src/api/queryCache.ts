@@ -5,7 +5,7 @@
  *   loaded place renders it at once instead of flashing a loading state.
  * - Concurrent loads of one key share a single request (a favourite tile and the city
  *   page asking for the same forecast).
- * - Errors are not cached: the next load tries again.
+ * - Errors are not cached: the next load tries again; neither are values `keep` rejects.
  *
  * The TTL should not exceed the server's Cache-Control max-age: caches stack, so a longer
  * client TTL would only show older data.
@@ -21,8 +21,10 @@ export function createQueryCache<T>(options: {
   ttlMs: number;
   maxEntries?: number;
   now?: () => number;
+  /** Whether a loaded value may be cached (e.g. not a fallback the server marked no-store). */
+  keep?: (value: T) => boolean;
 }): QueryCache<T> {
-  const { ttlMs, maxEntries = 50, now = Date.now } = options;
+  const { ttlMs, maxEntries = 50, now = Date.now, keep = () => true } = options;
   const values = new Map<string, { value: T; storedAt: number }>();
   const inFlight = new Map<string, Promise<T>>();
 
@@ -44,6 +46,7 @@ export function createQueryCache<T>(options: {
 
     const request = fetcher()
       .then((value) => {
+        if (!keep(value)) return value;
         values.delete(key); // re-insert so Map order stays oldest-first
         values.set(key, { value, storedAt: now() });
         if (values.size > maxEntries) values.delete(values.keys().next().value!);

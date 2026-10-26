@@ -95,6 +95,17 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
       return request<ReversePlace>(`/api/places/reverse?${params}`, options.signal);
     },
 
+    /**
+     * The user's city guessed from their IP address, for when the browser can't locate
+     * them: city level, can be wrong behind a VPN. Rejects with 404 if it can't be told.
+     */
+    approximateLocation(options: { language?: string; signal?: AbortSignal } = {}): Promise<ReversePlace> {
+      const params = new URLSearchParams();
+      if (options.language) params.set('lang', options.language);
+      const query = params.toString();
+      return request<ReversePlace>(`/api/places/approximate${query ? `?${query}` : ''}`, options.signal);
+    },
+
     getAirQuality(latitude: number, longitude: number, signal?: AbortSignal): Promise<AirQuality> {
       const params = new URLSearchParams({ lat: String(latitude), lon: String(longitude) });
       return request<AirQuality>(`/api/air-quality?${params}`, signal);

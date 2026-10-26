@@ -58,6 +58,10 @@ export interface Messages {
     locating: string;
     /** Mark next to the place name when it is the user's position. */
     here: string;
+    /** Mark instead of `here` when the place was guessed from the IP address. */
+    approximate: string;
+    /** Button offering the city guessed from the IP when the browser can't locate the user. */
+    suggest: (city: string) => string;
     errors: Record<LocationError, string>;
   };
   favorites: {

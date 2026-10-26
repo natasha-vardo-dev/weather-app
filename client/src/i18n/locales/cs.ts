@@ -94,6 +94,8 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     useMine: 'Použít moji polohu',
     locating: 'Zjišťuji vaši polohu…',
     here: 'Jste zde',
+    approximate: 'Přibližně, podle IP',
+    suggest: (city) => `Zdá se, že jste tady: ${city}`,
     errors: {
       denied: 'Přístup k poloze je blokován. Povolte ho v nastavení prohlížeče nebo vyhledejte město.',
       unavailable: 'Vaši polohu se nepodařilo zjistit. Zkuste to znovu nebo vyhledejte město.',

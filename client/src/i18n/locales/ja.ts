@@ -86,6 +86,8 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
     useMine: '現在地を使用',
     locating: '現在地を取得しています…',
     here: '現在地',
+    approximate: 'IPによるおおよその位置',
+    suggest: (city) => `${city}付近にいるようです`,
     errors: {
       denied: '位置情報へのアクセスがブロックされています。ブラウザの設定で許可するか、都市を検索してください。',
       unavailable: '現在地を特定できませんでした。もう一度試すか、都市を検索してください。',

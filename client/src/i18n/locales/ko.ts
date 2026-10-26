@@ -85,6 +85,8 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
     useMine: '내 위치 사용',
     locating: '위치를 찾는 중…',
     here: '현재 위치',
+    approximate: 'IP 기반 대략적 위치',
+    suggest: (city) => `${city}에 계신 것 같아요`,
     errors: {
       denied: '위치 접근이 차단되었습니다. 브라우저 설정에서 허용하거나 도시를 검색하세요.',
       unavailable: '위치를 찾을 수 없습니다. 다시 시도하거나 도시를 검색하세요.',

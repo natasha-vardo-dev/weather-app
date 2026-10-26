@@ -85,6 +85,8 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
     useMine: 'Använd min plats',
     locating: 'Hämtar din plats…',
     here: 'Du är här',
+    approximate: 'Ungefär, via IP',
+    suggest: (city) => `Det ser ut som att du är i ${city}`,
     errors: {
       denied: 'Åtkomst till platsen är blockerad. Tillåt den i webbläsarens inställningar eller sök efter en stad.',
       unavailable: 'Det gick inte att hitta din plats. Försök igen eller sök efter en stad.',

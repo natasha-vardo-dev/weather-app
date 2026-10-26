@@ -93,6 +93,8 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     useMine: 'Użyj mojej lokalizacji',
     locating: 'Ustalanie lokalizacji…',
     here: 'Jesteś tutaj',
+    approximate: 'W przybliżeniu, wg IP',
+    suggest: (city) => `Wygląda na to, że jesteś tu: ${city}`,
     errors: {
       denied: 'Dostęp do lokalizacji jest zablokowany. Zezwól na niego w ustawieniach przeglądarki lub wyszukaj miasto.',
       unavailable: 'Nie udało się ustalić lokalizacji. Spróbuj ponownie lub wyszukaj miasto.',

@@ -86,6 +86,8 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
     useMine: 'Konumumu kullan',
     locating: 'Konumunuz bulunuyor…',
     here: 'Buradasınız',
+    approximate: "Yaklaşık, IP'ye göre",
+    suggest: (city) => `Görünüşe göre buradasınız: ${city}`,
     errors: {
       denied: 'Konum erişimi engellendi. Tarayıcı ayarlarından izin verin veya bir şehir arayın.',
       unavailable: 'Konumunuz bulunamadı. Tekrar deneyin veya bir şehir arayın.',

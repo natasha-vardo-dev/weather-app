@@ -85,6 +85,8 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
     useMine: 'שימוש במיקום שלי',
     locating: 'מאתרים את המיקום שלך…',
     here: 'המיקום שלך',
+    approximate: 'משוער, לפי IP',
+    suggest: (city) => `נראה שהמיקום שלך: ${city}`,
     errors: {
       denied: 'הגישה למיקום חסומה. יש לאפשר אותה בהגדרות הדפדפן או לחפש עיר.',
       unavailable: 'לא ניתן לאתר את המיקום שלך. יש לנסות שוב או לחפש עיר.',

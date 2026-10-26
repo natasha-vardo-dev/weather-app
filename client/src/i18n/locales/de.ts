@@ -86,6 +86,8 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
     useMine: 'Meinen Standort verwenden',
     locating: 'Standort wird ermittelt…',
     here: 'Sie sind hier',
+    approximate: 'Ungefähr, nach IP',
+    suggest: (city) => `Sieht aus, als wären Sie in ${city}`,
     errors: {
       denied: 'Der Standortzugriff ist blockiert. Erlauben Sie ihn in den Browsereinstellungen oder suchen Sie eine Stadt.',
       unavailable: 'Ihr Standort konnte nicht ermittelt werden. Versuchen Sie es erneut oder suchen Sie eine Stadt.',

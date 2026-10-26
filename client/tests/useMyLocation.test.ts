@@ -1,9 +1,9 @@
 import { ApiError, ERROR_CODES } from '@weather/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../src/api/client';
-import { preferSaved, reversePlace, toFoundPlace } from '../src/hooks/useMyLocation';
+import { approximatePlace, preferSaved, reversePlace, toFoundPlace } from '../src/hooks/useMyLocation';
 
-vi.mock('../src/api/client', () => ({ api: { reverseGeocode: vi.fn() } }));
+vi.mock('../src/api/client', () => ({ api: { reverseGeocode: vi.fn(), approximateLocation: vi.fn() } }));
 
 const reverseGeocode = vi.mocked(api.reverseGeocode);
 
@@ -29,6 +29,15 @@ describe('reversePlace', () => {
     expect(await reversePlace(sea, 'en')).toBeNull();
     expect(await reversePlace(sea, 'en')).toBeNull();
     expect(reverseGeocode).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not keep an answer without an id (maybe the no-store fallback after a failed city search)', async () => {
+    reverseGeocode.mockResolvedValueOnce({ name: 'Warsaw', latitude: 52.26, longitude: 21.06 });
+    const here = { latitude: 52.26, longitude: 21.06 };
+    await reversePlace(here, 'en');
+    reverseGeocode.mockResolvedValueOnce({ id: 756135, name: 'Warsaw', latitude: 52.23, longitude: 21.01 });
+    expect(await reversePlace(here, 'en')).toMatchObject({ id: 756135 });
+    expect(reverseGeocode).toHaveBeenCalledTimes(2);
   });
 
   it('fails on other errors, so they are retried next time', async () => {
@@ -72,5 +81,22 @@ describe('preferSaved', () => {
     expect(preferSaved(minsk, [saved])).toBe(minsk);
     const nameless = { latitude: 52.25, longitude: 21.05 };
     expect(preferSaved(nameless, [saved])).toBe(nameless);
+  });
+});
+
+describe('approximatePlace', () => {
+  const approximateLocation = vi.mocked(api.approximateLocation);
+
+  it('offers the city from the IP, with its id', async () => {
+    approximateLocation.mockResolvedValueOnce({ id: 756135, name: 'Warsaw', country: 'Poland', latitude: 52.23, longitude: 21.01 });
+    expect(await approximatePlace('en')).toEqual({ id: 756135, name: 'Warsaw', country: 'Poland', latitude: 52.23, longitude: 21.01 });
+    expect(approximateLocation).toHaveBeenCalledWith({ language: 'en' });
+  });
+
+  it('offers nothing when the address can not be placed or the answer is broken', async () => {
+    approximateLocation.mockRejectedValueOnce(new ApiError('No', ERROR_CODES.NOT_FOUND, 404));
+    expect(await approximatePlace('en')).toBeNull();
+    approximateLocation.mockResolvedValueOnce({ name: 'Warsaw' } as never);
+    expect(await approximatePlace('en')).toBeNull();
   });
 });

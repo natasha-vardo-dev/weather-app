@@ -4,6 +4,7 @@ import express, { type ErrorRequestHandler } from 'express';
 import { AppError, ProviderError } from './errors.js';
 import { placesRouter } from './routes/places.js';
 import { weatherRouter } from './routes/weather.js';
+import type { ApproximateLocationService } from './services/approximateService.js';
 import type { PlaceService } from './services/placeService.js';
 import type { WeatherService } from './services/weatherService.js';
 
@@ -11,11 +12,22 @@ function errorBody(code: ErrorCode, message: string): ApiErrorBody {
   return { error: { code, message } };
 }
 
-/** `places` is optional: without it /api/places/reverse is not served (tests of other routes). */
-export function createApp(service: WeatherService, corsOrigins: string[] = [], places?: PlaceService) {
+/**
+ * `places` and `approximate` are optional: without them /api/places/* is not served
+ * (tests of other routes). `trustProxy`: how many proxies in front may set
+ * X-Forwarded-For, so `req.ip` is the user's address (Express "trust proxy").
+ */
+export function createApp(
+  service: WeatherService,
+  corsOrigins: string[] = [],
+  places?: PlaceService,
+  approximate?: ApproximateLocationService,
+  trustProxy: number | boolean = false,
+) {
   const app = express();
 
   app.disable('x-powered-by');
+  app.set('trust proxy', trustProxy);
   app.use(cors({ origin: corsOrigins.length ? corsOrigins : false }));
 
   app.get('/api/health', (_req, res) => {
@@ -23,7 +35,7 @@ export function createApp(service: WeatherService, corsOrigins: string[] = [], p
   });
 
   app.use('/api', weatherRouter(service));
-  if (places) app.use('/api', placesRouter(places));
+  if (places) app.use('/api', placesRouter(places, approximate));
 
   app.use('/api', (_req, res) => {
     res.status(404).json(errorBody(ERROR_CODES.NOT_FOUND, 'Endpoint not found.'));

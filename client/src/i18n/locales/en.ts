@@ -85,6 +85,8 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
     useMine: 'Use my location',
     locating: 'Finding your location…',
     here: 'You are here',
+    approximate: 'Approximate, by IP',
+    suggest: (city) => `Looks like you're in ${city}`,
     errors: {
       denied: 'Location access is blocked. Allow it in your browser settings or search for a city.',
       unavailable: "Couldn't find your location. Try again or search for a city.",

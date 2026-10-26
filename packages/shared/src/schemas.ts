@@ -46,6 +46,9 @@ export const reverseQuerySchema = z.object({
   lang: languageSchema,
 });
 
+/** GET /api/places/approximate — the user's city from their IP, in `lang`. */
+export const approximateQuerySchema = z.object({ lang: languageSchema });
+
 export const airQualityQuerySchema = z.object({
   lat: z.coerce.number().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
   lon: z.coerce.number().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),

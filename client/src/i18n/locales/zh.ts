@@ -86,6 +86,8 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
     useMine: '使用我的位置',
     locating: '正在获取你的位置…',
     here: '你在这里',
+    approximate: '大致位置（根据 IP）',
+    suggest: (city) => `你似乎在${city}`,
     errors: {
       denied: '位置访问已被阻止。请在浏览器设置中允许，或搜索城市。',
       unavailable: '无法确定你的位置。请重试或搜索城市。',

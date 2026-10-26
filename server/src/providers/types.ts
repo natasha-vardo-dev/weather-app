@@ -23,3 +23,12 @@ export interface ReverseGeocoder {
   /** `language`: ISO 639-1 code for the names; null when there is no place there (sea). */
   reverse(latitude: number, longitude: number, language: string): Promise<PlaceName | null>;
 }
+
+/**
+ * Approximate position from an IP address: the fallback when the browser can't give one.
+ * Separate interface, so the service (and its terms) can be swapped on its own.
+ */
+export interface IpLocator {
+  /** `ip`: the user's public address; null means the caller's own (local development). */
+  locate(ip: string | null): Promise<{ latitude: number; longitude: number } | null>;
+}

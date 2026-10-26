@@ -53,26 +53,32 @@ export function getCurrentPosition(
   });
 }
 
-const HERE_KEY = 'here:v1';
+const HERE_KEY = 'here:v2';
+
+/** How the place the user opened as "my location" was found. */
+export type Whereabouts = 'exact' | 'approximate';
 
 /**
- * The last position found this session, so the city page can mark "You are here".
+ * The last place opened as "my location" this session, so the city page can mark it:
+ * "You are here", or "Approximate, by IP" when it was guessed from the address.
  * Not in the URL: a shared link would tell the recipient they are there.
  */
-export function rememberPosition(position: Coordinates): void {
+export function rememberPosition(position: Coordinates, how: Whereabouts = 'exact'): void {
   try {
-    sessionStorage.setItem(HERE_KEY, JSON.stringify(roundCoordinates(position)));
+    sessionStorage.setItem(HERE_KEY, JSON.stringify({ ...roundCoordinates(position), how }));
   } catch {
     // Storage blocked: the mark is just not shown.
   }
 }
 
-export function isRememberedPosition(latitude: number, longitude: number): boolean {
+/** How the place at these coordinates was found this session, or null if it wasn't. */
+export function rememberedPosition(latitude: number, longitude: number): Whereabouts | null {
   try {
-    const saved = JSON.parse(sessionStorage.getItem(HERE_KEY) ?? 'null') as Coordinates | null;
+    const saved = JSON.parse(sessionStorage.getItem(HERE_KEY) ?? 'null') as (Coordinates & { how?: unknown }) | null;
     const here = roundCoordinates({ latitude, longitude });
-    return saved?.latitude === here.latitude && saved?.longitude === here.longitude;
+    if (saved?.latitude !== here.latitude || saved?.longitude !== here.longitude) return null;
+    return saved.how === 'approximate' ? 'approximate' : 'exact';
   } catch {
-    return false;
+    return null;
   }
 }

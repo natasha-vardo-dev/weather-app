@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   getCurrentPosition,
-  isRememberedPosition,
+  rememberedPosition,
   rememberPosition,
   roundCoordinates,
   toLocationError,
@@ -52,15 +52,17 @@ describe('getCurrentPosition', () => {
 });
 
 describe('remembered position', () => {
-  it('marks the place found this session, by rounded coordinates', () => {
+  it('marks the place opened as "my location" this session, and how it was found', () => {
     const data = new Map<string, string>();
     vi.stubGlobal('sessionStorage', {
       getItem: (k: string) => data.get(k) ?? null,
       setItem: (k: string, v: string) => void data.set(k, v),
     });
-    expect(isRememberedPosition(52.23, 21.01)).toBe(false);
+    expect(rememberedPosition(52.23, 21.01)).toBeNull();
     rememberPosition({ latitude: 52.2297, longitude: 21.0122 });
-    expect(isRememberedPosition(52.23, 21.01)).toBe(true);
-    expect(isRememberedPosition(41.9, 12.5)).toBe(false);
+    expect(rememberedPosition(52.23, 21.01)).toBe('exact');
+    expect(rememberedPosition(41.9, 12.5)).toBeNull();
+    rememberPosition({ latitude: 41.9, longitude: 12.5 }, 'approximate');
+    expect(rememberedPosition(41.9, 12.5)).toBe('approximate');
   });
 });
