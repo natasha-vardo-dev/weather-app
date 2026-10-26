@@ -32,6 +32,7 @@ export const hi: MessagesFactory = ({ num, deg, plural }) => ({
     same: 'लगभग कल जैसा',
     feelsLike: 'महसूस होता है',
     humidity: 'नमी',
+    precipitation: 'वर्षा',
     wind: 'हवा',
     airQuality: 'वायु गुणवत्ता',
   },
@@ -80,6 +81,7 @@ export const hi: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'प्रदूषक',
     ozone: 'ओज़ोन',
     nitrogenDioxide: 'नाइट्रोजन डाइऑक्साइड',
+    guideline: 'WHO दैनिक दिशानिर्देश',
   },
   location: {
     useMine: 'मेरी लोकेशन इस्तेमाल करें',

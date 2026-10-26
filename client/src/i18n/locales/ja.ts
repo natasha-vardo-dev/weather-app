@@ -33,6 +33,7 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
     same: '昨日とほぼ同じ',
     feelsLike: '体感温度',
     humidity: '湿度',
+    precipitation: '降水',
     wind: '風',
     airQuality: '大気質',
   },
@@ -81,6 +82,7 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
     title: '汚染物質',
     ozone: 'オゾン',
     nitrogenDioxide: '二酸化窒素',
+    guideline: 'WHO 1日指針値',
   },
   location: {
     useMine: '現在地を使用',

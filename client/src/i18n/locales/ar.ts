@@ -42,6 +42,7 @@ export const ar: MessagesFactory = ({ num, deg, plural }) => ({
     same: 'تقريبًا مثل أمس',
     feelsLike: 'الإحساس الحراري',
     humidity: 'الرطوبة',
+    precipitation: 'الهطول',
     wind: 'الرياح',
     airQuality: 'جودة الهواء',
   },
@@ -102,6 +103,7 @@ export const ar: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'الملوثات',
     ozone: 'الأوزون',
     nitrogenDioxide: 'ثاني أكسيد النيتروجين',
+    guideline: 'الحد اليومي لمنظمة الصحة العالمية',
   },
   location: {
     useMine: 'استخدام موقعي',

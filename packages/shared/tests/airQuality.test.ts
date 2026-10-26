@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { summarizeAirQuality } from '../src/airQuality.js';
+import { summarizeAirQuality, guidelineBar } from '../src/airQuality.js';
 
 const base = {
   time: '2026-10-24T19:00',
@@ -53,5 +53,16 @@ describe('summarizeAirQuality', () => {
     expect(
       summarizeAirQuality({ ...base, europeanAqi: null, usAqi: null, timezone: 'Europe/Berlin' }),
     ).toBeNull();
+  });
+});
+
+describe('guidelineBar', () => {
+  it('puts the guideline in the middle while the value is below twice it', () => {
+    expect(guidelineBar(13.9, 15)).toEqual({ value: 13.9 / 30, guideline: 0.5 });
+    expect(guidelineBar(0, 25)).toEqual({ value: 0, guideline: 0.5 });
+  });
+
+  it('stretches the bar for a value far above the guideline', () => {
+    expect(guidelineBar(90, 15)).toEqual({ value: 1, guideline: 15 / 90 });
   });
 });

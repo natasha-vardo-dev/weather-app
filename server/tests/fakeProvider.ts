@@ -16,7 +16,15 @@ export const sampleForecast: Forecast = {
     isDay: true,
   },
   hourly: [
-    { time: '2026-10-15T12:00', temperature: 12.4, weatherCode: 3, precipitationProbability: 10, isDay: true },
+    {
+      time: '2026-10-15T12:00',
+      temperature: 12.4,
+      humidity: 71,
+      windSpeed: 14.2,
+      weatherCode: 3,
+      precipitationProbability: 10,
+      isDay: true,
+    },
   ],
   yesterday: { date: '2026-10-14', weatherCode: 61, tempMax: 11, tempMin: 5, precipitationProbability: 90 },
   daily: [

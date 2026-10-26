@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { addTyped, isTyping, nextTypeaheadIndex, NOTHING_TYPED } from '../typeahead';
+import { ChevronIcon } from './ChevronIcon';
 
 export interface DropdownOption<T extends string> {
   value: T;
@@ -139,9 +140,7 @@ export function Dropdown<T extends string>({ label, value, options, onChange, va
         <span className="dropdown__value" lang={selected.lang}>
           {selected.label}
         </span>
-        <svg className="dropdown__chevron" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-          <path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
+        <ChevronIcon className="dropdown__chevron" />
       </button>
       {open && (
         <ul

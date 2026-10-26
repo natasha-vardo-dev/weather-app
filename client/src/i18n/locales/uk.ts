@@ -34,6 +34,7 @@ export const uk: MessagesFactory = ({ deg, plural }) => ({
     same: 'Приблизно як учора',
     feelsLike: 'Відчувається як',
     humidity: 'Вологість',
+    precipitation: 'Опади',
     wind: 'Вітер',
     airQuality: 'Якість повітря',
   },
@@ -94,6 +95,7 @@ export const uk: MessagesFactory = ({ deg, plural }) => ({
     title: 'Забруднювачі',
     ozone: 'Озон',
     nitrogenDioxide: 'Діоксид азоту',
+    guideline: 'Добова норма ВООЗ',
   },
   location: {
     useMine: 'Моє місцезнаходження',

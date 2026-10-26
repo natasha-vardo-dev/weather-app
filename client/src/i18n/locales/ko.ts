@@ -32,6 +32,7 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
     same: '어제와 비슷함',
     feelsLike: '체감 온도',
     humidity: '습도',
+    precipitation: '강수',
     wind: '바람',
     airQuality: '대기질',
   },
@@ -80,6 +81,7 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
     title: '오염 물질',
     ozone: '오존',
     nitrogenDioxide: '이산화질소',
+    guideline: 'WHO 일일 권고 기준',
   },
   location: {
     useMine: '내 위치 사용',

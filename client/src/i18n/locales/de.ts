@@ -33,6 +33,7 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
     same: 'Etwa wie gestern',
     feelsLike: 'Gefühlt',
     humidity: 'Luftfeuchtigkeit',
+    precipitation: 'Niederschlag',
     wind: 'Wind',
     airQuality: 'Luftqualität',
   },
@@ -81,6 +82,7 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'Schadstoffe',
     ozone: 'Ozon',
     nitrogenDioxide: 'Stickstoffdioxid',
+    guideline: 'WHO-Tagesrichtwert',
   },
   location: {
     useMine: 'Meinen Standort verwenden',

@@ -34,6 +34,7 @@ export const ru: MessagesFactory = ({ deg, plural }) => ({
     same: 'Примерно как вчера',
     feelsLike: 'Ощущается как',
     humidity: 'Влажность',
+    precipitation: 'Осадки',
     wind: 'Ветер',
     airQuality: 'Качество воздуха',
   },
@@ -94,6 +95,7 @@ export const ru: MessagesFactory = ({ deg, plural }) => ({
     title: 'Загрязнители',
     ozone: 'Озон',
     nitrogenDioxide: 'Диоксид азота',
+    guideline: 'Суточная норма ВОЗ',
   },
   location: {
     useMine: 'Моё местоположение',

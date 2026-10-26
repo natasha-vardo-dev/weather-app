@@ -50,6 +50,8 @@ interface ForecastResponse {
   hourly: {
     time: string[];
     temperature_2m: number[];
+    relative_humidity_2m: number[];
+    wind_speed_10m: number[];
     weather_code: number[];
     precipitation_probability: (number | null)[];
     is_day: number[];
@@ -124,7 +126,8 @@ export class OpenMeteoProvider implements WeatherProvider {
     );
     url.searchParams.set(
       'hourly',
-      'temperature_2m,weather_code,precipitation_probability,is_day',
+      // The same request as before, a few more fields: the 24-hour charts under the details.
+      'temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,precipitation_probability,is_day',
     );
     // Hourly data starts at the current hour, unlike daily data.
     url.searchParams.set('forecast_hours', String(FORECAST_HOURS));
@@ -170,6 +173,8 @@ export class OpenMeteoProvider implements WeatherProvider {
       hourly: hourly.time.map((time, i) => ({
         time,
         temperature: hourly.temperature_2m[i],
+        humidity: hourly.relative_humidity_2m[i],
+        windSpeed: hourly.wind_speed_10m[i],
         weatherCode: hourly.weather_code[i],
         precipitationProbability: hourly.precipitation_probability[i] ?? null,
         isDay: hourly.is_day[i] === 1,

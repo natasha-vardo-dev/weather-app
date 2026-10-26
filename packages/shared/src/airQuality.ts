@@ -73,3 +73,25 @@ export function summarizeAirQuality(airQuality: AirQuality): AirQualitySummary |
   }
   return null;
 }
+
+/**
+ * WHO 2021 air quality guidelines, µg/m³: 24-hour means for PM2.5, PM10 and NO₂, the
+ * 8-hour mean for ozone. The app compares the current hour with them, which is a guide,
+ * not a measurement over the guideline's period; the UI says "daily guideline".
+ */
+export const WHO_GUIDELINES = {
+  pm2_5: 15,
+  pm10: 45,
+  ozone: 100,
+  nitrogenDioxide: 25,
+} as const satisfies Record<keyof AirQuality['pollutants'], number>;
+
+/**
+ * Where a value and its guideline sit on a bar, as fractions of its length (0–1). The bar
+ * spans twice the guideline, so the guideline mark sits in the middle and "how far from
+ * it" reads the same for every pollutant; a value above that stretches the bar instead.
+ */
+export function guidelineBar(value: number, guideline: number): { value: number; guideline: number } {
+  const span = Math.max(guideline * 2, value);
+  return { value: Math.max(0, value) / span, guideline: guideline / span };
+}
