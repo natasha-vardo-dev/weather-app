@@ -4,6 +4,7 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'Prévisions météo',
   language: 'Langue',
   temperatureUnit: 'Unité de température',
+  placesBy: 'Noms de lieux',
   dataBy: 'Données météo fournies par',
   home: {
     title: 'Quel temps fera-t-il là où vous allez ?',
@@ -80,6 +81,17 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'Polluants',
     ozone: 'Ozone',
     nitrogenDioxide: "Dioxyde d'azote",
+  },
+  location: {
+    useMine: 'Utiliser ma position',
+    locating: 'Recherche de votre position…',
+    here: 'Vous êtes ici',
+    errors: {
+      denied: "L'accès à la position est bloqué. Autorisez-le dans les paramètres du navigateur ou recherchez une ville.",
+      unavailable: 'Impossible de trouver votre position. Réessayez ou recherchez une ville.',
+      timeout: 'La recherche de votre position a pris trop de temps. Réessayez.',
+      unsupported: 'Ce navigateur ne peut pas partager votre position. Recherchez plutôt une ville.',
+    },
   },
   favorites: {
     title: 'Favoris',

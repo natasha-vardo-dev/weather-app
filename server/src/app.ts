@@ -2,14 +2,17 @@ import { ERROR_CODES, ZodError, type ApiErrorBody, type ErrorCode } from '@weath
 import cors from 'cors';
 import express, { type ErrorRequestHandler } from 'express';
 import { AppError, ProviderError } from './errors.js';
+import { placesRouter } from './routes/places.js';
 import { weatherRouter } from './routes/weather.js';
+import type { PlaceService } from './services/placeService.js';
 import type { WeatherService } from './services/weatherService.js';
 
 function errorBody(code: ErrorCode, message: string): ApiErrorBody {
   return { error: { code, message } };
 }
 
-export function createApp(service: WeatherService, corsOrigins: string[] = []) {
+/** `places` is optional: without it /api/places/reverse is not served (tests of other routes). */
+export function createApp(service: WeatherService, corsOrigins: string[] = [], places?: PlaceService) {
   const app = express();
 
   app.disable('x-powered-by');
@@ -20,6 +23,7 @@ export function createApp(service: WeatherService, corsOrigins: string[] = []) {
   });
 
   app.use('/api', weatherRouter(service));
+  if (places) app.use('/api', placesRouter(places));
 
   app.use('/api', (_req, res) => {
     res.status(404).json(errorBody(ERROR_CODES.NOT_FOUND, 'Endpoint not found.'));

@@ -11,6 +11,7 @@ import { useForecast } from '../hooks/useForecast';
 import { usePageMeta } from '../hooks/usePageMeta';
 import { useLocalizedPlace } from '../hooks/useLocalizedPlace';
 import { useI18n } from '../i18n/I18nProvider';
+import { isRememberedPosition } from '../geolocation';
 import { parsePlace } from '../locationUrl';
 import { NotFoundPage } from './NotFoundPage';
 
@@ -72,6 +73,7 @@ export function WeatherPage() {
           forecast={current}
           airQuality={airQuality}
           actions={<FavoriteButton place={place} />}
+          here={isRememberedPosition(place.latitude, place.longitude)}
         />
         <HourlyForecast hours={current.hourly} />
         <ForecastList days={current.daily} />

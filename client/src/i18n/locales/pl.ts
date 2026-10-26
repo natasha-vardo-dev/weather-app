@@ -4,6 +4,7 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
   appName: 'Prognoza pogody',
   language: 'Język',
   temperatureUnit: 'Jednostka temperatury',
+  placesBy: 'Nazwy miejsc',
   dataBy: 'Dane pogodowe:',
   home: {
     title: 'Jaka pogoda czeka cię u celu?',
@@ -87,6 +88,17 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     title: 'Zanieczyszczenia',
     ozone: 'Ozon',
     nitrogenDioxide: 'Dwutlenek azotu',
+  },
+  location: {
+    useMine: 'Użyj mojej lokalizacji',
+    locating: 'Ustalanie lokalizacji…',
+    here: 'Jesteś tutaj',
+    errors: {
+      denied: 'Dostęp do lokalizacji jest zablokowany. Zezwól na niego w ustawieniach przeglądarki lub wyszukaj miasto.',
+      unavailable: 'Nie udało się ustalić lokalizacji. Spróbuj ponownie lub wyszukaj miasto.',
+      timeout: 'Ustalanie lokalizacji trwało zbyt długo. Spróbuj ponownie.',
+      unsupported: 'Ta przeglądarka nie może udostępnić lokalizacji. Wyszukaj miasto.',
+    },
   },
   favorites: {
     title: 'Ulubione',

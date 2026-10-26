@@ -15,7 +15,10 @@ export function App() {
   return (
     <div className="page">
       <header className="page__header">
-        <SearchBar onSelect={(location) => navigate(placePath(location))} />
+        <SearchBar
+          onSelect={(location) => navigate(placePath(location))}
+          onLocate={(place) => navigate(placePath(place))}
+        />
         <UnitSelect />
         <LanguageSelect />
       </header>
@@ -32,6 +35,12 @@ export function App() {
         {t.dataBy}{' '}
         <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">
           Open-Meteo
+        </a>
+        {/* Required by OpenStreetMap's licence: names for the user's location come from it. */}
+        {' · '}
+        {t.placesBy}{' '}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+          © OpenStreetMap
         </a>
       </footer>
     </div>

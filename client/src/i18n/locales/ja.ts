@@ -5,6 +5,7 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
   appName: '天気予報',
   language: '言語',
   temperatureUnit: '温度の単位',
+  placesBy: '地名',
   dataBy: '気象データ提供:',
   home: {
     title: '行き先の天気は？',
@@ -80,6 +81,17 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
     title: '汚染物質',
     ozone: 'オゾン',
     nitrogenDioxide: '二酸化窒素',
+  },
+  location: {
+    useMine: '現在地を使用',
+    locating: '現在地を取得しています…',
+    here: '現在地',
+    errors: {
+      denied: '位置情報へのアクセスがブロックされています。ブラウザの設定で許可するか、都市を検索してください。',
+      unavailable: '現在地を特定できませんでした。もう一度試すか、都市を検索してください。',
+      timeout: '現在地の取得に時間がかかりすぎました。もう一度お試しください。',
+      unsupported: 'このブラウザは位置情報を共有できません。都市を検索してください。',
+    },
   },
   favorites: {
     title: 'お気に入り',

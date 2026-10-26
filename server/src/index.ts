@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import { createApp } from './app.js';
+import { NominatimGeocoder } from './providers/nominatim.js';
 import { OpenMeteoProvider } from './providers/openMeteo.js';
+import { PlaceService } from './services/placeService.js';
 import { WeatherService } from './services/weatherService.js';
 
 /**
@@ -25,8 +27,14 @@ const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
   .map((s) => s.trim())
   .filter(Boolean);
 
+// Nominatim's policy asks for an identifying User-Agent with a way to reach the app's author.
+const nominatimUserAgent =
+  process.env.NOMINATIM_USER_AGENT?.trim() || 'weather-app/1.0 (+https://github.com/natasha-vardo-dev/weather-app)';
+
 const service = new WeatherService(new OpenMeteoProvider(), ttlSeconds * 1000);
-const app = createApp(service, corsOrigins);
+// Matches the user's location to a searched city through the weather service's cached search.
+const places = new PlaceService(new NominatimGeocoder({ userAgent: nominatimUserAgent }), service);
+const app = createApp(service, corsOrigins, places);
 
 app.listen(port, () => {
   console.log(`API listening on http://localhost:${port}`);

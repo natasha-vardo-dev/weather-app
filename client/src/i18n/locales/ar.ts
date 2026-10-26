@@ -5,6 +5,7 @@ export const ar: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'توقعات الطقس',
   language: 'اللغة',
   temperatureUnit: 'وحدة درجة الحرارة',
+  placesBy: 'أسماء الأماكن',
   dataBy: 'بيانات الطقس من',
   home: {
     title: 'كيف سيكون الطقس حيث تذهب؟',
@@ -101,6 +102,17 @@ export const ar: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'الملوثات',
     ozone: 'الأوزون',
     nitrogenDioxide: 'ثاني أكسيد النيتروجين',
+  },
+  location: {
+    useMine: 'استخدام موقعي',
+    locating: 'جارٍ تحديد موقعك…',
+    here: 'أنت هنا',
+    errors: {
+      denied: 'الوصول إلى الموقع محظور. اسمح به في إعدادات المتصفح أو ابحث عن مدينة.',
+      unavailable: 'تعذّر تحديد موقعك. حاول مرة أخرى أو ابحث عن مدينة.',
+      timeout: 'استغرق تحديد موقعك وقتًا طويلًا. حاول مرة أخرى.',
+      unsupported: 'لا يمكن لهذا المتصفح مشاركة موقعك. ابحث عن مدينة بدلًا من ذلك.',
+    },
   },
   favorites: {
     title: 'المفضلة',

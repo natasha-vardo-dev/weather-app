@@ -4,6 +4,7 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'Weather forecast',
   language: 'Language',
   temperatureUnit: 'Temperature unit',
+  placesBy: 'Place names',
   dataBy: 'Weather data by',
   home: {
     title: "What's the weather where you're going?",
@@ -79,6 +80,17 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'Pollutants',
     ozone: 'Ozone',
     nitrogenDioxide: 'Nitrogen dioxide',
+  },
+  location: {
+    useMine: 'Use my location',
+    locating: 'Finding your location…',
+    here: 'You are here',
+    errors: {
+      denied: 'Location access is blocked. Allow it in your browser settings or search for a city.',
+      unavailable: "Couldn't find your location. Try again or search for a city.",
+      timeout: 'Finding your location took too long. Try again.',
+      unsupported: "This browser can't share your location. Search for a city instead.",
+    },
   },
   favorites: {
     title: 'Favourites',

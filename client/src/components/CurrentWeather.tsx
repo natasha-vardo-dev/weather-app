@@ -4,6 +4,7 @@ import type { AirQualityView } from '../hooks/useAirQuality';
 import { useI18n } from '../i18n/I18nProvider';
 import { useUnits } from '../units/UnitProvider';
 import { AirQualityItem, hasPollutants, PollutantsPanel } from './AirQualityDetails';
+import { PinIcon } from './LocationIcons';
 
 interface Props {
   name: string;
@@ -13,9 +14,11 @@ interface Props {
   actions?: ReactNode;
   /** Undefined while loading (the slot is kept), null hides the item (no data or error). */
   airQuality: AirQualityView | null | undefined;
+  /** The place is the user's position: marked "You are here". */
+  here?: boolean;
 }
 
-export function CurrentWeather({ name, country, forecast, airQuality, actions }: Props) {
+export function CurrentWeather({ name, country, forecast, airQuality, actions, here }: Props) {
   const { t, deg, speed, percent } = useI18n();
   const { temp } = useUnits();
   const { current, units } = forecast;
@@ -45,6 +48,13 @@ export function CurrentWeather({ name, country, forecast, airQuality, actions }:
         <h1 id="now-title" className="now__place" ref={headingRef} tabIndex={-1}>
           {name}
           {country && <span className="now__country">{country}</span>}
+          {/* In the heading, so screen readers hear it with the place name. */}
+          {here && (
+            <span className="now__here">
+              <PinIcon />
+              {t.location.here}
+            </span>
+          )}
         </h1>
         {actions}
       </div>

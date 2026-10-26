@@ -5,6 +5,7 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
   appName: '天气预报',
   language: '语言',
   temperatureUnit: '温度单位',
+  placesBy: '地名',
   dataBy: '天气数据来源：',
   home: {
     title: '你要去的地方天气如何？',
@@ -80,6 +81,17 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
     title: '污染物',
     ozone: '臭氧',
     nitrogenDioxide: '二氧化氮',
+  },
+  location: {
+    useMine: '使用我的位置',
+    locating: '正在获取你的位置…',
+    here: '你在这里',
+    errors: {
+      denied: '位置访问已被阻止。请在浏览器设置中允许，或搜索城市。',
+      unavailable: '无法确定你的位置。请重试或搜索城市。',
+      timeout: '获取位置用时过长。请重试。',
+      unsupported: '此浏览器无法共享你的位置。请搜索城市。',
+    },
   },
   favorites: {
     title: '收藏的城市',

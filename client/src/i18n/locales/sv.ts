@@ -4,6 +4,7 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'Väderprognos',
   language: 'Språk',
   temperatureUnit: 'Temperaturenhet',
+  placesBy: 'Ortnamn',
   dataBy: 'Väderdata från',
   home: {
     title: 'Hur blir vädret dit du ska?',
@@ -79,6 +80,17 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'Föroreningar',
     ozone: 'Ozon',
     nitrogenDioxide: 'Kvävedioxid',
+  },
+  location: {
+    useMine: 'Använd min plats',
+    locating: 'Hämtar din plats…',
+    here: 'Du är här',
+    errors: {
+      denied: 'Åtkomst till platsen är blockerad. Tillåt den i webbläsarens inställningar eller sök efter en stad.',
+      unavailable: 'Det gick inte att hitta din plats. Försök igen eller sök efter en stad.',
+      timeout: 'Det tog för lång tid att hitta din plats. Försök igen.',
+      unsupported: 'Den här webbläsaren kan inte dela din plats. Sök efter en stad i stället.',
+    },
   },
   favorites: {
     title: 'Favoriter',

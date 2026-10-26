@@ -1,4 +1,5 @@
 import type { AirQualityLevel, AirQualitySummary, ErrorCode, WeatherCondition } from '@weather/shared';
+import type { LocationError } from '../geolocation';
 import type { Plural } from './plural';
 
 /**
@@ -11,6 +12,8 @@ export interface Messages {
   language: string;
   /** Label of the °C / °F switch, for screen readers. */
   temperatureUnit: string;
+  /** Footer: who the place names come from, before "© OpenStreetMap". */
+  placesBy: string;
   dataBy: string;
   home: { title: string; text: (days: number) => string };
   notFound: {
@@ -47,6 +50,16 @@ export interface Messages {
   airQualityScales: Record<AirQualitySummary['scale'], string>;
   /** Names spoken by screen readers; the screen shows formulas (O₃, NO₂). */
   pollutants: { title: string; ozone: string; nitrogenDioxide: string };
+  /** The user's location: the crosshair in the search field and its errors. */
+  location: {
+    /** Name of the crosshair button. */
+    useMine: string;
+    /** Announced while the browser looks for the position. */
+    locating: string;
+    /** Mark next to the place name when it is the user's position. */
+    here: string;
+    errors: Record<LocationError, string>;
+  };
   favorites: {
     title: string;
     /** Button label for a city that is not saved yet. */

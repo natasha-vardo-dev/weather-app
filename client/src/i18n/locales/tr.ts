@@ -4,6 +4,7 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
   appName: 'Hava durumu',
   language: 'Dil',
   temperatureUnit: 'Sıcaklık birimi',
+  placesBy: 'Yer adları',
   dataBy: 'Hava durumu verileri:',
   home: {
     title: 'Gideceğin yerde hava nasıl?',
@@ -80,6 +81,17 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
     title: 'Kirleticiler',
     ozone: 'Ozon',
     nitrogenDioxide: 'Azot dioksit',
+  },
+  location: {
+    useMine: 'Konumumu kullan',
+    locating: 'Konumunuz bulunuyor…',
+    here: 'Buradasınız',
+    errors: {
+      denied: 'Konum erişimi engellendi. Tarayıcı ayarlarından izin verin veya bir şehir arayın.',
+      unavailable: 'Konumunuz bulunamadı. Tekrar deneyin veya bir şehir arayın.',
+      timeout: 'Konumunuzu bulmak çok uzun sürdü. Tekrar deneyin.',
+      unsupported: 'Bu tarayıcı konumunuzu paylaşamıyor. Bunun yerine bir şehir arayın.',
+    },
   },
   favorites: {
     title: 'Favoriler',

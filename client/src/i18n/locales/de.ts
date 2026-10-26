@@ -4,6 +4,7 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'Wettervorhersage',
   language: 'Sprache',
   temperatureUnit: 'Temperatureinheit',
+  placesBy: 'Ortsnamen',
   dataBy: 'Wetterdaten von',
   home: {
     title: 'Wie wird das Wetter dort, wo du hinwillst?',
@@ -80,6 +81,17 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'Schadstoffe',
     ozone: 'Ozon',
     nitrogenDioxide: 'Stickstoffdioxid',
+  },
+  location: {
+    useMine: 'Meinen Standort verwenden',
+    locating: 'Standort wird ermittelt…',
+    here: 'Sie sind hier',
+    errors: {
+      denied: 'Der Standortzugriff ist blockiert. Erlauben Sie ihn in den Browsereinstellungen oder suchen Sie eine Stadt.',
+      unavailable: 'Ihr Standort konnte nicht ermittelt werden. Versuchen Sie es erneut oder suchen Sie eine Stadt.',
+      timeout: 'Die Standortermittlung hat zu lange gedauert. Versuchen Sie es erneut.',
+      unsupported: 'Dieser Browser kann Ihren Standort nicht teilen. Suchen Sie stattdessen eine Stadt.',
+    },
   },
   favorites: {
     title: 'Favoriten',

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  findSavedCity,
   isFavorite,
   MAX_FAVORITES,
   parseFavorites,
@@ -79,5 +80,33 @@ describe('parseFavorites', () => {
   it('returns an empty list for anything that is not an array', () => {
     expect(parseFavorites(null)).toEqual([]);
     expect(parseFavorites({ favorites: [] })).toEqual([]);
+  });
+});
+
+describe('findSavedCity', () => {
+  const savedWarsaw: Favorite = { latitude: 52.23, longitude: 21.01, name: 'Warsaw', country: 'Poland', id: 756135 };
+  const krakow: Favorite = { latitude: 50.06, longitude: 19.94, name: 'Krakow', country: 'Poland' };
+  // The user's own ~1 km cell in Warsaw, ~4 km from the centre a saved city has.
+  const here = { latitude: 52.25, longitude: 21.05 };
+
+  it('finds the saved city by name nearby: the duplicate Warsaw bug', () => {
+    expect(findSavedCity([krakow, savedWarsaw], { ...here, name: 'Warsaw' })).toBe(savedWarsaw);
+    expect(findSavedCity([savedWarsaw], { ...here, name: ' warsaw ' })).toBe(savedWarsaw);
+  });
+
+  it('finds it by provider id or by the same coordinates', () => {
+    expect(findSavedCity([savedWarsaw], { ...here, name: 'Варшава', id: 756135 })).toBe(savedWarsaw);
+    expect(findSavedCity([savedWarsaw], { latitude: 52.23, longitude: 21.01, name: 'Варшава' })).toBe(savedWarsaw);
+  });
+
+  it('does not match a namesake far away, or another town nearby', () => {
+    const indiana = { latitude: 41.24, longitude: -85.85, name: 'Warsaw' };
+    expect(findSavedCity([savedWarsaw], indiana)).toBeNull();
+    expect(findSavedCity([savedWarsaw], { latitude: 52.2, longitude: 20.97, name: 'Piastów' })).toBeNull();
+  });
+
+  it('prefers the nearest of two saved places with the same name', () => {
+    const otherWarsaw: Favorite = { latitude: 52.4, longitude: 21.2, name: 'Warsaw' };
+    expect(findSavedCity([otherWarsaw, savedWarsaw], { ...here, name: 'Warsaw' })).toBe(savedWarsaw);
   });
 });

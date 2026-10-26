@@ -4,6 +4,7 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'תחזית מזג אוויר',
   language: 'שפה',
   temperatureUnit: 'יחידת טמפרטורה',
+  placesBy: 'שמות מקומות',
   dataBy: 'נתוני מזג אוויר:',
   home: {
     title: 'איך יהיה מזג האוויר לאן שאתם נוסעים?',
@@ -79,6 +80,17 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
     title: 'מזהמים',
     ozone: 'אוזון',
     nitrogenDioxide: 'חנקן דו־חמצני',
+  },
+  location: {
+    useMine: 'שימוש במיקום שלי',
+    locating: 'מאתרים את המיקום שלך…',
+    here: 'המיקום שלך',
+    errors: {
+      denied: 'הגישה למיקום חסומה. יש לאפשר אותה בהגדרות הדפדפן או לחפש עיר.',
+      unavailable: 'לא ניתן לאתר את המיקום שלך. יש לנסות שוב או לחפש עיר.',
+      timeout: 'איתור המיקום נמשך זמן רב מדי. יש לנסות שוב.',
+      unsupported: 'הדפדפן הזה לא יכול לשתף את המיקום שלך. יש לחפש עיר.',
+    },
   },
   favorites: {
     title: 'מועדפים',
