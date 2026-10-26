@@ -6,9 +6,15 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
   temperatureUnit: 'יחידת טמפרטורה',
   placesBy: 'שמות מקומות',
   dataBy: 'נתוני מזג אוויר:',
+  offline: 'אין חיבור לרשת. מוצגת התחזית האחרונה שנטענה, ייתכן שאינה עדכנית.',
   home: {
     title: 'איך יהיה מזג האוויר לאן שאתם נוסעים?',
     text: (days) => `חפשו עיר כדי לראות את מזג האוויר הנוכחי ותחזית ל־${num(days)} ימים.`,
+  },
+  installHint: {
+    title: 'הוספה למסך הבית',
+    steps: 'הקישו על {icon} ״שיתוף״ ואז על ״הוספה למסך הבית״.',
+    dismiss: 'סגירה',
   },
   notFound: {
     pageTitle: 'לא נמצא',

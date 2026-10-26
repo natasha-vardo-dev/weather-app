@@ -6,9 +6,15 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
   temperatureUnit: 'Temperaturenhet',
   placesBy: 'Ortnamn',
   dataBy: 'Väderdata från',
+  offline: 'Du är offline. Den senast hämtade prognosen visas och kan vara inaktuell.',
   home: {
     title: 'Hur blir vädret dit du ska?',
     text: (days) => `Sök efter en stad för att se aktuellt väder och prognosen för ${num(days)} dagar.`,
+  },
+  installHint: {
+    title: 'Lägg till på hemskärmen',
+    steps: 'Tryck på {icon} ”Dela” och sedan ”Lägg till på hemskärmen”.',
+    dismiss: 'Stäng',
   },
   notFound: {
     pageTitle: 'Hittades inte',

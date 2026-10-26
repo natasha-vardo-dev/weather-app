@@ -6,10 +6,16 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
   temperatureUnit: 'Temperatureinheit',
   placesBy: 'Ortsnamen',
   dataBy: 'Wetterdaten von',
+  offline: 'Sie sind offline. Angezeigt wird die zuletzt geladene Vorhersage, sie ist möglicherweise veraltet.',
   home: {
     title: 'Wie wird das Wetter dort, wo du hinwillst?',
     text: (days) =>
       `Suche nach einer Stadt, um das aktuelle Wetter und die Vorhersage für ${num(days)} Tage zu sehen.`,
+  },
+  installHint: {
+    title: 'Zum Home-Bildschirm hinzufügen',
+    steps: 'Tippe auf {icon} „Teilen“ und dann auf „Zum Home-Bildschirm“.',
+    dismiss: 'Schließen',
   },
   notFound: {
     pageTitle: 'Nicht gefunden',

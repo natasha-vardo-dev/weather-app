@@ -16,6 +16,7 @@ A web application that shows the current weather and a 10-day forecast for a sel
 - 19 interface languages, picked from the system language by default, with a switcher; dates, times, numbers and units follow the locale; right-to-left layout for Arabic and Hebrew
 - °C or °F: Fahrenheit by default for the US and a few other regions (from the system locale), Celsius elsewhere; a switcher in the header remembers the choice
 - Weather for your location: a crosshair in the search field (the browser asks for permission only when it is pressed). If the browser can't tell the position, the message offers "Try again" and the city guessed from the IP address ("Looks like you're in Warsaw"), marked as approximate. Place names come from OpenStreetMap
+- Installable as an app (PWA): opens offline with the last loaded forecasts and a banner saying they may be out of date; on iPhone and iPad the start page explains how to add it to the Home Screen
 - Responsive layout, light/dark mode, accessible combobox
 
 ## Tech stack
@@ -49,7 +50,7 @@ docs/              Architecture notes and open questions
 
 ## Getting started
 
-Requires Node.js 20+.
+Requires Node.js 20.19+ (the PWA build plugin needs it).
 
 ```bash
 npm install

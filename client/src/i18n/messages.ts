@@ -15,7 +15,12 @@ export interface Messages {
   /** Footer: who the place names come from, before "© OpenStreetMap". */
   placesBy: string;
   dataBy: string;
+  /** Banner while the browser has no network; the app shows what it saved earlier. */
+  offline: string;
   home: { title: string; text: (days: number) => string };
+  /** "Add to Home Screen" steps on iOS. `steps` contains `{icon}` where the Share icon goes;
+   *  the button names must match iOS's own menu in that language. */
+  installHint: { title: string; steps: string; dismiss: string };
   notFound: {
     pageTitle: string;
     title: string;

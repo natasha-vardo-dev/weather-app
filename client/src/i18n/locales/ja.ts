@@ -7,9 +7,15 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
   temperatureUnit: '温度の単位',
   placesBy: '地名',
   dataBy: '気象データ提供:',
+  offline: 'オフラインです。最後に読み込んだ予報を表示しています。古い可能性があります。',
   home: {
     title: '行き先の天気は？',
     text: (days) => `都市を検索すると、現在の天気と${num(days)}日間の予報を確認できます。`,
+  },
+  installHint: {
+    title: 'ホーム画面に追加',
+    steps: '{icon}「共有」をタップし、「ホーム画面に追加」を選んでください。',
+    dismiss: '閉じる',
   },
   notFound: {
     pageTitle: '見つかりません',

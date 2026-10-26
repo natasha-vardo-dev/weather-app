@@ -2,6 +2,8 @@ import { ERROR_CODES, isRetryable, type ErrorCode, type Forecast } from '@weathe
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError } from '../api/client';
 import { createQueryCache } from '../api/queryCache';
+import { isSavedValue } from '../api/savedResponses';
+import { useReportSaved } from './useReportSaved';
 
 export interface ForecastError {
   /** Translated on render, so switching language also translates a shown error. */
@@ -19,8 +21,12 @@ interface State {
 /**
  * One cache for the whole app: the city page, favourite tiles and the start-page list
  * share loaded forecasts. 5 minutes matches the API's Cache-Control max-age.
+ * Old answers the service worker saved are not kept: the next view asks the network again.
  */
-const forecastCache = createQueryCache<Forecast>({ ttlMs: 5 * 60 * 1000 });
+const forecastCache = createQueryCache<Forecast>({
+  ttlMs: 5 * 60 * 1000,
+  keep: (forecast) => !isSavedValue(forecast),
+});
 
 function toError(err: unknown): ForecastError {
   return err instanceof ApiError
@@ -65,8 +71,10 @@ export function useForecast(latitude: number | null, longitude: number | null) {
   // to a loaded place shows it at once instead of a loading state.
   const isCurrent = state.key === key;
   const cached = key ? (forecastCache.get(key) ?? null) : null;
+  const forecast = isCurrent ? (state.forecast ?? cached) : cached;
+  useReportSaved(isSavedValue(forecast));
   return {
-    forecast: isCurrent ? (state.forecast ?? cached) : cached,
+    forecast,
     error: isCurrent ? state.error : null,
     loading: loading && !cached,
     retry,

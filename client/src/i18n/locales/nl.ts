@@ -6,10 +6,16 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
   temperatureUnit: 'Temperatuureenheid',
   placesBy: 'Plaatsnamen',
   dataBy: 'Weergegevens van',
+  offline: 'Je bent offline. De laatst geladen verwachting wordt getoond, die mogelijk verouderd is.',
   home: {
     title: 'Wat voor weer is het waar je heen gaat?',
     text: (days) =>
       `Zoek een stad om het huidige weer en de verwachting voor ${num(days)} dagen te zien.`,
+  },
+  installHint: {
+    title: 'Zet op je beginscherm',
+    steps: 'Tik op {icon} ‘Deel’ en daarna op ‘Zet op beginscherm’.',
+    dismiss: 'Sluiten',
   },
   notFound: {
     pageTitle: 'Niet gevonden',

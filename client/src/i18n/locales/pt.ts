@@ -6,9 +6,15 @@ export const pt: MessagesFactory = ({ num, deg, plural }) => ({
   temperatureUnit: 'Unidade de temperatura',
   placesBy: 'Nomes de lugares',
   dataBy: 'Dados meteorológicos de',
+  offline: 'Você está offline. Mostrando a última previsão carregada, que pode estar desatualizada.',
   home: {
     title: 'Como está o tempo para onde você vai?',
     text: (days) => `Pesquise uma cidade para ver o tempo atual e a previsão de ${num(days)} dias.`,
+  },
+  installHint: {
+    title: 'Adicionar à Tela de Início',
+    steps: 'Toque em {icon} “Compartilhar” e depois em “Adicionar à Tela de Início”.',
+    dismiss: 'Fechar',
   },
   notFound: {
     pageTitle: 'Não encontrado',
