@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>2.49.0.0.616.0.PL.Sk20261027102244306.PL2819</identifier>
+  <sender>https://www.imgw.pl</sender>
+  <sent>2026-10-27T11:22:00+01:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <language>pl-PL</language>
+    <category>Met</category>
+    <event>Żółty alert na gęsta mgła</event>
+    <responseType>None</responseType>
+    <urgency>Expected</urgency>
+    <severity>Moderate</severity>
+    <certainty>Likely</certainty>
+    <effective>2026-10-27T11:22:00+01:00</effective>
+    <onset>2026-10-27T20:00:00+01:00</onset>
+    <expires>2026-10-28T10:00:00+01:00</expires>
+    <senderName>IMGW-PIB Centralne Biuro Prognoz Meteorologicznych w Warszawie</senderName>
+    <headline>Żółty alert na gęsta mgła dla Polski - województwo warmińsko-mazurskie powiat węgorzewski</headline>
+    <description>Miejscami prognozuje się gęste mgły, w zasięgu których widzialność będzie wynosić poniżej 200 m.</description>
+    <instruction>Spodziewaj się utrudnień. Mgła na dużym obszarze, lokalnie gęsta. Utrudnienia w ruchu lotniczym i kołowym, wydłużenia czasu podróży.</instruction>
+    <web>https://meteo.imgw.pl/dyn/?osmet=true</web>
+    <contact>synoptyk.kraju@imgw.pl</contact>
+    <parameter>
+      <valueName>awareness_level</valueName>
+      <value>2; yellow; Moderate</value>
+    </parameter>
+    <parameter>
+      <valueName>awareness_type</valueName>
+      <value>4; Fog</value>
+    </parameter>
+    <area>
+      <areaDesc>województwo warmińsko-mazurskie powiat węgorzewski</areaDesc>
+      <geocode>
+        <valueName>EMMA_ID</valueName>
+        <value>PL2819</value>
+      </geocode>
+    </area>
+  </info>
+  <info>
+    <language>en-GB</language>
+    <category>Met</category>
+    <event>Yellow Fog warning</event>
+    <responseType>None</responseType>
+    <urgency>Expected</urgency>
+    <severity>Moderate</severity>
+    <certainty>Likely</certainty>
+    <effective>2026-10-27T11:22:00+01:00</effective>
+    <onset>2026-10-27T20:00:00+01:00</onset>
+    <expires>2026-10-28T10:00:00+01:00</expires>
+    <senderName>IMGW-PIB, Meteorological Forecast Centre, Warszawa</senderName>
+    <headline>Yellow Dense fog warning for Poland - Warminsko-mazurskie Province Wegorzewski County</headline>
+    <description>It is forecasted dense fog with very poor visibility - locally below 200 m.</description>
+    <instruction>BE AWARE of some widespread, locally dense fog. May strongly affect outdoor routines. Can cause airport closures and delays, difficult driving conditions and longer journey times.</instruction>
+    <web>https://meteo.imgw.pl/dyn/?osmet=true</web>
+    <contact>synoptyk.kraju@imgw.pl</contact>
+    <parameter>
+      <valueName>awareness_level</valueName>
+      <value>2; yellow; Moderate</value>
+    </parameter>
+    <parameter>
+      <valueName>awareness_type</valueName>
+      <value>4; Fog</value>
+    </parameter>
+    <area>
+      <areaDesc>Warmińsko-mazurskie Province Węgorzewski County</areaDesc>
+      <geocode>
+        <valueName>EMMA_ID</valueName>
+        <value>PL2819</value>
+      </geocode>
+    </area>
+  </info>
+</alert>

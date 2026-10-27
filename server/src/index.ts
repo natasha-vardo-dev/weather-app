@@ -1,10 +1,14 @@
 import 'dotenv/config';
 import { createApp } from './app.js';
+import { ALERTS_FEED_TTL_SECONDS } from '@weather/shared';
 import { IpWhoIsLocator } from './providers/ipwhois.js';
+import { MeteoAlarmProvider } from './providers/meteoAlarm.js';
 import { NominatimGeocoder } from './providers/nominatim.js';
 import { OpenMeteoProvider } from './providers/openMeteo.js';
+import { AlertService } from './services/alertService.js';
 import { ApproximateLocationService } from './services/approximateService.js';
 import { PlaceService } from './services/placeService.js';
+import { loadRegions, RegionIndex } from './services/regions.js';
 import { WeatherService } from './services/weatherService.js';
 
 /**
@@ -47,7 +51,16 @@ const approximate = new ApproximateLocationService(
   places,
   process.env.IP_SELF_LOOKUP?.trim() === '1',
 );
-const app = createApp(service, corsOrigins, places, approximate, trustProxy);
+// Official warnings (Europe). Region borders: data/meteoalarm-regions.json.gz, built by
+// scripts/buildAlertRegions.ts from MeteoAlarm's published file; read on first request.
+const regionsFile = new URL('../data/meteoalarm-regions.json.gz', import.meta.url);
+const alerts = new AlertService(
+  new MeteoAlarmProvider({
+    regions: async () => new RegionIndex((await loadRegions(regionsFile)).regions),
+    feedTtlMs: ALERTS_FEED_TTL_SECONDS * 1000,
+  }),
+);
+const app = createApp(service, corsOrigins, places, approximate, trustProxy, alerts);
 
 app.listen(port, () => {
   console.log(`API listening on http://localhost:${port}`);

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>2.49.0.0.616.0.PL.261026094445.PL804_01421</identifier>
+  <sender>https://www.imgw.pl</sender>
+  <sent>2026-10-26T10:44:45+01:00</sent>
+  <status>Actual</status>
+  <msgType>Update</msgType>
+  <scope>Public</scope>
+  <references>https://www.imgw.pl,2.49.0.0.616.0.PL.261025233625.PL804_01421,2026-10-26T00:36:25+01:00</references>
+  <info>
+    <language>pl-PL</language>
+    <category>Met</category>
+    <event>Żółty alert na silny wiatr w strefie brzegowej</event>
+    <responseType>None</responseType>
+    <urgency>Expected</urgency>
+    <severity>Moderate</severity>
+    <certainty>Likely</certainty>
+    <effective>2026-10-26T10:44:00+01:00</effective>
+    <onset>2026-10-26T10:45:00+01:00</onset>
+    <expires>2026-10-26T18:00:00+01:00</expires>
+    <senderName>Regionalne Biuro Meteorologicznych Prognoz Morskich w Szczecinie</senderName>
+    <headline>Żółty alert na silny wiatr w strefie brzegowej dla Polski - Strefa brzegowa - część środkowa</headline>
+    <description>Wiatr południowo-zachodni 5 do 6, w porywach 7 w skali B.</description>
+    <instruction>Spodziewaj się utrudnień. Utrudnione warunki nawigacyjne. Zaleca się unikanie podróży przez obszary strefy brzegowej.</instruction>
+    <web>https://meteo.imgw.pl/dyn/?osmet=true</web>
+    <contact>meteo.pomorze@imgw.pl</contact>
+    <parameter>
+      <valueName>awareness_level</valueName>
+      <value>2; yellow; Moderate</value>
+    </parameter>
+    <parameter>
+      <valueName>awareness_type</valueName>
+      <value>1; Wind</value>
+    </parameter>
+    <area>
+      <areaDesc>Strefa brzegowa - część środkowa</areaDesc>
+      <geocode>
+        <valueName>EMMA_ID</valueName>
+        <value>PL804</value>
+      </geocode>
+    </area>
+  </info>
+  <info>
+    <language>en-GB</language>
+    <category>Met</category>
+    <event>Yellow Wind warning</event>
+    <responseType>None</responseType>
+    <urgency>Expected</urgency>
+    <severity>Moderate</severity>
+    <certainty>Likely</certainty>
+    <effective>2026-10-26T10:44:00+01:00</effective>
+    <onset>2026-10-26T10:45:00+01:00</onset>
+    <expires>2026-10-26T18:00:00+01:00</expires>
+    <senderName>IMGW-PIB Marine Meteorological Forecast Office, The Szczecin Team</senderName>
+    <headline>Yellow Strong wind in the coastal zone warning for Poland - Central coastal zone</headline>
+    <description>Wind southwest force 5 to 6, but 7 in gusts.</description>
+    <instruction>BE AWARE. Difficult navigation conditions. It is recommended to avoid traveling through coastal zone area.</instruction>
+    <web>https://meteo.imgw.pl/dyn/?osmet=true</web>
+    <contact>meteo.pomorze@imgw.pl</contact>
+    <parameter>
+      <valueName>awareness_level</valueName>
+      <value>2; yellow; Moderate</value>
+    </parameter>
+    <parameter>
+      <valueName>awareness_type</valueName>
+      <value>1; Wind</value>
+    </parameter>
+    <area>
+      <areaDesc>Central coastal zone</areaDesc>
+      <geocode>
+        <valueName>EMMA_ID</valueName>
+        <value>PL804</value>
+      </geocode>
+    </area>
+  </info>
+</alert>

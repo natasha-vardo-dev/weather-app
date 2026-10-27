@@ -17,6 +17,7 @@ A web application that shows the current weather and a 10-day forecast for a sel
 - °C or °F: Fahrenheit by default for the US and a few other regions (from the system locale), Celsius elsewhere; a switcher in the header remembers the choice
 - Weather for your location: a crosshair in the search field (the browser asks for permission only when it is pressed). If the browser can't tell the position, the message offers "Try again" and the city guessed from the IP address ("Looks like you're in Warsaw"), marked as approximate. Place names come from OpenStreetMap
 - Installable as an app (PWA): opens offline with the last loaded forecasts and a banner saying they may be out of date; on iPhone and iPad the start page explains how to add it to the Home Screen
+- Official weather warnings in Europe (national weather services via MeteoAlarm): level, type and when on the city page, the issuer's own text on demand
 - Responsive layout, light/dark mode, accessible combobox
 
 ## Tech stack
@@ -77,6 +78,7 @@ npm run build      # production build
 | GET    | `/api/locations/756135?lang=ru`          | One place by id, names in a language |
 | GET    | `/api/forecast?lat=52.23&lon=21.01&days=10` | Current weather, next 24 hours, yesterday and daily forecast |
 | GET    | `/api/air-quality?lat=52.23&lon=21.01`   | Current air quality (European and US AQI) |
+| GET    | `/api/alerts?lat=54.21&lon=21.74&lang=pl` | Official weather warnings in force or announced at a place (Europe, MeteoAlarm), texts in the language where the issuer has it |
 | GET    | `/api/places/approximate?lang=ru` | The user's city guessed from their IP address (fallback when the browser can't locate them); never cached |
 | GET    | `/api/places/reverse?lat=52.25&lon=21.05&lang=ru` | The place at the user's location: the city with its coordinates and id (as from search), named via OpenStreetMap Nominatim |
 | GET    | `/api/health`                            | Health check           |
@@ -96,6 +98,8 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 - [10 days of forecast is enough: beyond that Open-Meteo still returns data (up to 16 days), but accuracy drops sharply]
 - [Only temperature has a unit switch (°C/°F); wind stays in km/h]
 - [UI translations for 19 languages are machine-quality drafts: they need a review by native speakers before a real release]
+- [Weather warnings cover Europe only (MeteoAlarm's ~38 countries). No banner means no warning was found, not a promise of calm weather; elsewhere there are none yet (the US National Weather Service would be the next source)]
+- [MeteoAlarm's region borders have no licence of their own; assumed to follow MeteoAlarm's data terms (see docs/questions.md)]
 
 ## Trade-offs and decisions
 

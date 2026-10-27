@@ -5,8 +5,10 @@ import { FavoriteButton } from '../components/FavoriteButton';
 import { FavoritesStrip } from '../components/FavoritesStrip';
 import { ForecastList } from '../components/ForecastList';
 import { HourlyForecast } from '../components/HourlyForecast';
+import { WeatherAlerts } from '../components/WeatherAlerts';
 import { WeatherSkeleton } from '../components/WeatherSkeleton';
 import { useAirQuality } from '../hooks/useAirQuality';
+import { useAlerts } from '../hooks/useAlerts';
 import { useForecast } from '../hooks/useForecast';
 import { usePageMeta } from '../hooks/usePageMeta';
 import { useLocalizedPlace } from '../hooks/useLocalizedPlace';
@@ -28,6 +30,9 @@ export function WeatherPage() {
 
   // Fetched in parallel with the forecast and never blocks it.
   const { airQuality, retry: retryAirQuality } = useAirQuality(place?.latitude ?? null, place?.longitude ?? null);
+
+  // Official warnings: their own request, like air quality; shown even if the forecast fails.
+  const alerts = useAlerts(place?.latitude ?? null, place?.longitude ?? null);
 
   const current = forecast;
 
@@ -82,10 +87,13 @@ export function WeatherPage() {
   }
 
   // The strip stays above every state (loading, error, forecast): switching cities
-  // should not have to wait for the current one.
+  // should not have to wait for the current one. Warnings come right after it, above the
+  // city name, in every state too: the most prominent place, chosen knowing that the page
+  // below moves down when they arrive a moment after a cached forecast.
   return (
     <>
       <FavoritesStrip place={place} />
+      <WeatherAlerts data={alerts} timeZone={forecast?.timezone} />
       {body}
     </>
   );

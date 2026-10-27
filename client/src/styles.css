@@ -653,7 +653,7 @@ button.aqi { cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) {
   :root, .content { transition: none; }
-  .detail__chevron { transition: none; }
+  .detail__chevron, .alert__chevron { transition: none; }
   /* Slower, not stopped: a frozen spinner would look broken. */
   .spinner { animation-duration: 2.5s; }
   .skeleton__block { animation: none; }
@@ -690,12 +690,22 @@ button.aqi { cursor: pointer; }
 .fav-tile:hover { border-color: var(--ink-soft); }
 .fav-tile:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
 .fav-tile--current { border: 1.5px solid var(--ink); background: var(--surface); }
+/* Warning triangle inside the top corner (the end side, so on the left in RTL); only a
+   tile with a warning gives up the room at the end of its name. */
+.fav-tile { position: relative; }
+.fav-tile__alert { position: absolute; top: 0.55rem; inset-inline-end: 0.55rem; }
+.fav-tile--alert .fav-tile__name { padding-right: 1.1rem; }
+[dir='rtl'] .fav-tile--alert .fav-tile__name { padding-right: 0; padding-left: 1.1rem; }
 .fav-tile__name,
 .fav-tile__country {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Names carry dir="auto", so a Latin name in an Arabic interface is cut at its own end
+   ("Węgorze…", not "…gorzewo"). Their alignment and the room for the warning mark follow
+   the page instead (the name's own direction would put them on the wrong side). */
+[dir='rtl'] :is(.fav-tile__name, .fav-tile__country, .fav-card__name, .fav-card__country) { text-align: right; }
 .fav-tile__name { font-weight: 500; font-size: 0.9rem; }
 .fav-tile__country { font-size: 0.8rem; color: var(--ink-soft); }
 .fav-tile__weather {
@@ -759,6 +769,48 @@ button.aqi { cursor: pointer; }
   stroke-width: 1.8;
   stroke-linejoin: round;
 }
+
+/* Official weather warnings on a city page. The level is always written out; its colour
+   (MeteoAlarm's yellow, orange, red) is a second signal, so a dark mark on it reads well. */
+.alerts { display: grid; gap: 0.5rem; margin: 0 0 1.75rem; }
+.alerts__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.alert {
+  --alert: #ffd84d;
+  border: 1px solid var(--line);
+  border-inline-start: 4px solid var(--alert);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+.alert--orange { --alert: #ff9f40; }
+.alert--red { --alert: #ff6b6b; }
+/* The triangle alone, on favourite tiles and cards. */
+.alert-mark { --alert: #ffd84d; display: inline-flex; }
+.alert-mark.alert--orange { --alert: #ff9f40; }
+.alert-mark.alert--red { --alert: #ff6b6b; }
+.alert__summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  list-style: none;
+  cursor: pointer;
+}
+div.alert__summary { cursor: default; }
+.alert__summary::-webkit-details-marker { display: none; }
+.alert__icon { flex: none; }
+.alert__icon-shape { fill: var(--alert); stroke: var(--alert); stroke-width: 1.5; stroke-linejoin: round; }
+.alert__icon-mark { stroke: #1b1b1b; stroke-width: 2.2; stroke-linecap: round; }
+.alert__text { flex: 1; display: grid; }
+.alert__title { font-weight: 500; }
+.alert__time { font-size: 0.9rem; color: var(--ink-soft); }
+.alert__chevron { flex: none; color: var(--ink-soft); transition: transform 0.15s; }
+details[open] .alert__chevron { color: var(--ink); transform: rotate(180deg); }
+.alert__body { padding: 0 1rem; }
+.alert__body p { margin: 0 0 0.5rem; }
+.alert__headline { font-weight: 500; }
+.alert__source, .alerts__credit { margin: 0; font-size: 0.85rem; color: var(--ink-soft); }
+.alert__source { padding: 0 1rem 0.75rem; }
+.alerts__credit a { color: inherit; }
 
 /* "Add to Home Screen" steps on iOS, start page */
 .install-hint {
@@ -839,7 +891,16 @@ button.aqi { cursor: pointer; }
 .fav-card__country { font-size: 0.85rem; color: var(--ink-soft); }
 
 .fav-card__body { display: flex; flex-direction: column; min-height: 4.6rem; margin-top: 0.5rem; }
-.fav-card__temp { font-size: 1.9rem; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.fav-card__temp {
+  display: flex;
+  align-items: center;
+  /* The warning mark sits right after the degrees. */
+  gap: 0.4rem;
+  font-size: 1.9rem;
+  font-weight: 500;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
 .fav-card__meta {
   font-size: 0.85rem;
   color: var(--ink-soft);

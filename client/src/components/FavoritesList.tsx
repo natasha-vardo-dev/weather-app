@@ -1,11 +1,13 @@
 import type { Favorite } from '@weather/shared';
 import { Link } from 'react-router';
+import { useAlertLevel } from '../hooks/useAlerts';
 import { useCurrentWeather } from '../hooks/useCurrentWeather';
 import { useLocalizedPlace } from '../hooks/useLocalizedPlace';
 import { useFavorites } from '../hooks/useFavorites';
 import { useI18n } from '../i18n/I18nProvider';
 import { placePath } from '../locationUrl';
 import { HomeIcon } from './FavoriteButton';
+import { AlertMark } from './WeatherAlerts';
 import { WeatherIcon } from './WeatherIcon';
 
 /**
@@ -16,6 +18,7 @@ import { WeatherIcon } from './WeatherIcon';
 function FavoriteCard({ favorite, home }: { favorite: Favorite; home: boolean }) {
   const { t, deg } = useI18n();
   const weather = useCurrentWeather(favorite.latitude, favorite.longitude);
+  const alertLevel = useAlertLevel(favorite.latitude, favorite.longitude);
   // Names in the current UI language, not the one the city was saved in.
   const { name, country } = useLocalizedPlace(favorite);
   const high = weather?.high ?? null;
@@ -34,17 +37,18 @@ function FavoriteCard({ favorite, home }: { favorite: Favorite; home: boolean })
             weather && t.conditions[weather.condition],
             weather && t.current.degrees(weather.temperature),
             range && t.current.highLow(range.high, range.low),
+            alertLevel && t.alerts.levels[alertLevel],
           ]
             .filter(Boolean)
             .join(', ')}
         </span>
         <span className="fav-card__head" aria-hidden="true">
           <span className="fav-card__place">
-            <span className="fav-card__name">
+            <span className="fav-card__name" dir="auto">
               {home && <HomeIcon className="home-mark" size={13} />}
               {name}
             </span>
-            {country && <span className="fav-card__country">{country}</span>}
+            {country && <span className="fav-card__country" dir="auto">{country}</span>}
           </span>
           {weather && <WeatherIcon icon={weather.icon} isDay={weather.isDay} size={32} />}
         </span>
@@ -52,7 +56,10 @@ function FavoriteCard({ favorite, home }: { favorite: Favorite; home: boolean })
         <span className="fav-card__body" aria-hidden="true">
           {weather && (
             <>
-              <span className="fav-card__temp">{deg(weather.temperature)}</span>
+              <span className="fav-card__temp">
+                {deg(weather.temperature)}
+                {alertLevel && <AlertMark level={alertLevel} size={18} />}
+              </span>
               <span className="fav-card__meta">{t.conditions[weather.condition]}</span>
               {range && (
                 <span className="fav-card__meta">

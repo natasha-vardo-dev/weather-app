@@ -1,5 +1,6 @@
 import { FORECAST_DEFAULT_DAYS } from './constants.js';
 import { ERROR_CODES, type ApiErrorBody, type ErrorCode } from './errors.js';
+import type { AlertsResponse } from './alerts.js';
 import type { AirQuality, Forecast, Location, LocationsResponse, ReversePlace } from './types.js';
 
 export class ApiError extends Error {
@@ -109,6 +110,17 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
     getAirQuality(latitude: number, longitude: number, signal?: AbortSignal): Promise<AirQuality> {
       const params = new URLSearchParams({ lat: String(latitude), lon: String(longitude) });
       return request<AirQuality>(`/api/air-quality?${params}`, signal);
+    },
+
+    /** Official weather warnings at a place (Europe only for now), texts in `language` where available. */
+    getAlerts(
+      latitude: number,
+      longitude: number,
+      options: { language?: string; signal?: AbortSignal } = {},
+    ): Promise<AlertsResponse> {
+      const params = new URLSearchParams({ lat: String(latitude), lon: String(longitude) });
+      if (options.language) params.set('lang', options.language);
+      return request<AlertsResponse>(`/api/alerts?${params}`, options.signal);
     },
   };
 }
