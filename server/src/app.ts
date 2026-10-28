@@ -4,6 +4,9 @@ import express, { type ErrorRequestHandler } from 'express';
 import { AppError, ProviderError } from './errors.js';
 import { alertsRouter } from './routes/alerts.js';
 import { placesRouter } from './routes/places.js';
+import { notifyRouter, pushRouter } from './routes/push.js';
+import type { AlertBroadcastSource, PushSender } from './providers/types.js';
+import type { AlertNotifier } from './services/alertNotifier.js';
 import { weatherRouter } from './routes/weather.js';
 import type { AlertService } from './services/alertService.js';
 import type { ApproximateLocationService } from './services/approximateService.js';
@@ -12,6 +15,14 @@ import type { WeatherService } from './services/weatherService.js';
 
 function errorBody(code: ErrorCode, message: string): ApiErrorBody {
   return { error: { code, message } };
+}
+
+/** Push notifications about warnings: on only when Firebase (and, for sending, a secret) is configured. */
+export interface PushSetup {
+  source: AlertBroadcastSource;
+  sender: PushSender;
+  notifier?: AlertNotifier;
+  notifySecret?: string;
 }
 
 /**
@@ -26,6 +37,7 @@ export function createApp(
   approximate?: ApproximateLocationService,
   trustProxy: number | boolean = false,
   alerts?: AlertService,
+  push?: PushSetup,
 ) {
   const app = express();
 
@@ -40,6 +52,10 @@ export function createApp(
   app.use('/api', weatherRouter(service));
   if (places) app.use('/api', placesRouter(places, approximate));
   if (alerts) app.use('/api', alertsRouter(alerts));
+  if (push) {
+    app.use('/api', pushRouter(push.source, push.sender));
+    if (push.notifier && push.notifySecret) app.use('/api', notifyRouter(push.notifier, push.notifySecret));
+  }
 
   app.use('/api', (_req, res) => {
     res.status(404).json(errorBody(ERROR_CODES.NOT_FOUND, 'Endpoint not found.'));

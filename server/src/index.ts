@@ -2,9 +2,11 @@ import 'dotenv/config';
 import { createApp } from './app.js';
 import { ALERTS_FEED_TTL_SECONDS } from '@weather/shared';
 import { IpWhoIsLocator } from './providers/ipwhois.js';
+import { FcmSender } from './providers/fcm.js';
 import { MeteoAlarmProvider } from './providers/meteoAlarm.js';
 import { NominatimGeocoder } from './providers/nominatim.js';
 import { OpenMeteoProvider } from './providers/openMeteo.js';
+import { AlertNotifier } from './services/alertNotifier.js';
 import { AlertService } from './services/alertService.js';
 import { ApproximateLocationService } from './services/approximateService.js';
 import { PlaceService } from './services/placeService.js';
@@ -54,13 +56,32 @@ const approximate = new ApproximateLocationService(
 // Official warnings (Europe). Region borders: data/meteoalarm-regions.json.gz, built by
 // scripts/buildAlertRegions.ts from MeteoAlarm's published file; read on first request.
 const regionsFile = new URL('../data/meteoalarm-regions.json.gz', import.meta.url);
-const alerts = new AlertService(
-  new MeteoAlarmProvider({
-    regions: async () => new RegionIndex((await loadRegions(regionsFile)).regions),
-    feedTtlMs: ALERTS_FEED_TTL_SECONDS * 1000,
-  }),
-);
-const app = createApp(service, corsOrigins, places, approximate, trustProxy, alerts);
+const meteoAlarm = new MeteoAlarmProvider({
+  regions: async () => new RegionIndex((await loadRegions(regionsFile)).regions),
+  feedTtlMs: ALERTS_FEED_TTL_SECONDS * 1000,
+});
+const alerts = new AlertService(meteoAlarm);
+
+/**
+ * Push notifications about warnings, if configured: FIREBASE_SERVICE_ACCOUNT is the service
+ * account's JSON key (plain or base64), a secret; ALERTS_NOTIFY_SECRET guards the endpoint the
+ * external scheduler calls. Without them the rest of the app works as before.
+ */
+function serviceAccount(): Record<string, string> | null {
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT?.trim();
+  if (!raw) return null;
+  return JSON.parse(raw.startsWith('{') ? raw : Buffer.from(raw, 'base64').toString('utf8'));
+}
+const account = serviceAccount();
+const notifySecret = process.env.ALERTS_NOTIFY_SECRET?.trim() || undefined;
+const push = account
+  ? (() => {
+      const sender = new FcmSender(account);
+      return { source: meteoAlarm, sender, notifier: new AlertNotifier(meteoAlarm, sender), notifySecret };
+    })()
+  : undefined;
+
+const app = createApp(service, corsOrigins, places, approximate, trustProxy, alerts, push);
 
 app.listen(port, () => {
   console.log(`API listening on http://localhost:${port}`);

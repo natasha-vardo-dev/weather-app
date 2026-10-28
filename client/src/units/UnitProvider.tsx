@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 
 const STORAGE_KEY = 'temperature-unit';
 
-/** An explicit choice wins; otherwise the default for the region of the system locale. */
+/** An explicit choice wins; otherwise the default from the system locale and time zone. */
 function initialUnit(): TemperatureUnit {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -11,7 +11,15 @@ function initialUnit(): TemperatureUnit {
   } catch {
     // Storage can be blocked (privacy mode): fall through to the regional default.
   }
-  return defaultTemperatureUnit(navigator.languages?.length ? navigator.languages : [navigator.language]);
+  return defaultTemperatureUnit(navigator.languages?.length ? navigator.languages : [navigator.language], timeZone());
+}
+
+function timeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return undefined;
+  }
 }
 
 interface Units {

@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import { useParams, useSearchParams } from 'react-router';
+import { AlertBell } from '../components/AlertBell';
 import { CurrentWeather } from '../components/CurrentWeather';
 import { FavoriteButton } from '../components/FavoriteButton';
 import { FavoritesStrip } from '../components/FavoritesStrip';
@@ -14,7 +15,7 @@ import { usePageMeta } from '../hooks/usePageMeta';
 import { placeTitle, useLocalizedPlace } from '../hooks/useLocalizedPlace';
 import { useI18n } from '../i18n/I18nProvider';
 import { rememberedPosition } from '../geolocation';
-import { parsePlace } from '../locationUrl';
+import { parsePlace, placePath } from '../locationUrl';
 import { NotFoundPage } from './NotFoundPage';
 
 export function WeatherPage() {
@@ -78,7 +79,19 @@ export function WeatherPage() {
           country={names ? names.country : place.country}
           forecast={current}
           airQuality={airQuality}
-          actions={<FavoriteButton place={place} />}
+          actions={
+            <span className="save-wrap">
+              <FavoriteButton place={place} />
+              <AlertBell
+                latitude={place.latitude}
+                longitude={place.longitude}
+                name={title ?? place.name}
+                url={placePath(place)}
+                timeZone={current.timezone}
+                covered={alerts?.covered}
+              />
+            </span>
+          }
           here={rememberedPosition(place.latitude, place.longitude)}
         />
         <HourlyForecast hours={current.hourly} />

@@ -32,6 +32,8 @@ export default defineConfig({
       workbox: {
         // The app shell is precached; any page URL opens it, as vercel.json does online.
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // Push notifications about weather warnings (public/push-sw.js).
+        importScripts: ['push-sw.js'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [

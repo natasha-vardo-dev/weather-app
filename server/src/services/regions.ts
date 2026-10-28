@@ -70,6 +70,38 @@ export function bboxContains([west, south, east, north]: BBox, [lon, lat]: Point
   return lon >= west && lon <= east && lat >= south && lat <= north;
 }
 
+/**
+ * Grid cells for push topics where warnings come as drawn polygons (no region codes): a
+ * device subscribes to the cell it is in, a warning is published to the cells it touches.
+ * 0.25° (~28 × 15 km in Europe): small enough to stay near the warning, large enough that a
+ * sea-area warning does not touch thousands of cells.
+ */
+export const CELL_DEGREES = 0.25;
+
+export function cellKey(latitude: number, longitude: number): string {
+  return `c${Math.floor(latitude / CELL_DEGREES)}_${Math.floor(longitude / CELL_DEGREES)}`;
+}
+
+/**
+ * Cells a warning area touches: those whose centre is inside it or within half a cell's
+ * diagonal of it, so a place anywhere in a touched cell is never missed (at the cost of a
+ * few places just outside the area being told too).
+ */
+export function cellsCovering(polygons: Polygon[]): string[] {
+  const [west, south, east, north] = bboxOf(polygons);
+  const cells: string[] = [];
+  for (let row = Math.floor(south / CELL_DEGREES); row * CELL_DEGREES <= north; row++) {
+    const lat = (row + 0.5) * CELL_DEGREES;
+    const halfDiagonalKm =
+      (Math.hypot(CELL_DEGREES, CELL_DEGREES * Math.cos((lat * Math.PI) / 180)) * KM_PER_DEGREE) / 2;
+    for (let col = Math.floor(west / CELL_DEGREES); col * CELL_DEGREES <= east; col++) {
+      const lon = (col + 0.5) * CELL_DEGREES;
+      if (polygonsNear(polygons, [lon, lat], halfDiagonalKm)) cells.push(`c${row}_${col}`);
+    }
+  }
+  return cells;
+}
+
 /** Ray casting: whether the point is inside a closed ring. */
 function inRing([x, y]: Point, ring: Point[]): boolean {
   let inside = false;

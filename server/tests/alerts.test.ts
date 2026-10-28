@@ -6,7 +6,7 @@ import { ProviderError } from '../src/errors.js';
 import { MeteoAlarmProvider, parseCap, parseCapPolygon, parseFeed } from '../src/providers/meteoAlarm.js';
 import type { AlertsProvider, ProviderAlert } from '../src/providers/types.js';
 import { AlertService, pickText } from '../src/services/alertService.js';
-import { polygonContains, polygonsNear, RegionIndex, type Region } from '../src/services/regions.js';
+import { cellKey, polygonContains, polygonsNear, RegionIndex, type Region } from '../src/services/regions.js';
 import { WeatherService } from '../src/services/weatherService.js';
 import { createFakeProvider } from './fakeProvider.js';
 
@@ -224,6 +224,43 @@ describe('MeteoAlarmProvider', () => {
   });
 });
 
+describe('MeteoAlarmProvider for push', () => {
+  it('names a place\'s areas: its regions, plus its grid cell where countries draw areas', async () => {
+    expect(await provider().areasAt(WEGORZEWO.lat, WEGORZEWO.lon)).toEqual(['PL2819']);
+    expect(await provider().areasAt(59.91, 10.75)).toEqual([cellKey(59.91, 10.75)]); // Oslo
+  });
+
+  it('covers places in a region or a drawing country, not beyond (no bell in Minsk)', async () => {
+    expect(await provider().covers(WEGORZEWO.lat, WEGORZEWO.lon)).toBe(true);
+    expect(await provider().covers(59.91, 10.75)).toBe(true); // Oslo
+    expect(await provider().covers(53.9, 27.57)).toBe(false); // Minsk
+    expect(await provider().covers(40.71, -74.0)).toBe(false); // New York
+  });
+
+  it('loads a listed warning with its feed entry, sharing one parsed version with the page', async () => {
+    // The issuer left <expires> out of the full warning: the feed's time must fill it in,
+    // or the page, reading the same cached CAP, would treat the fog warning as expired.
+    const noExpiry = fogCap.replace(/<expires>[^<]*<\/expires>/g, '');
+    const p = provider(fakeFetch({ '6b0b72c3': () => new Response(noExpiry) }));
+    const fog = (await p.listWarnings()).warnings.find((w) => w.ref.includes('6b0b72c3'))!;
+    expect((await p.loadWarning(fog.ref))?.expires).toBe('2026-10-28T09:00:00+00:00');
+    expect((await p.getAlerts(WEGORZEWO.lat, WEGORZEWO.lon)).map((a) => a.type)).toEqual(['fog']);
+    expect(await p.loadWarning('https://example.org/not-listed')).toBeNull();
+  });
+
+  it('lists every current warning once, with the areas of all its entries', async () => {
+    const { warnings, read } = await provider().listWarnings();
+    expect(read).toContain('PL');
+    const fog = warnings.find((w) => w.ref.includes('6b0b72c3'));
+    expect(fog).toMatchObject({ areas: ['PL2819'], expires: '2026-10-28T09:00:00+00:00' });
+    // The coastal wind warning has expired; the Norwegian gale is listed by grid cells.
+    expect(warnings.some((w) => w.ref.includes('38bea1ea'))).toBe(false);
+    const gale = warnings.find((w) => w.ref.includes('feeds-norway'))!;
+    expect(gale.areas.every((area) => area.startsWith('c'))).toBe(true);
+    expect(gale.areas).toContain(cellKey(64.1828, 9.4457));
+  });
+});
+
 describe('AlertService', () => {
   const texts = [
     { language: 'pl-PL', event: 'Żółty alert' },
@@ -242,6 +279,7 @@ describe('AlertService', () => {
       getAlerts: async () => [
         { id: 'x', level: 'yellow', type: 'fog', onset: '', expires: '2026-10-28T00:00:00Z', texts },
       ],
+      covers: async () => true,
     };
     const [alert] = (await new AlertService(fake, () => NOW).getAlerts(54, 21, 'en')).alerts;
     expect(alert!.onset).toBe(new Date(NOW).toISOString());
@@ -258,13 +296,16 @@ describe('AlertService', () => {
         alert('b', 'red', '2026-10-28T00:00:00Z'),
         alert('c', 'orange', '2026-10-27T11:00:00Z'),
       ]),
+      covers: async () => true,
     };
     const result = await new AlertService(fake, () => NOW).getAlerts(54, 21, 'pl');
     expect(result.alerts.map((a) => [a.id, a.event])).toEqual([['b', 'Żółty alert'], ['a', 'Żółty alert']]);
     expect(result.attribution).toEqual(fake.attribution);
 
     const none = await new AlertService({ ...fake, getAlerts: async () => [] }, () => NOW).getAlerts(54, 21, 'pl');
-    expect(none).toEqual({ alerts: [], attribution: null });
+    expect(none).toEqual({ alerts: [], attribution: null, covered: true });
+    const outside = { ...fake, getAlerts: async () => [], covers: async () => false };
+    expect((await new AlertService(outside, () => NOW).getAlerts(53.9, 27.57, 'pl')).covered).toBe(false);
   });
 });
 
@@ -279,6 +320,7 @@ describe('GET /api/alerts', () => {
     expect(res.headers['cache-control']).toBe('public, max-age=60');
     expect(res.body.alerts[0]).toMatchObject({ level: 'yellow', type: 'fog', language: 'pl-PL' });
     expect(res.body.attribution.name).toBe('EUMETNET – MeteoAlarm');
+    expect(res.body.covered).toBe(true);
   });
 
   it('validates coordinates', async () => {
@@ -292,6 +334,7 @@ describe('GET /api/alerts', () => {
       getAlerts: async () => {
         throw new ProviderError('HTTP 503');
       },
+      covers: async () => true,
     };
     const res = await request(app(failing)).get('/api/alerts?lat=54&lon=21');
     expect(res.status).toBe(502);
