@@ -30,3 +30,13 @@ describe('isAlertActive', () => {
     expect(isAlertActive(a, Date.parse('2026-10-27T20:00:00Z'))).toBe(false);
   });
 });
+
+describe('matchesAlertSettings', () => {
+  it('takes the level as a minimum and storms as wind and thunderstorms', async () => {
+    const { matchesAlertSettings } = await import('../src/push.js');
+    expect(matchesAlertSettings('red', 'wind', { group: 'storm', level: 'orange' })).toBe(true);
+    expect(matchesAlertSettings('yellow', 'wind', { group: 'storm', level: 'orange' })).toBe(false);
+    expect(matchesAlertSettings('orange', 'fog', { group: 'storm', level: 'orange' })).toBe(false);
+    expect(matchesAlertSettings('orange', 'fog', { group: 'all', level: 'yellow' })).toBe(true);
+  });
+});

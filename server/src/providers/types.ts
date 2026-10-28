@@ -65,4 +65,45 @@ export interface AlertsProvider {
   readonly attribution: { name: string; url: string };
   /** Warnings at the place that have not expired; [] where the source has no coverage. */
   getAlerts(latitude: number, longitude: number): Promise<ProviderAlert[]>;
+  /** Whether the source issues warnings for the place at all. */
+  covers(latitude: number, longitude: number): Promise<boolean>;
+}
+
+/** A warning as listed for broadcasting: where to find it in full and where it applies. */
+export interface BroadcastWarning {
+  /** Identifies this version of the warning (its CAP URL). */
+  ref: string;
+  /** Where it was listed (a country's feed): the notifier warms up per source. */
+  source: string;
+  expires: string;
+  /** Push topic areas: region codes, or grid cells for drawn areas. */
+  areas: string[];
+}
+
+/** What push notifications need from a warnings source: every warning, not one place's. */
+export interface AlertBroadcastSource {
+  /** The areas a place belongs to (the first part of its push topics). */
+  areasAt(latitude: number, longitude: number): Promise<string[]>;
+  /** Every current warning, and the sources read this time (a failed feed is left out). */
+  listWarnings(): Promise<{ warnings: BroadcastWarning[]; read: string[] }>;
+  /** The warning in full; `replaces` names the earlier versions an update supersedes. */
+  loadWarning(ref: string): Promise<(ProviderAlert & { replaces: string[] }) | null>;
+}
+
+export interface PushMessage {
+  topic: string;
+  data: Record<string, string>;
+  /** How long the push service may hold it for an offline device: until the warning ends. */
+  ttlSeconds: number;
+}
+
+/**
+ * Delivers push notifications by topic. The push service (Firebase Cloud Messaging) keeps
+ * which device is on which topic, so this server stores nothing.
+ */
+export interface PushSender {
+  subscribe(token: string, topics: string[]): Promise<void>;
+  unsubscribe(token: string, topics: string[]): Promise<void>;
+  /** Resolves to how many messages were accepted. */
+  send(messages: PushMessage[]): Promise<number>;
 }

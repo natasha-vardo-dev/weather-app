@@ -8,6 +8,8 @@ import {
   SEARCH_MIN_LENGTH,
 } from './constants.js';
 import { LATITUDE_RANGE, LONGITUDE_RANGE, MAX_LOCATION_ID } from './coordinates.js';
+import { ALERT_LEVELS } from './alerts.js';
+import { ALERT_GROUPS } from './push.js';
 
 /** ISO 639-1 code for place names. The provider falls back to English for unknown ones. */
 const languageSchema = z
@@ -59,6 +61,17 @@ export const alertsQuerySchema = z.object({
   lat: z.coerce.number().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
   lon: z.coerce.number().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
   lang: languageSchema,
+});
+
+/** POST /api/push/topics — a device's push token and the place it wants warnings for. */
+export const alertTopicsSchema = z.object({
+  // FCM web tokens are ~160 characters; the bound keeps junk away from the push service.
+  token: z.string().min(20).max(4096),
+  latitude: z.number().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
+  longitude: z.number().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
+  group: z.enum(ALERT_GROUPS),
+  level: z.enum(ALERT_LEVELS),
+  subscribe: z.boolean(),
 });
 
 /** Parsed (output) types, used by the server after validation. */

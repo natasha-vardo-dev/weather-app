@@ -1,6 +1,7 @@
 import { FORECAST_DEFAULT_DAYS } from './constants.js';
 import { ERROR_CODES, type ApiErrorBody, type ErrorCode } from './errors.js';
 import type { AlertsResponse } from './alerts.js';
+import type { AlertTopicsRequest, AlertTopicsResponse } from './push.js';
 import type { AirQuality, Forecast, Location, LocationsResponse, ReversePlace } from './types.js';
 
 export class ApiError extends Error {
@@ -25,10 +26,15 @@ export interface ApiClientOptions {
  * Each app passes its own base URL.
  */
 export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args) }: ApiClientOptions) {
-  async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
+  async function request<T>(path: string, signal?: AbortSignal, body?: unknown): Promise<T> {
     let response: Response;
     try {
-      response = await fetchFn(`${baseUrl}${path}`, { signal });
+      response = await fetchFn(
+        `${baseUrl}${path}`,
+        body === undefined
+          ? { signal }
+          : { signal, method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+      );
     } catch (err) {
       if ((err as Error).name === 'AbortError') throw err;
       throw new ApiError(
@@ -121,6 +127,11 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
       const params = new URLSearchParams({ lat: String(latitude), lon: String(longitude) });
       if (options.language) params.set('lang', options.language);
       return request<AlertsResponse>(`/api/alerts?${params}`, options.signal);
+    },
+
+    /** Subscribes (or unsubscribes) a device's push token to warnings for a place. */
+    setAlertTopics(body: AlertTopicsRequest): Promise<AlertTopicsResponse> {
+      return request<AlertTopicsResponse>('/api/push/topics', undefined, body);
     },
   };
 }

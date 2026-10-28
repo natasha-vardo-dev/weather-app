@@ -2,7 +2,7 @@ import { isFavorite, type Favorite } from '@weather/shared';
 import { Link } from 'react-router';
 import { useAlertLevel } from '../hooks/useAlerts';
 import { useCurrentWeather } from '../hooks/useCurrentWeather';
-import { useLocalizedPlace } from '../hooks/useLocalizedPlace';
+import { placeSubtitle, useLocalizedPlace } from '../hooks/useLocalizedPlace';
 import { useFavorites } from '../hooks/useFavorites';
 import { useI18n } from '../i18n/I18nProvider';
 import { placePath } from '../locationUrl';
@@ -15,7 +15,10 @@ function FavoriteTile({ favorite, current, home }: { favorite: Favorite; current
   const weather = useCurrentWeather(favorite.latitude, favorite.longitude);
   const alertLevel = useAlertLevel(favorite.latitude, favorite.longitude);
   // Names in the current UI language, not the one the city was saved in.
-  const { name, country } = useLocalizedPlace(favorite);
+  const names = useLocalizedPlace(favorite);
+  const { name } = names;
+  // "island · Greece": an island and the town of its name must not look the same.
+  const country = placeSubtitle(names, t.place.island);
 
   return (
     <li>

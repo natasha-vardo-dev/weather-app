@@ -37,6 +37,25 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     issuedBy: 'Wydał:',
     source: 'Źródło:',
   },
+  notify: {
+    button: 'Ostrzeżenia',
+    title: 'Powiadamiaj o ostrzeżeniach',
+    forPlace: (place) => `dla: ${place}, na tym urządzeniu`,
+    which: 'Które',
+    storms: 'Burze',
+    all: 'Wszystkie',
+    stormsHint: 'Burze: wiatr i burze z piorunami',
+    fromLevel: 'Od poziomu',
+    levels: { yellow: 'Żółty', orange: 'Pomarańczowy', red: 'Czerwony' },
+    once: 'Jedno powiadomienie na ostrzeżenie. Zamknięte nie wraca; ponownie powiadomi tylko wyższy poziom.',
+    iosTitle: 'Na iPhonie ostrzeżenia trafiają do aplikacji',
+    iosSteps: 'Najpierw dodaj Weather do ekranu początkowego: stuknij {icon} „Udostępnij”, a potem „Do ekranu początkowego”. Otwórz ją stamtąd i włącz ostrzeżenia.',
+    blockedTitle: 'Powiadomienia są zablokowane',
+    blockedText: 'Wyłączono je dla tej strony. Aby dostawać ostrzeżenia, zezwól na powiadomienia w ustawieniach strony w przeglądarce i wróć tutaj.',
+    bannerWorks: 'Pasek ostrzeżeń na tej stronie działa niezależnie od tego.',
+    failed: 'Nie udało się zmienić powiadomień. Spróbuj ponownie.',
+    unavailable: 'Powiadomienia działają tylko w zainstalowanej wersji aplikacji.',
+  },
   installHint: {
     title: 'Dodaj do ekranu początkowego',
     steps: 'Stuknij {icon} „Udostępnij”, a potem „Do ekranu początkowego”.',
@@ -55,6 +74,7 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     searching: 'Szukam…',
     noResults: (q) => `Żadne miasto nie pasuje do „${q}”. Sprawdź pisownię.`,
   },
+  place: { island: 'wyspa' },
   weather: { loading: (place) => `Wczytywanie prognozy: ${place}…`, tryAgain: 'Spróbuj ponownie' },
   current: {
     degrees: (n) =>

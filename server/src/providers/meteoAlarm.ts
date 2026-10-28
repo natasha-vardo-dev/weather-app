@@ -2,8 +2,19 @@ import { ALERT_LEVELS, ALERT_TYPES, type AlertLevel, type AlertType } from '@wea
 import { XMLParser } from 'fast-xml-parser';
 import { ProviderError } from '../errors.js';
 import { TtlCache } from '../services/cache.js';
-import { bboxContains, polygonsNear, NEAR_REGION_KM, type BBox, type Point, type Polygon, type RegionIndex } from '../services/regions.js';
-import type { AlertText, AlertsProvider, ProviderAlert } from './types.js';
+import {
+  bboxContains,
+  cellKey,
+  cellsCovering,
+  COAST_FALLBACK_KM,
+  NEAR_REGION_KM,
+  polygonsNear,
+  type BBox,
+  type Point,
+  type Polygon,
+  type RegionIndex,
+} from '../services/regions.js';
+import type { AlertBroadcastSource, AlertText, AlertsProvider, BroadcastWarning, ProviderAlert } from './types.js';
 
 const FEED_URL = 'https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-';
 
@@ -184,7 +195,7 @@ export interface MeteoAlarmOptions {
  * Terms (CC BY 4.0 equivalent): texts unmodified, "EUMETNET – MeteoAlarm" credited with a
  * link, and at most 10 minutes' delay, hence the short feed TTL.
  */
-export class MeteoAlarmProvider implements AlertsProvider {
+export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource {
   readonly attribution = { name: 'EUMETNET – MeteoAlarm', url: 'https://meteoalarm.org' };
 
   private readonly feeds: TtlCache<Promise<FeedEntry[]>>;
@@ -193,6 +204,8 @@ export class MeteoAlarmProvider implements AlertsProvider {
   private readonly fetchFn: typeof fetch;
   private readonly now: () => number;
   private regionIndex: Promise<RegionIndex> | null = null;
+  /** The feed entry behind each warning of the last listWarnings, for loadWarning. */
+  private listed = new Map<string, FeedEntry>();
 
   constructor(private readonly options: MeteoAlarmOptions) {
     this.now = options.now ?? Date.now;
@@ -205,7 +218,8 @@ export class MeteoAlarmProvider implements AlertsProvider {
   async getAlerts(latitude: number, longitude: number): Promise<ProviderAlert[]> {
     const point: Point = [longitude, latitude];
     const index = await this.regions();
-    const regions = index.codesNear(latitude, longitude);
+    let regions = index.codesNear(latitude, longitude);
+    if (regions.size === 0) regions = index.codesNear(latitude, longitude, COAST_FALLBACK_KM);
     // Countries the place is known to be in (or within NEAR_REGION_KM of), by region borders.
     const known = index.countriesOf(regions);
     // Countries that draw their warning areas, found only by rough boxes: often a neighbour.
@@ -247,6 +261,71 @@ export class MeteoAlarmProvider implements AlertsProvider {
     return alerts
       .filter((alert) => !replaced.has(alert.id))
       .map(({ replaces: _replaces, ...alert }) => alert);
+  }
+
+  /**
+   * The areas a place belongs to, for push topics: its regions (as getAlerts finds them),
+   * and its grid cell where countries draw their warnings instead.
+   */
+  async areasAt(latitude: number, longitude: number): Promise<string[]> {
+    const index = await this.regions();
+    let regions = index.codesNear(latitude, longitude);
+    if (regions.size === 0) regions = index.codesNear(latitude, longitude, COAST_FALLBACK_KM);
+    const point: Point = [longitude, latitude];
+    const drawn = Object.values(POLYGON_COUNTRIES).some((bbox) => bboxContains(bbox, point));
+    return [...regions, ...(drawn ? [cellKey(latitude, longitude)] : [])];
+  }
+
+  /**
+   * A place in a region of the borders file, or inside a box of a country that draws its
+   * warning areas. The boxes are rough, so a place just across such a border (in Belarus
+   * next to Ukraine, say) counts as covered: a bell that never rings, not a missed warning.
+   */
+  async covers(latitude: number, longitude: number): Promise<boolean> {
+    return (await this.areasAt(latitude, longitude)).length > 0;
+  }
+
+  /**
+   * Every warning in force or announced across MeteoAlarm, one per full warning (CAP) with
+   * the areas of all its entries. One feed per country, cached like for the page. A failed
+   * feed is skipped: the next run reads it again, and warnings are remembered by the caller.
+   */
+  async listWarnings(): Promise<{ warnings: BroadcastWarning[]; read: string[] }> {
+    const now = this.now();
+    const countries = Object.keys(FEEDS);
+    const results = await Promise.allSettled(countries.map((country) => this.feed(country)));
+    const byUrl = new Map<string, BroadcastWarning & { entry: FeedEntry }>();
+    for (const [i, result] of results.entries()) {
+      if (result.status !== 'fulfilled') continue;
+      const country = countries[i]!;
+      for (const entry of result.value) {
+        if (entry.status !== 'Actual' || entry.messageType === 'Cancel') continue;
+        if (!(Date.parse(entry.expires) > now)) continue;
+        const areas = [...entry.regions, ...(entry.polygons.length ? cellsCovering(entry.polygons) : [])];
+        const known = byUrl.get(entry.capUrl);
+        if (known) known.areas.push(...areas);
+        else byUrl.set(entry.capUrl, { ref: entry.capUrl, source: country, expires: entry.expires, areas, entry });
+      }
+    }
+    this.listed = new Map([...byUrl].map(([ref, { entry }]) => [ref, entry]));
+    return {
+      warnings: [...byUrl.values()].map(({ entry: _entry, ...warning }) => ({ ...warning, areas: [...new Set(warning.areas)] })),
+      read: countries.filter((_, i) => results[i]!.status === 'fulfilled'),
+    };
+  }
+
+  /**
+   * The full warning behind a listed one, with the earlier versions it replaces. Parsed with
+   * its feed entry as the fallback and cached under the same key as for the page, so both
+   * read one version: without the entry, a CAP lacking <expires> or an awareness level would
+   * be cached as expired or levelless, and the page would hide that warning for an hour.
+   * Unlike the page, a CAP that can't be loaded is an error: the notifier tries again on the
+   * next run rather than pushing the feed's bare summary.
+   */
+  async loadWarning(ref: string): Promise<CapAlert | null> {
+    const entry = this.listed.get(ref);
+    if (!entry) return null;
+    return this.cached(this.caps, ref, async () => parseCap(await this.fetchText(ref), entry));
   }
 
   private regions(): Promise<RegionIndex> {

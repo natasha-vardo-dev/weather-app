@@ -25,7 +25,11 @@ export class AlertService {
   async getAlerts(latitude: number, longitude: number, language: string): Promise<AlertsResponse> {
     const now = this.now();
     const alerts: WeatherAlert[] = [];
-    for (const alert of await this.provider.getAlerts(latitude, longitude)) {
+    const [found, covered] = await Promise.all([
+      this.provider.getAlerts(latitude, longitude),
+      this.provider.covers(latitude, longitude),
+    ]);
+    for (const alert of found) {
       const text = pickText(alert.texts, language);
       if (!text || !(Date.parse(alert.expires) > now)) continue;
       alerts.push({
@@ -40,6 +44,6 @@ export class AlertService {
       });
     }
     alerts.sort(compareAlerts);
-    return { alerts, attribution: alerts.length ? this.provider.attribution : null };
+    return { alerts, attribution: alerts.length ? this.provider.attribution : null, covered };
   }
 }

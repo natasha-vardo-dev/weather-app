@@ -54,6 +54,11 @@ export interface AlertsResponse {
   alerts: WeatherAlert[];
   /** Who to credit next to the warnings (required by the source's terms). */
   attribution: { name: string; url: string } | null;
+  /**
+   * Whether the source covers the place at all, so warnings (and notifications) can exist
+   * there: false in Minsk or New York. Absent in responses cached before the field existed.
+   */
+  covered?: boolean;
 }
 
 /** Most severe first; among equals, the one that starts first. */

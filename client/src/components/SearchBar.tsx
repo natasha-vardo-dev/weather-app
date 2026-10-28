@@ -5,16 +5,13 @@ import { useLocationSearch } from '../hooks/useLocationSearch';
 import { rememberPosition } from '../geolocation';
 import { useLocateMe, type FoundPlace } from '../hooks/useMyLocation';
 import { useI18n } from '../i18n/I18nProvider';
+import { describePlaces } from '../placeLabels';
 import { CrosshairIcon, PinIcon, SpinnerIcon } from './LocationIcons';
 
 interface Props {
   onSelect: (location: Location) => void;
   /** The user's position was found (crosshair button). */
   onLocate: (place: FoundPlace) => void;
-}
-
-function describe(location: Location) {
-  return [location.region, location.country].filter(Boolean).join(', ');
 }
 
 export function SearchBar({ onSelect, onLocate }: Props) {
@@ -59,6 +56,7 @@ export function SearchBar({ onSelect, onLocate }: Props) {
     if (place) onLocate(place);
   }
 
+  const meta = describePlaces(results);
   const showList = open && searchedFor.length >= SEARCH_MIN_LENGTH;
 
   // Results arrive after a debounce: the user may have moved down a longer, older list.
@@ -170,8 +168,11 @@ export function SearchBar({ onSelect, onLocate }: Props) {
               onClick={() => choose(location)}
               onMouseEnter={() => setActive(i)}
             >
-              <span className="search__name">{location.name}</span>
-              <span className="search__meta">{describe(location)}</span>
+              <span className="search__name">
+                {location.name}
+                {location.kind === 'island' && <span className="search__kind"> · {t.place.island}</span>}
+              </span>
+              <span className="search__meta">{meta[i]}</span>
             </li>
           ))}
         </ul>

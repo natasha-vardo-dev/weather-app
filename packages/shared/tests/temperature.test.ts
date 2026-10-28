@@ -33,19 +33,29 @@ describe('regionOf', () => {
 });
 
 describe('defaultTemperatureUnit', () => {
-  it('uses Fahrenheit for the US and similar regions', () => {
-    expect(defaultTemperatureUnit(['en-US'])).toBe('fahrenheit');
-    expect(defaultTemperatureUnit(['es-US', 'es'])).toBe('fahrenheit');
-    expect(defaultTemperatureUnit(['en-BS'])).toBe('fahrenheit');
+  it('uses Fahrenheit when the locale and the time zone are both of a Fahrenheit region', () => {
+    expect(defaultTemperatureUnit(['en-US'], 'America/Chicago')).toBe('fahrenheit');
+    expect(defaultTemperatureUnit(['es-US', 'es'], 'America/Los_Angeles')).toBe('fahrenheit');
+    expect(defaultTemperatureUnit(['en-US'], 'America/Indiana/Indianapolis')).toBe('fahrenheit');
+    expect(defaultTemperatureUnit(['en-US'], 'Pacific/Honolulu')).toBe('fahrenheit');
+    expect(defaultTemperatureUnit(['en-BS'], 'America/Nassau')).toBe('fahrenheit');
   });
 
-  it('uses Celsius elsewhere', () => {
-    expect(defaultTemperatureUnit(['en-GB'])).toBe('celsius');
-    expect(defaultTemperatureUnit(['ru-RU', 'en-US'])).toBe('celsius');
+  it('uses Celsius for the default "en-US" outside those regions', () => {
+    expect(defaultTemperatureUnit(['en-US'], 'Europe/Warsaw')).toBe('celsius');
+    expect(defaultTemperatureUnit(['en-US'], 'America/Toronto')).toBe('celsius');
+    expect(defaultTemperatureUnit(['en-US'], 'America/Mexico_City')).toBe('celsius');
   });
 
-  it('uses Celsius when the first locale has no region or there is none', () => {
-    expect(defaultTemperatureUnit(['en', 'en-US'])).toBe('celsius');
-    expect(defaultTemperatureUnit([])).toBe('celsius');
+  it('uses Celsius for other locales, even in the US', () => {
+    expect(defaultTemperatureUnit(['en-GB'], 'Europe/London')).toBe('celsius');
+    expect(defaultTemperatureUnit(['ru-RU', 'en-US'], 'America/New_York')).toBe('celsius');
+    expect(defaultTemperatureUnit(['pl-PL'], 'America/Chicago')).toBe('celsius');
+  });
+
+  it('uses Celsius when the region or the time zone is unknown', () => {
+    expect(defaultTemperatureUnit(['en', 'en-US'], 'America/Chicago')).toBe('celsius');
+    expect(defaultTemperatureUnit([], 'America/Chicago')).toBe('celsius');
+    expect(defaultTemperatureUnit(['en-US'], undefined)).toBe('celsius');
   });
 });

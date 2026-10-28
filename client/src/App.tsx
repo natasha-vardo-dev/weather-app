@@ -3,6 +3,7 @@ import { LanguageSelect } from './components/LanguageSelect';
 import { UnitSelect } from './components/UnitSelect';
 import { SearchBar } from './components/SearchBar';
 import { useOffline } from './hooks/useOffline';
+import { usePushMaintenance } from './hooks/useAlertNotifications';
 import { useI18n } from './i18n/I18nProvider';
 import { placePath } from './locationUrl';
 import { HomePage } from './pages/HomePage';
@@ -13,6 +14,7 @@ export function App() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const offline = useOffline();
+  usePushMaintenance();
 
   return (
     <div className="page">

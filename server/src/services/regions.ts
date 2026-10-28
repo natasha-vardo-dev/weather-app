@@ -33,6 +33,14 @@ export interface RegionsFile {
  */
 export const NEAR_REGION_KM = 1.5;
 
+/**
+ * The search radius when no region is within NEAR_REGION_KM: the borders file draws coasts
+ * coarsely, and seaside towns can fall "into the sea" (Kos town lies 1.7 km beyond the
+ * island's outline, Reykjavik 2–3 km). Used only then, so it never adds regions elsewhere;
+ * a point truly at sea near a coast gets that coast's warnings, which suits a forecast.
+ */
+export const COAST_FALLBACK_KM = 5;
+
 const KM_PER_DEGREE = 111.32;
 
 export function bboxOf(polygons: Polygon[]): BBox {
@@ -60,6 +68,38 @@ function grow([west, south, east, north]: BBox, km: number, latitude: number): B
 
 export function bboxContains([west, south, east, north]: BBox, [lon, lat]: Point): boolean {
   return lon >= west && lon <= east && lat >= south && lat <= north;
+}
+
+/**
+ * Grid cells for push topics where warnings come as drawn polygons (no region codes): a
+ * device subscribes to the cell it is in, a warning is published to the cells it touches.
+ * 0.25° (~28 × 15 km in Europe): small enough to stay near the warning, large enough that a
+ * sea-area warning does not touch thousands of cells.
+ */
+export const CELL_DEGREES = 0.25;
+
+export function cellKey(latitude: number, longitude: number): string {
+  return `c${Math.floor(latitude / CELL_DEGREES)}_${Math.floor(longitude / CELL_DEGREES)}`;
+}
+
+/**
+ * Cells a warning area touches: those whose centre is inside it or within half a cell's
+ * diagonal of it, so a place anywhere in a touched cell is never missed (at the cost of a
+ * few places just outside the area being told too).
+ */
+export function cellsCovering(polygons: Polygon[]): string[] {
+  const [west, south, east, north] = bboxOf(polygons);
+  const cells: string[] = [];
+  for (let row = Math.floor(south / CELL_DEGREES); row * CELL_DEGREES <= north; row++) {
+    const lat = (row + 0.5) * CELL_DEGREES;
+    const halfDiagonalKm =
+      (Math.hypot(CELL_DEGREES, CELL_DEGREES * Math.cos((lat * Math.PI) / 180)) * KM_PER_DEGREE) / 2;
+    for (let col = Math.floor(west / CELL_DEGREES); col * CELL_DEGREES <= east; col++) {
+      const lon = (col + 0.5) * CELL_DEGREES;
+      if (polygonsNear(polygons, [lon, lat], halfDiagonalKm)) cells.push(`c${row}_${col}`);
+    }
+  }
+  return cells;
 }
 
 /** Ray casting: whether the point is inside a closed ring. */

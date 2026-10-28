@@ -1,10 +1,25 @@
 /** Data contract between the API and every client (web, mobile). */
 
+/**
+ * What a place is, when it is not a town: shown next to the name, since search can return
+ * a town and an island of the same name in the same region (Rhodes). Optional and open to
+ * more kinds; clients ignore ones they do not know.
+ */
+export type PlaceKind = 'island';
+
 export interface Location {
   id: number;
   name: string;
   country: string;
   region?: string;
+  /**
+   * The levels below the region, most general first (province, district, municipality;
+   * GeoNames admin2–admin4), '' where a level is missing so positions line up across places.
+   * Tells same-named villages apart: two "Rode" in one Belgian province differ only by
+   * municipality.
+   */
+  areas?: string[];
+  kind?: PlaceKind;
   latitude: number;
   longitude: number;
   timezone?: string;

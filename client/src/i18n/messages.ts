@@ -36,6 +36,31 @@ export interface Messages {
     /** Before "EUMETNET – MeteoAlarm". */
     source: string;
   };
+  /** The bell on a city page: push notifications about official warnings. */
+  notify: {
+    /** The bell button's label. */
+    button: string;
+    /** The switch: "Notify me about warnings", with the place on a second line. */
+    title: string;
+    forPlace: (place: string) => string;
+    which: string;
+    storms: string;
+    all: string;
+    stormsHint: string;
+    fromLevel: string;
+    /** Short level names for the switch: "Orange". */
+    levels: Record<AlertLevel, string>;
+    once: string;
+    iosTitle: string;
+    /** Contains {icon} where the Share icon goes, like installHint.steps. */
+    iosSteps: string;
+    blockedTitle: string;
+    blockedText: string;
+    bannerWorks: string;
+    failed: string;
+    /** Only in a development build, where there is no service worker. */
+    unavailable: string;
+  };
   /** "Add to Home Screen" steps on iOS. `steps` contains `{icon}` where the Share icon goes;
    *  the button names must match iOS's own menu in that language. */
   installHint: { title: string; steps: string; dismiss: string };
@@ -48,6 +73,8 @@ export interface Messages {
     orSearch: string;
   };
   search: { label: string; searching: string; noResults: (query: string) => string };
+  /** What a place is when not a town, shown after its name: "Rhodes · island". */
+  place: { island: string };
   weather: { loading: (place: string) => string; tryAgain: string };
   current: {
     degrees: (n: number) => string;
