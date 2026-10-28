@@ -54,6 +54,13 @@ export const airQualityQuerySchema = z.object({
   lon: z.coerce.number().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
 });
 
+/** GET /api/alerts — official warnings at a place, texts in `lang` where the issuer has it. */
+export const alertsQuerySchema = z.object({
+  lat: z.coerce.number().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
+  lon: z.coerce.number().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
+  lang: languageSchema,
+});
+
 /** Parsed (output) types, used by the server after validation. */
 export type LocationsQuery = z.infer<typeof locationsQuerySchema>;
 export type ForecastQuery = z.infer<typeof forecastQuerySchema>;

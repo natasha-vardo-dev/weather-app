@@ -2,8 +2,10 @@ import { ERROR_CODES, ZodError, type ApiErrorBody, type ErrorCode } from '@weath
 import cors from 'cors';
 import express, { type ErrorRequestHandler } from 'express';
 import { AppError, ProviderError } from './errors.js';
+import { alertsRouter } from './routes/alerts.js';
 import { placesRouter } from './routes/places.js';
 import { weatherRouter } from './routes/weather.js';
+import type { AlertService } from './services/alertService.js';
 import type { ApproximateLocationService } from './services/approximateService.js';
 import type { PlaceService } from './services/placeService.js';
 import type { WeatherService } from './services/weatherService.js';
@@ -13,8 +15,8 @@ function errorBody(code: ErrorCode, message: string): ApiErrorBody {
 }
 
 /**
- * `places` and `approximate` are optional: without them /api/places/* is not served
- * (tests of other routes). `trustProxy`: how many proxies in front may set
+ * `places`, `approximate` and `alerts` are optional: without them /api/places/* and
+ * /api/alerts are not served (tests of other routes). `trustProxy`: how many proxies in front may set
  * X-Forwarded-For, so `req.ip` is the user's address (Express "trust proxy").
  */
 export function createApp(
@@ -23,6 +25,7 @@ export function createApp(
   places?: PlaceService,
   approximate?: ApproximateLocationService,
   trustProxy: number | boolean = false,
+  alerts?: AlertService,
 ) {
   const app = express();
 
@@ -36,6 +39,7 @@ export function createApp(
 
   app.use('/api', weatherRouter(service));
   if (places) app.use('/api', placesRouter(places, approximate));
+  if (alerts) app.use('/api', alertsRouter(alerts));
 
   app.use('/api', (_req, res) => {
     res.status(404).json(errorBody(ERROR_CODES.NOT_FOUND, 'Endpoint not found.'));

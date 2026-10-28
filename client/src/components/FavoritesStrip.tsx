@@ -1,23 +1,26 @@
 import { isFavorite, type Favorite } from '@weather/shared';
 import { Link } from 'react-router';
+import { useAlertLevel } from '../hooks/useAlerts';
 import { useCurrentWeather } from '../hooks/useCurrentWeather';
 import { useLocalizedPlace } from '../hooks/useLocalizedPlace';
 import { useFavorites } from '../hooks/useFavorites';
 import { useI18n } from '../i18n/I18nProvider';
 import { placePath } from '../locationUrl';
 import { HomeIcon } from './FavoriteButton';
+import { AlertMark } from './WeatherAlerts';
 import { WeatherIcon } from './WeatherIcon';
 
 function FavoriteTile({ favorite, current, home }: { favorite: Favorite; current: boolean; home: boolean }) {
   const { t, deg } = useI18n();
   const weather = useCurrentWeather(favorite.latitude, favorite.longitude);
+  const alertLevel = useAlertLevel(favorite.latitude, favorite.longitude);
   // Names in the current UI language, not the one the city was saved in.
   const { name, country } = useLocalizedPlace(favorite);
 
   return (
     <li>
       <Link
-        className={current ? 'fav-tile fav-tile--current' : 'fav-tile'}
+        className={['fav-tile', current && 'fav-tile--current', alertLevel && 'fav-tile--alert'].filter(Boolean).join(' ')}
         to={placePath(favorite)}
         aria-current={current ? 'page' : undefined}
         // Full name on hover, since long names and countries are cut with an ellipsis.
@@ -31,16 +34,17 @@ function FavoriteTile({ favorite, current, home }: { favorite: Favorite; current
             home && t.favorites.homeCity,
             weather && t.conditions[weather.condition],
             weather && t.current.degrees(weather.temperature),
+            alertLevel && t.alerts.levels[alertLevel],
           ]
             .filter(Boolean)
             .join(', ')}
         </span>
-        <span className="fav-tile__name" aria-hidden="true">
+        <span className="fav-tile__name" dir="auto" aria-hidden="true">
           {home && <HomeIcon className="home-mark" size={11} />}
           {name}
         </span>
         {country && (
-          <span className="fav-tile__country" aria-hidden="true">
+          <span className="fav-tile__country" dir="auto" aria-hidden="true">
             {country}
           </span>
         )}
@@ -52,6 +56,8 @@ function FavoriteTile({ favorite, current, home }: { favorite: Favorite; current
             </>
           )}
         </span>
+        {/* In the top corner, where the eye starts; the name makes room for it (see styles). */}
+        {alertLevel && <AlertMark level={alertLevel} className="fav-tile__alert" />}
       </Link>
     </li>
   );

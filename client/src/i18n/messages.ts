@@ -1,4 +1,4 @@
-import type { AirQualityLevel, AirQualitySummary, ErrorCode, WeatherCondition } from '@weather/shared';
+import type { AirQualityLevel, AirQualitySummary, AlertLevel, AlertType, ErrorCode, WeatherCondition } from '@weather/shared';
 import type { LocationError } from '../geolocation';
 import type { Plural } from './plural';
 
@@ -18,6 +18,24 @@ export interface Messages {
   /** Banner while the browser has no network; the app shows what it saved earlier. */
   offline: string;
   home: { title: string; text: (days: number) => string };
+  /** Official weather warnings on a city page. The issuer's own texts are shown as they are. */
+  alerts: {
+    /** Section heading, for screen readers. */
+    title: string;
+    /** "Orange warning" */
+    levels: Record<AlertLevel, string>;
+    /** "Thunderstorm"; for "other" the issuer's own event name is shown. */
+    types: Record<Exclude<AlertType, 'other'>, string>;
+    /** Joins the two: "Orange warning: Thunderstorm". */
+    heading: (level: string, type: string) => string;
+    /** Times arrive formatted: "today 20:00", "tomorrow 10:00", "Thu 06:00". */
+    until: (time: string) => string;
+    fromTo: (start: string, end: string) => string;
+    /** Before the national weather service's name. */
+    issuedBy: string;
+    /** Before "EUMETNET – MeteoAlarm". */
+    source: string;
+  };
   /** "Add to Home Screen" steps on iOS. `steps` contains `{icon}` where the Share icon goes;
    *  the button names must match iOS's own menu in that language. */
   installHint: { title: string; steps: string; dismiss: string };

@@ -1,4 +1,5 @@
 export * from './airQuality.js';
+export * from './alerts.js';
 export * from './apiClient.js';
 export * from './constants.js';
 export * from './coordinates.js';
