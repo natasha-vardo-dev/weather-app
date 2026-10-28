@@ -12,6 +12,11 @@ interface GeocodingResult {
   name: string;
   country?: string;
   admin1?: string;
+  admin2?: string;
+  admin3?: string;
+  admin4?: string;
+  /** GeoNames feature code: PPL… for settlements, ISL for an island, ADM… for areas. */
+  feature_code?: string;
   latitude: number;
   longitude: number;
   timezone?: string;
@@ -21,12 +26,23 @@ interface GeocodingResponse {
   results?: GeocodingResult[];
 }
 
+/** admin2–admin4 with '' for gaps (positions matter), trailing gaps dropped; none at all: no field. */
+function areasOf(r: GeocodingResult): { areas?: string[] } {
+  const areas = [r.admin2, r.admin3, r.admin4].map((area) => area ?? '');
+  while (areas.length && !areas[areas.length - 1]) areas.pop();
+  return areas.length ? { areas } : {};
+}
+
 function toLocation(r: GeocodingResult): Location {
   return {
     id: r.id,
     name: r.name,
     country: r.country ?? '',
     region: r.admin1,
+    ...areasOf(r),
+    // Islands (ISL, ISLS, ISLET, …) and atolls: a search for "Rhodes" returns the town and
+    // the island, same name, same region.
+    ...(/^(ISL|ATOL)/.test(r.feature_code ?? '') ? { kind: 'island' as const } : {}),
     latitude: r.latitude,
     longitude: r.longitude,
     timezone: r.timezone,

@@ -33,6 +33,14 @@ export interface RegionsFile {
  */
 export const NEAR_REGION_KM = 1.5;
 
+/**
+ * The search radius when no region is within NEAR_REGION_KM: the borders file draws coasts
+ * coarsely, and seaside towns can fall "into the sea" (Kos town lies 1.7 km beyond the
+ * island's outline, Reykjavik 2–3 km). Used only then, so it never adds regions elsewhere;
+ * a point truly at sea near a coast gets that coast's warnings, which suits a forecast.
+ */
+export const COAST_FALLBACK_KM = 5;
+
 const KM_PER_DEGREE = 111.32;
 
 export function bboxOf(polygons: Polygon[]): BBox {

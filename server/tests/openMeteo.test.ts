@@ -138,6 +138,38 @@ describe('OpenMeteoProvider', () => {
     expect((err as ProviderError).detail).toMatch(/HTTP 400 .*Int32/);
   });
 
+  it('marks islands and passes the levels below the region, so same-named places can be told apart', async () => {
+    // Open-Meteo's answer for "родос" (ru), trimmed: the town, then the island.
+    const fetchFn = vi.fn(async () =>
+      jsonResponse({
+        results: [
+          { id: 400666, name: 'Родос', feature_code: 'PPLA2', admin1: 'South Aegean', admin2: 'Dodecanese', country: 'Греция', latitude: 36.43556, longitude: 28.22199 },
+          { id: 400665, name: 'Родос', feature_code: 'ISL', admin1: 'South Aegean', admin2: 'Dodecanese', country: 'Греция', latitude: 36.19613, longitude: 27.96081 },
+        ],
+      }),
+    );
+    const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
+    const [town, island] = await provider.searchLocations('родос', 5, 'ru');
+    expect(town).toMatchObject({ name: 'Родос', areas: ['Dodecanese'] });
+    expect(town).not.toHaveProperty('kind');
+    expect(island).toMatchObject({ name: 'Родос', kind: 'island' });
+  });
+
+  it('keeps gaps between levels, so the same level is compared across places', async () => {
+    const fetchFn = vi.fn(async () =>
+      jsonResponse({
+        results: [
+          { id: 2847562, name: 'Rhode', admin1: 'Lower Saxony', admin3: 'Helmstedt (district)', admin4: 'Königslutter am Elm', country: 'Germany', latitude: 52.3, longitude: 10.87 },
+          { id: 2961832, name: 'Rhode', admin1: 'Leinster', country: 'Ireland', latitude: 53.35, longitude: -7.2 },
+        ],
+      }),
+    );
+    const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
+    const [german, irish] = await provider.searchLocations('rhode', 5, 'en');
+    expect(german!.areas).toEqual(['', 'Helmstedt (district)', 'Königslutter am Elm']);
+    expect(irish).not.toHaveProperty('areas');
+  });
+
   it('returns an empty list when no city is found', async () => {
     const fetchFn = vi.fn(async () => jsonResponse({}));
     const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);

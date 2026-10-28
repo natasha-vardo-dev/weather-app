@@ -11,7 +11,7 @@ import { useAirQuality } from '../hooks/useAirQuality';
 import { useAlerts } from '../hooks/useAlerts';
 import { useForecast } from '../hooks/useForecast';
 import { usePageMeta } from '../hooks/usePageMeta';
-import { useLocalizedPlace } from '../hooks/useLocalizedPlace';
+import { placeTitle, useLocalizedPlace } from '../hooks/useLocalizedPlace';
 import { useI18n } from '../i18n/I18nProvider';
 import { rememberedPosition } from '../geolocation';
 import { parsePlace } from '../locationUrl';
@@ -38,9 +38,10 @@ export function WeatherPage() {
 
   // The URL carries the name in the language it was found in; show the current one.
   const names = useLocalizedPlace(place);
+  const title = names ? placeTitle(names, t.place.island) : null;
   // An invalid link renders NotFoundPage inside this page; parent effects run after the
   // child's, so this page must set the same title or it would overwrite "Not found".
-  usePageMeta(place ? (names?.name ?? null) : t.notFound.pageTitle);
+  usePageMeta(place ? title : t.notFound.pageTitle);
 
   if (!place) {
     return <NotFoundPage message={t.notFound.badLink} />;
@@ -65,7 +66,7 @@ export function WeatherPage() {
       </div>
     );
   } else if (!current) {
-    body = <WeatherSkeleton place={names?.name ?? place.name} />;
+    body = <WeatherSkeleton place={title ?? place.name} />;
   } else {
     body = (
       <div className={loading ? 'content content--stale' : 'content'}>
@@ -73,7 +74,7 @@ export function WeatherPage() {
           // A new place gets a fresh component (focus, folded details), even when the
           // forecast comes straight from the cache and nothing else would remount it.
           key={`${place.latitude},${place.longitude}`}
-          name={names?.name ?? place.name}
+          name={title ?? place.name}
           country={names ? names.country : place.country}
           forecast={current}
           airQuality={airQuality}

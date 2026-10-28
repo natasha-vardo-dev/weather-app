@@ -54,6 +54,7 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
     searching: 'Buscando…',
     noResults: (q) => `Ninguna ciudad coincide con «${q}». Revisa la ortografía.`,
   },
+  place: { island: 'isla' },
   weather: { loading: (place) => `Cargando el pronóstico para ${place}…`, tryAgain: 'Reintentar' },
   current: {
     degrees: (n) => plural(n, { one: '{n} grado', other: '{n} grados' }),

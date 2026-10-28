@@ -54,6 +54,7 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
     searching: 'Söker…',
     noResults: (q) => `Ingen stad matchar ”${q}”. Kontrollera stavningen.`,
   },
+  place: { island: 'ö' },
   weather: { loading: (place) => `Laddar prognos för ${place}…`, tryAgain: 'Försök igen' },
   current: {
     degrees: (n) => plural(n, { one: '{n} grad', other: '{n} grader' }),

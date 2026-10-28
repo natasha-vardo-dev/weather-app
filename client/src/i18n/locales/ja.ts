@@ -55,6 +55,7 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
     searching: '検索中…',
     noResults: (q) => `「${q}」に一致する都市はありません。綴りを確認してください。`,
   },
+  place: { island: '島' },
   weather: { loading: (place) => `${place}の予報を読み込み中…`, tryAgain: '再試行' },
   current: {
     degrees: (n) => `${num(n)}度`,

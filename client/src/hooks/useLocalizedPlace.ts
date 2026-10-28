@@ -6,6 +6,7 @@ import {
   SEARCH_MIN_LENGTH,
   type Favorite,
   type Location,
+  type PlaceKind,
 } from '@weather/shared';
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
@@ -16,6 +17,8 @@ import { useI18n } from '../i18n/I18nProvider';
 export interface PlaceName {
   name: string;
   country?: string;
+  /** Set for islands: the town of the same name is another place (Rhodes). */
+  kind?: PlaceKind;
 }
 
 /** Place names barely change: one day, like the API's Cache-Control for /locations/:id. */
@@ -59,7 +62,7 @@ export async function loadNames(place: Favorite, language: string): Promise<Plac
     location = results.find((r) => isSamePlace(r, place));
   }
   if (!location || !isSamePlace(location, place)) return null;
-  return { name: location.name, country: location.country || undefined };
+  return { name: location.name, country: location.country || undefined, ...(location.kind ? { kind: location.kind } : {}) };
 }
 
 /**
@@ -124,4 +127,18 @@ export function useLocalizedPlace(place: Favorite | null): PlaceName | null {
   if (!key || !place) return null;
   const names = state?.key === key ? state.names : namesCache.get(key);
   return names ?? { name: place.name, country: place.country };
+}
+
+/**
+ * The name as a heading or tab title: "Rhodes · island" for the island, so it is never
+ * mistaken for the town of the same name. Tiles and cards put the kind on the country line
+ * instead (`placeSubtitle`), where a narrow tile does not cut it off.
+ */
+export function placeTitle(names: PlaceName, island: string): string {
+  return names.kind === 'island' ? `${names.name} · ${island}` : names.name;
+}
+
+/** The second line of a tile or card: "island · Greece", or just the country. */
+export function placeSubtitle(names: PlaceName, island: string): string | undefined {
+  return [names.kind === 'island' ? island : undefined, names.country].filter(Boolean).join(' · ') || undefined;
 }

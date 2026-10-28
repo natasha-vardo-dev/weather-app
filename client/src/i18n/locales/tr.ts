@@ -54,6 +54,7 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
     searching: 'Aranıyor…',
     noResults: (q) => `“${q}” ile eşleşen şehir yok. Yazımı kontrol et.`,
   },
+  place: { island: 'ada' },
   weather: { loading: (place) => `${place} için tahmin yükleniyor…`, tryAgain: 'Tekrar dene' },
   current: {
     // Turkish nouns stay singular after a number.

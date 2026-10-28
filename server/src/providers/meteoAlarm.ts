@@ -2,7 +2,16 @@ import { ALERT_LEVELS, ALERT_TYPES, type AlertLevel, type AlertType } from '@wea
 import { XMLParser } from 'fast-xml-parser';
 import { ProviderError } from '../errors.js';
 import { TtlCache } from '../services/cache.js';
-import { bboxContains, polygonsNear, NEAR_REGION_KM, type BBox, type Point, type Polygon, type RegionIndex } from '../services/regions.js';
+import {
+  bboxContains,
+  COAST_FALLBACK_KM,
+  NEAR_REGION_KM,
+  polygonsNear,
+  type BBox,
+  type Point,
+  type Polygon,
+  type RegionIndex,
+} from '../services/regions.js';
 import type { AlertText, AlertsProvider, ProviderAlert } from './types.js';
 
 const FEED_URL = 'https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-';
@@ -205,7 +214,8 @@ export class MeteoAlarmProvider implements AlertsProvider {
   async getAlerts(latitude: number, longitude: number): Promise<ProviderAlert[]> {
     const point: Point = [longitude, latitude];
     const index = await this.regions();
-    const regions = index.codesNear(latitude, longitude);
+    let regions = index.codesNear(latitude, longitude);
+    if (regions.size === 0) regions = index.codesNear(latitude, longitude, COAST_FALLBACK_KM);
     // Countries the place is known to be in (or within NEAR_REGION_KM of), by region borders.
     const known = index.countriesOf(regions);
     // Countries that draw their warning areas, found only by rough boxes: often a neighbour.

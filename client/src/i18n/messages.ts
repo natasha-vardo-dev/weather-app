@@ -48,6 +48,8 @@ export interface Messages {
     orSearch: string;
   };
   search: { label: string; searching: string; noResults: (query: string) => string };
+  /** What a place is when not a town, shown after its name: "Rhodes · island". */
+  place: { island: string };
   weather: { loading: (place: string) => string; tryAgain: string };
   current: {
     degrees: (n: number) => string;

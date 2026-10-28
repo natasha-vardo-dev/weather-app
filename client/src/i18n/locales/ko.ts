@@ -54,6 +54,7 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
     searching: '검색 중…',
     noResults: (q) => `“${q}”와(과) 일치하는 도시가 없습니다. 철자를 확인하세요.`,
   },
+  place: { island: '섬' },
   weather: { loading: (place) => `${place} 예보를 불러오는 중…`, tryAgain: '다시 시도' },
   current: {
     degrees: (n) => `${num(n)}도`,

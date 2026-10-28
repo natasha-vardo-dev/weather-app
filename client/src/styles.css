@@ -280,6 +280,7 @@ body {
 
 .search__name { font-weight: 500; }
 .search__meta { color: var(--field-ink-soft); text-align: end; }
+.search__kind { font-weight: 400; color: var(--field-ink-soft); }
 
 .search__hint { padding: 0.6rem 0.75rem; color: var(--field-ink-soft); }
 .search__hint--error { color: var(--field-danger); }

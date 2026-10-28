@@ -55,6 +55,7 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
     searching: '正在搜索…',
     noResults: (q) => `没有与“${q}”匹配的城市。请检查拼写。`,
   },
+  place: { island: '岛' },
   weather: { loading: (place) => `正在加载${place}的预报…`, tryAgain: '重试' },
   current: {
     degrees: (n) => `${num(n)}度`,

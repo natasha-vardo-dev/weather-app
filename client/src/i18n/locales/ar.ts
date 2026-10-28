@@ -56,6 +56,7 @@ export const ar: MessagesFactory = ({ num, deg, plural }) => ({
     searching: 'جارٍ البحث…',
     noResults: (q) => `لا توجد مدينة تطابق «${q}». تحقق من الكتابة.`,
   },
+  place: { island: 'جزيرة' },
   weather: { loading: (place) => `جارٍ تحميل توقعات ${place}…`, tryAgain: 'إعادة المحاولة' },
   current: {
     degrees: (n) =>

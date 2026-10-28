@@ -55,6 +55,7 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     searching: 'Hledám…',
     noResults: (q) => `Žádné město neodpovídá „${q}“. Zkontrolujte pravopis.`,
   },
+  place: { island: 'ostrov' },
   weather: { loading: (place) => `Načítám předpověď: ${place}…`, tryAgain: 'Zkusit znovu' },
   current: {
     degrees: (n) =>

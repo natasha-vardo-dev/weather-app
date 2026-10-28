@@ -55,6 +55,7 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     searching: 'Zoeken…',
     noResults: (q) => `Geen stad gevonden voor ‘${q}’. Controleer de spelling.`,
   },
+  place: { island: 'eiland' },
   weather: { loading: (place) => `Verwachting voor ${place} laden…`, tryAgain: 'Opnieuw proberen' },
   current: {
     degrees: (n) => plural(n, { one: '{n} graad', other: '{n} graden' }),

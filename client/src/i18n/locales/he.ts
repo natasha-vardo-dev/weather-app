@@ -54,6 +54,7 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
     searching: 'מחפש…',
     noResults: (q) => `אין עיר שתואמת ל„${q}”. בדקו את האיות.`,
   },
+  place: { island: 'אי' },
   weather: { loading: (place) => `טוען תחזית עבור ${place}…`, tryAgain: 'ניסיון נוסף' },
   current: {
     degrees: (n) => plural(n, { one: 'מעלה אחת', two: 'שתי מעלות', other: '{n} מעלות' }),

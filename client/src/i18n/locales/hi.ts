@@ -54,6 +54,7 @@ export const hi: MessagesFactory = ({ num, deg, plural }) => ({
     searching: 'खोज रहे हैं…',
     noResults: (q) => `“${q}” से मेल खाता कोई शहर नहीं मिला। वर्तनी जाँचें।`,
   },
+  place: { island: 'द्वीप' },
   weather: { loading: (place) => `${place} का पूर्वानुमान लोड हो रहा है…`, tryAgain: 'फिर से कोशिश करें' },
   current: {
     degrees: (n) => `${num(n)} डिग्री`,

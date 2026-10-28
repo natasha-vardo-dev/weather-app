@@ -123,6 +123,21 @@ describe('MeteoAlarmProvider', () => {
     expect(alerts[0]).toMatchObject({ level: 'yellow', type: 'fog', id: '2.49.0.0.616.0.PL.Sk20261027102244306.PL2819' });
   });
 
+  it('reaches a seaside town that coarse coasts put "in the sea", only when no region is near', async () => {
+    // ~3.3 km beyond the Węgorzewo square: too far for NEAR_REGION_KM, within the fallback.
+    const offshore = { lat: WEGORZEWO.lat + 0.13, lon: WEGORZEWO.lon };
+    expect(await provider().getAlerts(offshore.lat, offshore.lon)).toHaveLength(1);
+
+    // With another region right there, the farther one is not added.
+    const withNeighbour = new RegionIndex([
+      square('PL2819', WEGORZEWO.lat, WEGORZEWO.lon),
+      square('PL2818', offshore.lat + 0.105, offshore.lon),
+    ]);
+    const alerts = await provider(fakeFetch(), () => NOW, withNeighbour).getAlerts(offshore.lat, offshore.lon);
+    expect(alerts.map((a) => a.id)).not.toContain('2.49.0.0.616.0.PL.Sk20261027102244306.PL2819');
+    expect(alerts).toHaveLength(1);
+  });
+
   it('leaves out expired warnings still listed in the feed', async () => {
     expect(await provider().getAlerts(COAST.lat, COAST.lon)).toEqual([]);
   });
