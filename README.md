@@ -8,9 +8,9 @@ A web application that shows the current weather and a 10-day forecast for a sel
 
 - City search with autocomplete and keyboard navigation
 - Shareable links for each place, e.g. `/weather/52.23,21.01?name=Warsaw&country=Poland`; back/forward and refresh work
-- Current conditions: temperature, feels like, chance of precipitation, wind, humidity, air quality (European AQI for places in Europe, US AQI elsewhere). "Feels like" is a line under the temperature; each detail opens below the list: a 24-hour chart (precipitation, wind, humidity) or the pollutants (PM2.5, PM10, ozone, NO₂) as bars against the WHO daily guidelines
+- Current conditions: temperature, condition, feels like, high and low; the hourly strip shows the chance of rain in likely hours, and sunrise and sunset
+- Details as tiles below the 10-day forecast, each with a short explanation: precipitation (chance, millimetres in the next 24 hours), wind (direction, gusts), humidity (dew point and how the air feels), air quality (European AQI for places in Europe, US AQI elsewhere), UV index (WHO level, when sun protection is needed), sunrise and sunset (whichever comes next), pressure (rising or falling in the next 3 hours), visibility. Tiles with hourly data open below the grid: a 24-hour chart (precipitation, wind, humidity, UV, pressure) or the pollutants (PM2.5, PM10, ozone, NO₂) as bars against the WHO daily guidelines
 - 10-day forecast with temperature range bars and rain probability
-- A home city: one saved city, shown first and marked with a house
 - Favourite cities (up to 10), saved in the browser: shown as cards with current weather, condition and today's high/low on the start page, and as a strip of tiles on city pages
 - Loading, empty and error states with retry
 - 19 interface languages, picked from the system language by default, with a switcher; dates, times, numbers and units follow the locale; right-to-left layout for Arabic and Hebrew

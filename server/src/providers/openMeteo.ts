@@ -54,12 +54,15 @@ interface ForecastResponse {
   longitude: number;
   timezone: string;
   current_units: { temperature_2m: string; wind_speed_10m: string };
+  hourly_units?: { precipitation?: string };
   current: {
     time: string;
     temperature_2m: number;
     apparent_temperature: number;
     relative_humidity_2m: number;
     wind_speed_10m: number;
+    wind_gusts_10m?: number | null;
+    wind_direction_10m?: number | null;
     weather_code: number;
     is_day: number;
   };
@@ -68,8 +71,14 @@ interface ForecastResponse {
     temperature_2m: number[];
     relative_humidity_2m: number[];
     wind_speed_10m: number[];
+    wind_gusts_10m?: (number | null)[];
     weather_code: number[];
     precipitation_probability: (number | null)[];
+    precipitation?: (number | null)[];
+    uv_index?: (number | null)[];
+    pressure_msl?: (number | null)[];
+    visibility?: (number | null)[];
+    dew_point_2m?: (number | null)[];
     is_day: number[];
   };
   daily: {
@@ -78,6 +87,8 @@ interface ForecastResponse {
     temperature_2m_max: number[];
     temperature_2m_min: number[];
     precipitation_probability_max: (number | null)[];
+    sunrise?: (string | null)[];
+    sunset?: (string | null)[];
   };
 }
 
@@ -138,18 +149,18 @@ export class OpenMeteoProvider implements WeatherProvider {
     url.searchParams.set('longitude', String(longitude));
     url.searchParams.set(
       'current',
-      'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day',
+      'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code,is_day',
     );
     url.searchParams.set(
       'hourly',
-      // The same request as before, a few more fields: the 24-hour charts under the details.
-      'temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,precipitation_probability,is_day',
+      // The same request, more fields: the tiles below the 10-day forecast and their charts.
+      'temperature_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,weather_code,precipitation_probability,precipitation,uv_index,pressure_msl,visibility,dew_point_2m,is_day',
     );
     // Hourly data starts at the current hour, unlike daily data.
     url.searchParams.set('forecast_hours', String(FORECAST_HOURS));
     url.searchParams.set(
       'daily',
-      'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+      'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset',
     );
     url.searchParams.set('timezone', 'auto');
     url.searchParams.set('forecast_days', String(days));
@@ -164,6 +175,9 @@ export class OpenMeteoProvider implements WeatherProvider {
       tempMax: daily.temperature_2m_max[i],
       tempMin: daily.temperature_2m_min[i],
       precipitationProbability: daily.precipitation_probability_max[i] ?? null,
+      // Empty in polar day or night: no sunrise that day.
+      sunrise: daily.sunrise?.[i] || null,
+      sunset: daily.sunset?.[i] || null,
     }));
     // Dates are local to the place (timezone=auto), so its "today" comes from the current time.
     const today = current.time.slice(0, 10);
@@ -176,6 +190,7 @@ export class OpenMeteoProvider implements WeatherProvider {
       units: {
         temperature: data.current_units.temperature_2m,
         windSpeed: data.current_units.wind_speed_10m,
+        precipitation: data.hourly_units?.precipitation ?? 'mm',
       },
       current: {
         time: current.time,
@@ -183,6 +198,8 @@ export class OpenMeteoProvider implements WeatherProvider {
         apparentTemperature: current.apparent_temperature,
         humidity: current.relative_humidity_2m,
         windSpeed: current.wind_speed_10m,
+        windGusts: current.wind_gusts_10m ?? null,
+        windDirection: current.wind_direction_10m ?? null,
         weatherCode: current.weather_code,
         isDay: current.is_day === 1,
       },
@@ -191,8 +208,14 @@ export class OpenMeteoProvider implements WeatherProvider {
         temperature: hourly.temperature_2m[i],
         humidity: hourly.relative_humidity_2m[i],
         windSpeed: hourly.wind_speed_10m[i],
+        windGusts: hourly.wind_gusts_10m?.[i] ?? null,
         weatherCode: hourly.weather_code[i],
         precipitationProbability: hourly.precipitation_probability[i] ?? null,
+        precipitation: hourly.precipitation?.[i] ?? null,
+        uvIndex: hourly.uv_index?.[i] ?? null,
+        pressure: hourly.pressure_msl?.[i] ?? null,
+        visibility: hourly.visibility?.[i] ?? null,
+        dewPoint: hourly.dew_point_2m?.[i] ?? null,
         isDay: hourly.is_day[i] === 1,
       })),
       yesterday: pastDays.at(-1) ?? null,

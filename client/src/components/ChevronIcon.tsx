@@ -1,7 +1,8 @@
 /**
- * The "opens below" arrow: the header switches and every expandable detail use the same
- * one. Decorative; the control's aria-expanded carries the state, and CSS turns the arrow
- * up from that same attribute, so eye and screen reader can't disagree.
+ * The "opens below" arrow: every expandable detail uses the same one, and the settings
+ * turn it to point onwards and back. Decorative; the control's aria-expanded carries the
+ * state, and CSS turns the arrow up from that same attribute, so eye and screen reader
+ * can't disagree.
  */
 export function ChevronIcon({ className }: { className: string }) {
   return (

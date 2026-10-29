@@ -52,6 +52,37 @@ describe('enableAlerts', () => {
     expect(getAlertSubscriptions().places[0]).toMatchObject({ group: 'all', level: 'yellow' });
   });
 
+  it('asks for permission before waiting for a time zone still loading, then stores it', async () => {
+    // Safari shows the prompt only when it is asked straight from the click.
+    const order: string[] = [];
+    vi.stubGlobal('Notification', {
+      permission: 'default',
+      requestPermission: async () => {
+        order.push('permission');
+        return 'granted';
+      },
+    });
+    let resolve!: (zone: string) => void;
+    const zone = new Promise<string | undefined>((r) => {
+      resolve = (value) => {
+        order.push('zone');
+        r(value);
+      };
+    });
+    const { timeZone: _, ...place } = KRAKOW;
+    const done = enableAlerts(place, { group: 'storm', level: 'orange' }, zone);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(order).toEqual(['permission']);
+    resolve('Europe/Warsaw');
+    await done;
+    expect(getAlertSubscriptions().places[0]?.timeZone).toBe('Europe/Warsaw');
+  });
+
+  it('keeps the time zone the place already has', async () => {
+    await enableAlerts(KRAKOW, { group: 'storm', level: 'orange' }, Promise.resolve('Europe/Lisbon'));
+    expect(getAlertSubscriptions().places[0]?.timeZone).toBe('Europe/Warsaw');
+  });
+
   it('keeps the old settings, still subscribed, when joining the new topic fails', async () => {
     stored('token-new', [{ ...KRAKOW, group: 'storm', level: 'orange', areas: ['PL1261'] }]);
     setAlertTopics.mockRejectedValueOnce(new Error('offline'));

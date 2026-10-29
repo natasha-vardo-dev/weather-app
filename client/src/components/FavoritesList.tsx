@@ -2,11 +2,10 @@ import type { Favorite } from '@weather/shared';
 import { Link } from 'react-router';
 import { useAlertLevel } from '../hooks/useAlerts';
 import { useCurrentWeather } from '../hooks/useCurrentWeather';
-import { placeSubtitle, useLocalizedPlace } from '../hooks/useLocalizedPlace';
+import { placeSubtitle, useFavoriteDistinctions, useLocalizedPlace } from '../hooks/useLocalizedPlace';
 import { useFavorites } from '../hooks/useFavorites';
 import { useI18n } from '../i18n/I18nProvider';
 import { placePath } from '../locationUrl';
-import { HomeIcon } from './FavoriteButton';
 import { AlertMark } from './WeatherAlerts';
 import { WeatherIcon } from './WeatherIcon';
 
@@ -15,15 +14,23 @@ import { WeatherIcon } from './WeatherIcon';
  * today's high/low. It uses the same request as the city page (shared cache), so
  * opening the city is instant.
  */
-function FavoriteCard({ favorite, home }: { favorite: Favorite; home: boolean }) {
+function FavoriteCard({
+  favorite,
+  distinction,
+}: {
+  favorite: Favorite;
+  /** What tells it apart from a saved place of the same name (a district); usually none. */
+  distinction?: string;
+}) {
   const { t, deg } = useI18n();
   const weather = useCurrentWeather(favorite.latitude, favorite.longitude);
   const alertLevel = useAlertLevel(favorite.latitude, favorite.longitude);
   // Names in the current UI language, not the one the city was saved in.
   const names = useLocalizedPlace(favorite);
   const { name } = names;
-  // "island · Greece": an island and the town of its name must not look the same.
-  const country = placeSubtitle(names, t.place.island);
+  // "island · Greece": an island and the town of its name must not look the same; two saved
+  // places of one name get what tells them apart first ("Powiat otwocki · Poland").
+  const country = [distinction, placeSubtitle(names, t.place.island)].filter(Boolean).join(' · ') || undefined;
   const high = weather?.high ?? null;
   const low = weather?.low ?? null;
   const range = high !== null && low !== null ? { high, low } : null;
@@ -36,7 +43,6 @@ function FavoriteCard({ favorite, home }: { favorite: Favorite; home: boolean })
           {[
             name,
             country,
-            home && t.favorites.homeCity,
             weather && t.conditions[weather.condition],
             weather && t.current.degrees(weather.temperature),
             range && t.current.highLow(range.high, range.low),
@@ -48,7 +54,6 @@ function FavoriteCard({ favorite, home }: { favorite: Favorite; home: boolean })
         <span className="fav-card__head" aria-hidden="true">
           <span className="fav-card__place">
             <span className="fav-card__name" dir="auto">
-              {home && <HomeIcon className="home-mark" size={13} />}
               {name}
             </span>
             {country && <span className="fav-card__country" dir="auto">{country}</span>}
@@ -80,7 +85,8 @@ function FavoriteCard({ favorite, home }: { favorite: Favorite; home: boolean })
 /** Saved cities on the start page as a grid of cards; nothing until the first one is saved. */
 export function FavoritesList() {
   const { t } = useI18n();
-  const { favorites, isHome } = useFavorites();
+  const { favorites } = useFavorites();
+  const distinctions = useFavoriteDistinctions(favorites);
   if (favorites.length === 0) return null;
 
   return (
@@ -89,11 +95,11 @@ export function FavoritesList() {
         {t.favorites.title}
       </h2>
       <ul className="fav-grid">
-        {favorites.map((favorite) => (
+        {favorites.map((favorite, i) => (
           <FavoriteCard
             key={`${favorite.latitude},${favorite.longitude}`}
             favorite={favorite}
-            home={isHome(favorite)}
+            distinction={distinctions[i]}
           />
         ))}
       </ul>

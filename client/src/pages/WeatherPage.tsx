@@ -7,19 +7,21 @@ import { FavoritesStrip } from '../components/FavoritesStrip';
 import { ForecastList } from '../components/ForecastList';
 import { HourlyForecast } from '../components/HourlyForecast';
 import { WeatherAlerts } from '../components/WeatherAlerts';
+import { WeatherTiles } from '../components/WeatherTiles';
 import { WeatherSkeleton } from '../components/WeatherSkeleton';
 import { useAirQuality } from '../hooks/useAirQuality';
 import { useAlerts } from '../hooks/useAlerts';
 import { useForecast } from '../hooks/useForecast';
 import { usePageMeta } from '../hooks/usePageMeta';
-import { placeTitle, useLocalizedPlace } from '../hooks/useLocalizedPlace';
+import { placeSubtitle, placeTitle, useLocalizedPlace } from '../hooks/useLocalizedPlace';
+import { placeArea } from '../placeLabels';
 import { useI18n } from '../i18n/I18nProvider';
 import { rememberedPosition } from '../geolocation';
 import { parsePlace, placePath } from '../locationUrl';
 import { NotFoundPage } from './NotFoundPage';
 
 export function WeatherPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { coords } = useParams();
   const [searchParams] = useSearchParams();
   const place = useMemo(() => parsePlace(coords, searchParams), [coords, searchParams]);
@@ -75,10 +77,13 @@ export function WeatherPage() {
           // A new place gets a fresh component (focus, folded details), even when the
           // forecast comes straight from the cache and nothing else would remount it.
           key={`${place.latitude},${place.longitude}`}
-          name={title ?? place.name}
-          country={names ? names.country : place.country}
+          // The name, with "island" and the country beside it ("island · Greece"); district
+          // and region on a line below, so a town is placed even when another has its name.
+          // The tab title and the notification keep "Rhodes · island".
+          name={names ? names.name : place.name}
+          country={names ? placeSubtitle(names, t.place.island) : place.country}
+          area={names ? placeArea(names, language) : []}
           forecast={current}
-          airQuality={airQuality}
           actions={
             <span className="save-wrap">
               <FavoriteButton place={place} />
@@ -94,8 +99,10 @@ export function WeatherPage() {
           }
           here={rememberedPosition(place.latitude, place.longitude)}
         />
-        <HourlyForecast hours={current.hourly} />
-        <ForecastList days={current.daily} />
+        <HourlyForecast hours={current.hourly} days={current.daily} now={current.current.time} />
+        <ForecastList days={current.daily} now={current.current.temperature} />
+        {/* Remounted per place too: a new city starts with every tile folded. */}
+        <WeatherTiles key={`tiles:${place.latitude},${place.longitude}`} forecast={current} airQuality={airQuality} />
       </div>
     );
   }
@@ -107,7 +114,8 @@ export function WeatherPage() {
   return (
     <>
       <FavoritesStrip place={place} />
-      <WeatherAlerts data={alerts} timeZone={forecast?.timezone} />
+      {/* Keyed by place, so the next city starts with its warnings folded again. */}
+      <WeatherAlerts key={`alerts:${place.latitude},${place.longitude}`} data={alerts} timeZone={forecast?.timezone} />
       {body}
     </>
   );

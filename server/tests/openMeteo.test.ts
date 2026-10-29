@@ -17,12 +17,15 @@ describe('OpenMeteoProvider', () => {
         longitude: 21,
         timezone: 'Europe/Warsaw',
         current_units: { temperature_2m: '°C', wind_speed_10m: 'km/h' },
+        hourly_units: { precipitation: 'mm' },
         current: {
           time: '2026-10-15T12:00',
           temperature_2m: 12,
           apparent_temperature: 10,
           relative_humidity_2m: 70,
           wind_speed_10m: 15,
+          wind_gusts_10m: 32,
+          wind_direction_10m: 315,
           weather_code: 61,
           is_day: 1,
         },
@@ -31,8 +34,14 @@ describe('OpenMeteoProvider', () => {
           temperature_2m: [12, 13],
           relative_humidity_2m: [80, 75],
           wind_speed_10m: [14, 16.2],
+          wind_gusts_10m: [30, 34.5],
           weather_code: [61, 3],
           precipitation_probability: [80, null],
+          precipitation: [1.2, 0],
+          uv_index: [3.4, 2.1],
+          pressure_msl: [1012.3, 1011.8],
+          visibility: [24000, 8000],
+          dew_point_2m: [8.1, 7.6],
           is_day: [1, 1],
         },
         daily: {
@@ -41,6 +50,8 @@ describe('OpenMeteoProvider', () => {
           temperature_2m_max: [11, 14],
           temperature_2m_min: [5, 7],
           precipitation_probability_max: [null, 80],
+          sunrise: ['2026-10-14T07:14', '2026-10-15T07:16'],
+          sunset: ['2026-10-14T17:52', ''],
         },
       }),
     );
@@ -51,15 +62,22 @@ describe('OpenMeteoProvider', () => {
     const url = new URL(String((fetchFn.mock.calls[0] as unknown[])[0]));
     expect(url.searchParams.get('past_days')).toBe('1');
     expect(url.searchParams.get('forecast_hours')).toBe('24');
-    expect(forecast.current).toMatchObject({ temperature: 12, weatherCode: 61, isDay: true });
+    expect(forecast.current).toMatchObject({ temperature: 12, weatherCode: 61, isDay: true, windGusts: 32, windDirection: 315 });
+    expect(forecast.units.precipitation).toBe('mm');
     expect(forecast.hourly).toEqual([
       {
         time: '2026-10-15T12:00',
         temperature: 12,
         humidity: 80,
         windSpeed: 14,
+        windGusts: 30,
         weatherCode: 61,
         precipitationProbability: 80,
+        precipitation: 1.2,
+        uvIndex: 3.4,
+        pressure: 1012.3,
+        visibility: 24000,
+        dewPoint: 8.1,
         isDay: true,
       },
       {
@@ -67,8 +85,14 @@ describe('OpenMeteoProvider', () => {
         temperature: 13,
         humidity: 75,
         windSpeed: 16.2,
+        windGusts: 34.5,
         weatherCode: 3,
         precipitationProbability: null,
+        precipitation: 0,
+        uvIndex: 2.1,
+        pressure: 1011.8,
+        visibility: 8000,
+        dewPoint: 7.6,
         isDay: true,
       },
     ]);
@@ -78,9 +102,19 @@ describe('OpenMeteoProvider', () => {
       tempMax: 11,
       tempMin: 5,
       precipitationProbability: null,
+      sunrise: '2026-10-14T07:14',
+      sunset: '2026-10-14T17:52',
     });
     expect(forecast.daily).toEqual([
-      { date: '2026-10-15', weatherCode: 61, tempMax: 14, tempMin: 7, precipitationProbability: 80 },
+      {
+        date: '2026-10-15',
+        weatherCode: 61,
+        tempMax: 14,
+        tempMin: 7,
+        precipitationProbability: 80,
+        sunrise: '2026-10-15T07:16',
+        sunset: null, // empty in the response (polar day): null, not an empty time
+      },
     ]);
   });
 

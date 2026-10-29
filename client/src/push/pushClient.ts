@@ -106,13 +106,23 @@ function topicsRequest(
   return { token, latitude: place.latitude, longitude: place.longitude, group, level, subscribe };
 }
 
-/** Asks for permission (from the click), subscribes the device and remembers the place. */
+/**
+ * Asks for permission (from the click), subscribes the device and remembers the place.
+ * `timeZone` is for a place whose time zone is still loading (turned on from the settings
+ * list): it is awaited only after the permission prompt, which Safari shows only when asked
+ * straight from the click.
+ */
 export async function enableAlerts(
   place: Omit<AlertSubscription, 'areas' | keyof AlertNotificationSettings>,
   settings: AlertNotificationSettings,
+  timeZone?: Promise<string | undefined>,
 ): Promise<void> {
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') throw new PushError(permission === 'denied' ? 'blocked' : 'failed');
+  if (!place.timeZone && timeZone) {
+    const zone = await timeZone;
+    if (zone) place = { ...place, timeZone: zone };
+  }
   const token = await pushToken();
   try {
     await serial(async () => {

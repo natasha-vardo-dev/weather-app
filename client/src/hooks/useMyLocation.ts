@@ -87,7 +87,7 @@ export async function locatePlace(language: string): Promise<FoundPlace> {
   const position = await getCurrentPosition();
   const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), NAME_WAIT_MS));
   const found = await Promise.race([reversePlace(position, language).catch(() => null), timeout]);
-  const place = preferSaved(toFoundPlace(found, position), getSnapshot().favorites);
+  const place = preferSaved(toFoundPlace(found, position), getSnapshot());
   // What the page opens is where "You are here" goes.
   rememberPosition(place);
   return place;
@@ -110,7 +110,7 @@ export async function approximatePlace(language: string): Promise<FoundPlace | n
         ...(found.country ? { country: found.country } : {}),
         ...(isValidLocationId(found.id) ? { id: found.id } : {}),
       },
-      getSnapshot().favorites,
+      getSnapshot(),
     );
   } catch {
     return null;

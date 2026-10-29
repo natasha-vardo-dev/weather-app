@@ -10,7 +10,7 @@ interface Props {
   scale: ChartScale;
   kind: 'line' | 'bar';
   /** Picks the mark colour (CSS): what is shown, not its rank. */
-  variant: 'precipitation' | 'wind' | 'humidity';
+  variant: 'precipitation' | 'wind' | 'humidity' | 'uv' | 'pressure';
   /** Axis label for a gridline value: short ("12°", "50%", "12"). */
   formatTick: (value: number) => string;
   /** Full value for the tooltip and the table ("12 km/h"). */
@@ -152,17 +152,22 @@ export function HourlyChart({ hours, values, scale, kind, variant, formatTick, f
           {names[active]} · {formatValue(values[active] as number)}
         </div>
       )}
-      <table className="visually-hidden">
-        <caption>{title}</caption>
-        <tbody>
-          {values.map((v, i) => (
-            <tr key={hours[i].time}>
-              <th scope="row">{names[i]}</th>
-              <td>{v === null ? '—' : formatValue(v)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* Hidden by a wrapper, not on the table: a table ignores height: 1px and grows to its
+          24 rows (~700 px), which made the page that much longer whenever a chart was open,
+          so opening one scrolled far past the panel. */}
+      <div className="visually-hidden">
+        <table>
+          <caption>{title}</caption>
+          <tbody>
+            {values.map((v, i) => (
+              <tr key={hours[i].time}>
+                <th scope="row">{names[i]}</th>
+                <td>{v === null ? '—' : formatValue(v)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

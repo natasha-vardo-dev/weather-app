@@ -1,7 +1,6 @@
 import { Route, Routes, useNavigate } from 'react-router';
-import { LanguageSelect } from './components/LanguageSelect';
-import { UnitSelect } from './components/UnitSelect';
 import { SearchBar } from './components/SearchBar';
+import { SettingsMenu } from './components/SettingsMenu';
 import { useOffline } from './hooks/useOffline';
 import { usePushMaintenance } from './hooks/useAlertNotifications';
 import { useI18n } from './i18n/I18nProvider';
@@ -23,8 +22,7 @@ export function App() {
           onSelect={(location) => navigate(placePath(location))}
           onLocate={(place) => navigate(placePath(place))}
         />
-        <UnitSelect />
-        <LanguageSelect />
+        <SettingsMenu />
       </header>
 
       <main className="page__main">

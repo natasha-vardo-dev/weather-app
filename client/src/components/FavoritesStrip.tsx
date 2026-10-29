@@ -2,23 +2,32 @@ import { isFavorite, type Favorite } from '@weather/shared';
 import { Link } from 'react-router';
 import { useAlertLevel } from '../hooks/useAlerts';
 import { useCurrentWeather } from '../hooks/useCurrentWeather';
-import { placeSubtitle, useLocalizedPlace } from '../hooks/useLocalizedPlace';
+import { placeSubtitle, useFavoriteDistinctions, useLocalizedPlace } from '../hooks/useLocalizedPlace';
 import { useFavorites } from '../hooks/useFavorites';
 import { useI18n } from '../i18n/I18nProvider';
 import { placePath } from '../locationUrl';
-import { HomeIcon } from './FavoriteButton';
 import { AlertMark } from './WeatherAlerts';
 import { WeatherIcon } from './WeatherIcon';
 
-function FavoriteTile({ favorite, current, home }: { favorite: Favorite; current: boolean; home: boolean }) {
+function FavoriteTile({
+  favorite,
+  current,
+  distinction,
+}: {
+  favorite: Favorite;
+  current: boolean;
+  /** What tells it apart from a saved place of the same name (a district); usually none. */
+  distinction?: string;
+}) {
   const { t, deg } = useI18n();
   const weather = useCurrentWeather(favorite.latitude, favorite.longitude);
   const alertLevel = useAlertLevel(favorite.latitude, favorite.longitude);
   // Names in the current UI language, not the one the city was saved in.
   const names = useLocalizedPlace(favorite);
   const { name } = names;
-  // "island · Greece": an island and the town of its name must not look the same.
-  const country = placeSubtitle(names, t.place.island);
+  // "island · Greece": an island and the town of its name must not look the same; two saved
+  // places of one name get what tells them apart first ("Powiat otwocki · Poland").
+  const country = [distinction, placeSubtitle(names, t.place.island)].filter(Boolean).join(' · ') || undefined;
 
   return (
     <li>
@@ -34,7 +43,6 @@ function FavoriteTile({ favorite, current, home }: { favorite: Favorite; current
           {[
             name,
             country,
-            home && t.favorites.homeCity,
             weather && t.conditions[weather.condition],
             weather && t.current.degrees(weather.temperature),
             alertLevel && t.alerts.levels[alertLevel],
@@ -43,7 +51,6 @@ function FavoriteTile({ favorite, current, home }: { favorite: Favorite; current
             .join(', ')}
         </span>
         <span className="fav-tile__name" dir="auto" aria-hidden="true">
-          {home && <HomeIcon className="home-mark" size={11} />}
           {name}
         </span>
         {country && (
@@ -73,18 +80,19 @@ function FavoriteTile({ favorite, current, home }: { favorite: Favorite; current
  */
 export function FavoritesStrip({ place }: { place: Favorite }) {
   const { t } = useI18n();
-  const { favorites, isHome } = useFavorites();
+  const { favorites } = useFavorites();
+  const distinctions = useFavoriteDistinctions(favorites);
   if (favorites.length === 0) return null;
 
   return (
     <nav className="fav-strip" aria-label={t.favorites.title}>
       <ul className="fav-strip__list">
-        {favorites.map((favorite) => (
+        {favorites.map((favorite, i) => (
           <FavoriteTile
             key={`${favorite.latitude},${favorite.longitude}`}
             favorite={favorite}
             current={isFavorite([favorite], place)}
-            home={isHome(favorite)}
+            distinction={distinctions[i]}
           />
         ))}
       </ul>

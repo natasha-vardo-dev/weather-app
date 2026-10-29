@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { createQueryCache } from '../api/queryCache';
 import { coordinatesLabel } from '../locationUrl';
+import { distinguishPlaces } from '../placeLabels';
 import { useI18n } from '../i18n/I18nProvider';
 
 export interface PlaceName {
@@ -19,6 +20,9 @@ export interface PlaceName {
   country?: string;
   /** Set for islands: the town of the same name is another place (Rhodes). */
   kind?: PlaceKind;
+  /** Region (voivodeship, state) and the levels below it, as the provider names them. */
+  region?: string;
+  areas?: string[];
 }
 
 /** Place names barely change: one day, like the API's Cache-Control for /locations/:id. */
@@ -62,7 +66,13 @@ export async function loadNames(place: Favorite, language: string): Promise<Plac
     location = results.find((r) => isSamePlace(r, place));
   }
   if (!location || !isSamePlace(location, place)) return null;
-  return { name: location.name, country: location.country || undefined, ...(location.kind ? { kind: location.kind } : {}) };
+  return {
+    name: location.name,
+    country: location.country || undefined,
+    ...(location.kind ? { kind: location.kind } : {}),
+    ...(location.region ? { region: location.region } : {}),
+    ...(location.areas?.length ? { areas: location.areas } : {}),
+  };
 }
 
 /**
@@ -128,6 +138,58 @@ export function useLocalizedPlace(place: Favorite | null): PlaceName | null {
   const names = state?.key === key ? state.names : namesCache.get(key);
   return names ?? { name: place.name, country: place.country };
 }
+
+/**
+ * What tells apart saved places of one name, for the favourite tiles and cards. Namesakes are
+ * compared in the interface language, in English and as saved: a language may have a name
+ * for one Józefów and not for the other.
+ */
+export function useFavoriteDistinctions(favorites: Favorite[]): (string | undefined)[] {
+  const local = useLocalizedPlaces(favorites);
+  const english = useLocalizedPlaces(favorites, 'en');
+  return distinguishPlaces(local.map((names, i) => ({ ...names, aliases: [english[i]!.name, favorites[i]!.name] })));
+}
+
+/**
+ * The names of several places at once, for lists that compare them (favourites with the
+ * same name). Same cache and lookups as useLocalizedPlace, so tiles asking for their own
+ * names cost nothing more. Each falls back to its stored names while loading or on failure.
+ * `inLanguage` asks in another language than the interface's (English, to compare names
+ * that the interface language spells differently).
+ */
+export function useLocalizedPlaces(places: Favorite[], inLanguage?: string): PlaceName[] {
+  const { language: uiLanguage } = useI18n();
+  const language = inLanguage ?? uiLanguage;
+  const keys = places.map((place) => cacheKey(place, language));
+  // Loaded names are kept here too: the shared cache forgets them after a day or when full,
+  // and nothing would load them again while the page stays open.
+  const [loaded, setLoaded] = useState<Record<string, PlaceName>>({});
+  const joined = keys.join('|');
+
+  useEffect(() => {
+    let cancelled = false;
+    places.forEach((place, i) => {
+      // In another language (the English aliases for telling namesakes apart) only places
+      // with an id are looked up: one without would need a second name search, which costs
+      // the provider's search quota. Such places are still told apart, by the levels of the
+      // interface-language search, just without the English name as an alias.
+      if (inLanguage !== undefined && place.id === undefined) return;
+      namesCache
+        .load(keys[i]!, () => loadNames(place, language))
+        .then((names) => {
+          if (!cancelled && names) setLoaded((all) => ({ ...all, [keys[i]!]: names }));
+        })
+        .catch(() => {});
+    });
+    return () => {
+      cancelled = true;
+    };
+    // `joined` covers every key, and so everything loadNames depends on.
+  }, [joined]);
+
+  return places.map((place, i) => namesCache.get(keys[i]!) ?? loaded[keys[i]!] ?? { name: place.name, country: place.country });
+}
+
 
 /**
  * The name as a heading or tab title: "Rhodes · island" for the island, so it is never
