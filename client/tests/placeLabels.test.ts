@@ -35,7 +35,10 @@ describe('describePlaces', () => {
 
   it('leaves real duplicates as they are', () => {
     const same = { areas: ['Flemish Brabant Province'] };
-    expect(describePlaces([place('Rode', same), place('Rode', same)])).toEqual(['Flanders, Belgium', 'Flanders, Belgium']);
+    expect(describePlaces([place('Rode', same), place('Rode', same)])).toEqual([
+      'Flanders, Belgium',
+      'Flanders, Belgium',
+    ]);
   });
 
   it('leaves a town and an island of one name apart by kind', () => {
@@ -49,9 +52,24 @@ describe('describePlaces', () => {
 
 describe('distinguishPlaces', () => {
   const warsaw = { name: 'Warszawa', country: 'Polska', region: 'Województwo mazowieckie', areas: ['Warszawa'] };
-  const otwock = { name: 'Józefów', country: 'Polska', region: 'Województwo mazowieckie', areas: ['Powiat otwocki', 'Józefów'] };
-  const ozarow = { name: 'Józefów', country: 'Polska', region: 'Województwo mazowieckie', areas: ['Powiat warszawski zachodni', 'Ożarów Mazowiecki'] };
-  const bilgoraj = { name: 'Józefów', country: 'Polska', region: 'Województwo lubelskie', areas: ['Powiat biłgorajski', 'Józefów'] };
+  const otwock = {
+    name: 'Józefów',
+    country: 'Polska',
+    region: 'Województwo mazowieckie',
+    areas: ['Powiat otwocki', 'Józefów'],
+  };
+  const ozarow = {
+    name: 'Józefów',
+    country: 'Polska',
+    region: 'Województwo mazowieckie',
+    areas: ['Powiat warszawski zachodni', 'Ożarów Mazowiecki'],
+  };
+  const bilgoraj = {
+    name: 'Józefów',
+    country: 'Polska',
+    region: 'Województwo lubelskie',
+    areas: ['Powiat biłgorajski', 'Józefów'],
+  };
 
   it('leaves a name that is not shared alone', () => {
     expect(distinguishPlaces([warsaw, otwock])).toEqual([undefined, undefined]);
@@ -66,22 +84,32 @@ describe('distinguishPlaces', () => {
 
   it('drops shared words at the end too, and keeps a word when one value is a single word', () => {
     const ru = (region: string) => ({ name: 'Юзефув', country: 'Польша', region });
-    expect(distinguishPlaces([ru('Мазовецкое воеводство'), ru('Люблинское воеводство')])).toEqual(['Мазовецкое', 'Люблинское']);
+    expect(distinguishPlaces([ru('Мазовецкое воеводство'), ru('Люблинское воеводство')])).toEqual([
+      'Мазовецкое',
+      'Люблинское',
+    ]);
     const de = (region: string) => ({ name: 'Neustadt', country: 'Deutschland', region });
     expect(distinguishPlaces([de('Hessen'), de('Rheinland-Pfalz')])).toEqual(['Hessen', 'Rheinland-Pfalz']);
   });
 
   it('adds nothing when the levels are unknown (still loading or failed)', () => {
-    expect(distinguishPlaces([{ name: 'Józefów', country: 'Polska' }, { name: 'Józefów', country: 'Polska' }])).toEqual([
-      undefined,
-      undefined,
-    ]);
+    expect(
+      distinguishPlaces([
+        { name: 'Józefów', country: 'Polska' },
+        { name: 'Józefów', country: 'Polska' },
+      ]),
+    ).toEqual([undefined, undefined]);
   });
 
   it('tells three namesakes apart, two of them in one voivodeship, each at its own level', () => {
     const otwock = { name: 'Józefów', country: 'Polska', region: 'Województwo mazowieckie', areas: ['Powiat otwocki'] };
     const ozarow = { ...otwock, areas: ['Powiat warszawski zachodni'] };
-    const bilgoraj = { name: 'Józefów', country: 'Polska', region: 'Województwo lubelskie', areas: ['Powiat biłgorajski'] };
+    const bilgoraj = {
+      name: 'Józefów',
+      country: 'Polska',
+      region: 'Województwo lubelskie',
+      areas: ['Powiat biłgorajski'],
+    };
     expect(distinguishPlaces([otwock, ozarow, bilgoraj])).toEqual(['otwocki', 'warszawski zachodni', 'lubelskie']);
   });
 
@@ -89,9 +117,11 @@ describe('distinguishPlaces', () => {
     const loaded = { name: 'Józefów', country: 'Polska', region: 'Województwo mazowieckie', areas: ['Powiat otwocki'] };
     const loading = { name: 'Józefów', country: 'Polska' };
     expect(distinguishPlaces([loaded, loading])).toEqual([undefined, undefined]);
-    expect(
-      distinguishPlaces([loaded, loading, { ...loaded, areas: ['Powiat warszawski zachodni'] }]),
-    ).toEqual(['otwocki', undefined, 'warszawski zachodni']);
+    expect(distinguishPlaces([loaded, loading, { ...loaded, areas: ['Powiat warszawski zachodni'] }])).toEqual([
+      'otwocki',
+      undefined,
+      'warszawski zachodni',
+    ]);
   });
 });
 
@@ -142,9 +172,15 @@ describe('placeArea', () => {
   });
 
   it('leaves out a district that is the city itself', () => {
-    expect(placeArea({ name: 'Варшава', region: 'Мазовецкое воеводство', areas: ['Warszawa', 'Warszawa'] }, 'ru')).toEqual(['Мазовецкое воеводство']);
-    expect(placeArea({ name: 'Краков', region: 'Малопольское воеводство', areas: ['Краков', 'Kraków'] }, 'ru')).toEqual(['Малопольское воеводство']);
-    expect(placeArea({ name: 'Париж', region: 'Иль-де-Франс', areas: ['Paris', 'Paris', 'Paris'] }, 'ru')).toEqual(['Иль-де-Франс']);
+    expect(
+      placeArea({ name: 'Варшава', region: 'Мазовецкое воеводство', areas: ['Warszawa', 'Warszawa'] }, 'ru'),
+    ).toEqual(['Мазовецкое воеводство']);
+    expect(placeArea({ name: 'Краков', region: 'Малопольское воеводство', areas: ['Краков', 'Kraków'] }, 'ru')).toEqual(
+      ['Малопольское воеводство'],
+    );
+    expect(placeArea({ name: 'Париж', region: 'Иль-де-Франс', areas: ['Paris', 'Paris', 'Paris'] }, 'ru')).toEqual([
+      'Иль-де-Франс',
+    ]);
   });
 
   it('knows the district is the city in another spelling (English names, local districts)', () => {
@@ -165,6 +201,8 @@ describe('placeArea', () => {
   });
 
   it('drops an untranslated region but keeps the district', () => {
-    expect(placeArea({ name: 'Родос', region: 'South Aegean', areas: ['Dodecanese', 'Dimos Rhodes'] }, 'ru')).toEqual(['Dodecanese']);
+    expect(placeArea({ name: 'Родос', region: 'South Aegean', areas: ['Dodecanese', 'Dimos Rhodes'] }, 'ru')).toEqual([
+      'Dodecanese',
+    ]);
   });
 });

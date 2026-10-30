@@ -44,7 +44,11 @@ interface I18n {
 
 const I18nContext = createContext<I18n | null>(null);
 
-const INTL_UNITS: Record<string, string> = { 'km/h': 'kilometer-per-hour', 'mp/h': 'mile-per-hour', 'm/s': 'meter-per-second' };
+const INTL_UNITS: Record<string, string> = {
+  'km/h': 'kilometer-per-hour',
+  'mp/h': 'mile-per-hour',
+  'm/s': 'meter-per-second',
+};
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(initialLanguage);

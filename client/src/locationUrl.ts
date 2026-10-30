@@ -17,16 +17,80 @@ function round(value: number): string {
 
 /** Letters NFD does not split into a base letter and a mark, and two whole alphabets. */
 const LATIN: Record<string, string> = {
-  ł: 'l', đ: 'd', ß: 'ss', æ: 'ae', ø: 'o', œ: 'oe', ı: 'i', þ: 'th', ð: 'd',
+  ł: 'l',
+  đ: 'd',
+  ß: 'ss',
+  æ: 'ae',
+  ø: 'o',
+  œ: 'oe',
+  ı: 'i',
+  þ: 'th',
+  ð: 'd',
   // Russian, Ukrainian, Belarusian
-  а: 'a', б: 'b', в: 'v', г: 'g', ґ: 'g', д: 'd', е: 'e', ё: 'e', є: 'ye', ж: 'zh', з: 'z',
-  и: 'i', і: 'i', ї: 'yi', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r',
-  с: 's', т: 't', у: 'u', ў: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'shch',
-  ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya',
+  а: 'a',
+  б: 'b',
+  в: 'v',
+  г: 'g',
+  ґ: 'g',
+  д: 'd',
+  е: 'e',
+  ё: 'e',
+  є: 'ye',
+  ж: 'zh',
+  з: 'z',
+  и: 'i',
+  і: 'i',
+  ї: 'yi',
+  й: 'y',
+  к: 'k',
+  л: 'l',
+  м: 'm',
+  н: 'n',
+  о: 'o',
+  п: 'p',
+  р: 'r',
+  с: 's',
+  т: 't',
+  у: 'u',
+  ў: 'u',
+  ф: 'f',
+  х: 'kh',
+  ц: 'ts',
+  ч: 'ch',
+  ш: 'sh',
+  щ: 'shch',
+  ъ: '',
+  ы: 'y',
+  ь: '',
+  э: 'e',
+  ю: 'yu',
+  я: 'ya',
   // Greek
-  α: 'a', β: 'v', γ: 'g', δ: 'd', ε: 'e', ζ: 'z', η: 'i', θ: 'th', ι: 'i', κ: 'k', λ: 'l',
-  μ: 'm', ν: 'n', ξ: 'x', ο: 'o', π: 'p', ρ: 'r', σ: 's', ς: 's', τ: 't', υ: 'y', φ: 'f',
-  χ: 'ch', ψ: 'ps', ω: 'o',
+  α: 'a',
+  β: 'v',
+  γ: 'g',
+  δ: 'd',
+  ε: 'e',
+  ζ: 'z',
+  η: 'i',
+  θ: 'th',
+  ι: 'i',
+  κ: 'k',
+  λ: 'l',
+  μ: 'm',
+  ν: 'n',
+  ξ: 'x',
+  ο: 'o',
+  π: 'p',
+  ρ: 'r',
+  σ: 's',
+  ς: 's',
+  τ: 't',
+  υ: 'y',
+  φ: 'f',
+  χ: 'ch',
+  ψ: 'ps',
+  ω: 'o',
 };
 
 /**
@@ -36,20 +100,22 @@ const LATIN: Record<string, string> = {
  * slug for the English one ("warsaw") once it knows it.
  */
 export function slugify(name: string): string {
-  return name
-    .toLocaleLowerCase()
-    // The table first, on whole letters: decomposing first would turn "й" into "и" plus a
-    // mark and "ї" into "і" plus one, so Київ came out "kiiv", not "kyiv".
-    .normalize('NFC')
-    .replace(/./gu, (char) => LATIN[char] ?? char)
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    // And again on what accents leave: Greek "ά" is in no table, its "α" is.
-    .replace(/./gu, (char) => LATIN[char] ?? char)
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60)
-    .replace(/-+$/, '');
+  return (
+    name
+      .toLocaleLowerCase()
+      // The table first, on whole letters: decomposing first would turn "й" into "и" plus a
+      // mark and "ї" into "і" plus one, so Київ came out "kiiv", not "kyiv".
+      .normalize('NFC')
+      .replace(/./gu, (char) => LATIN[char] ?? char)
+      .normalize('NFD')
+      .replace(/\p{M}/gu, '')
+      // And again on what accents leave: Greek "ά" is in no table, its "α" is.
+      .replace(/./gu, (char) => LATIN[char] ?? char)
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60)
+      .replace(/-+$/, '')
+  );
 }
 
 /**

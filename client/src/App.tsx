@@ -25,11 +25,7 @@ export function App() {
             back was the browser's, and none at all after opening a shared city link. With the
             name it reads as the site's title: the icon alone, by the search, was taken for a
             control nobody knew the purpose of. */}
-        <Link
-          className="page__brand"
-          to="/"
-          aria-current={pathname === '/' ? 'page' : undefined}
-        >
+        <Link className="page__brand" to="/" aria-current={pathname === '/' ? 'page' : undefined}>
           {/* The icon as on the Home Screen after installing: the app's blue tile. */}
           <span className="page__badge" aria-hidden="true">
             <WeatherIcon icon="partly-cloudy" isDay size={22} />

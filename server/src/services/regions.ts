@@ -140,8 +140,7 @@ function ringDistanceKm([lon, lat]: Point, ring: Point[]): number {
 /** Inside, or within `km` of the edge. */
 export function polygonsNear(polygons: Polygon[], point: Point, km: number): boolean {
   return polygons.some(
-    (polygon) =>
-      polygonContains(polygon, point) || polygon.some((ring) => ringDistanceKm(point, ring) <= km),
+    (polygon) => polygonContains(polygon, point) || polygon.some((ring) => ringDistanceKm(point, ring) <= km),
   );
 }
 

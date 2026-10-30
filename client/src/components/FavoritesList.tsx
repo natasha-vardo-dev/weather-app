@@ -56,7 +56,11 @@ function FavoriteCard({
             <span className="fav-card__name" dir="auto">
               {name}
             </span>
-            {country && <span className="fav-card__country" dir="auto">{country}</span>}
+            {country && (
+              <span className="fav-card__country" dir="auto">
+                {country}
+              </span>
+            )}
           </span>
           {weather && <WeatherIcon icon={weather.icon} isDay={weather.isDay} size={32} />}
         </span>

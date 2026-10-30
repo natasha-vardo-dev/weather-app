@@ -37,7 +37,9 @@ describe('placePath', () => {
     expect(placePath({ latitude: 52.2497, longitude: 21.0522, name: 'Warsaw', country: 'Poland' })).toBe(
       '/weather/52.25,21.05?name=Warsaw&country=Poland',
     );
-    expect(placePath({ latitude: 50.06, longitude: 19.94, name: 'Kraków' })).toBe('/weather/50.06,19.94?name=Krak%C3%B3w');
+    expect(placePath({ latitude: 50.06, longitude: 19.94, name: 'Kraków' })).toBe(
+      '/weather/50.06,19.94?name=Krak%C3%B3w',
+    );
   });
 });
 

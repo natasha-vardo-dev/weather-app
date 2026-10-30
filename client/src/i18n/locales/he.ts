@@ -53,7 +53,8 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
     levels: { yellow: 'צהוב', orange: 'כתום', red: 'אדום' },
     once: 'התראה אחת לכל אזהרה. התראה שנסגרה לא חוזרת; רק רמה שעלתה תתריע שוב.',
     iosTitle: 'ב-iPhone האזהרות מגיעות לאפליקציה',
-    iosSteps: 'קודם הוסיפו את Weather למסך הבית: הקישו על {icon} ״שיתוף״ ואז על ״הוספה למסך הבית״. פתחו אותה משם והפעילו את האזהרות.',
+    iosSteps:
+      'קודם הוסיפו את Weather למסך הבית: הקישו על {icon} ״שיתוף״ ואז על ״הוספה למסך הבית״. פתחו אותה משם והפעילו את האזהרות.',
     blockedTitle: 'ההתראות חסומות',
     blockedText: 'כיביתם אותן לאתר הזה. כדי לקבל אזהרות, אפשרו התראות בהגדרות האתר בדפדפן וחזרו לכאן.',
     bannerWorks: 'פס האזהרות בדף הזה עובד בכל מקרה.',
@@ -112,7 +113,11 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
     sunset: 'שקיעה',
     pressure: 'לחץ אוויר',
     hPa: 'hPa',
-    pressureTrends: { rising: 'עולה ב־3 השעות הקרובות', falling: 'יורד ב־3 השעות הקרובות', steady: 'יציב ב־3 השעות הקרובות' },
+    pressureTrends: {
+      rising: 'עולה ב־3 השעות הקרובות',
+      falling: 'יורד ב־3 השעות הקרובות',
+      steady: 'יציב ב־3 השעות הקרובות',
+    },
     visibility: 'ראות',
     visibilityLevels: { fog: 'ערפל', poor: 'אובך', moderate: 'ראות בינונית', good: 'ראות טובה' },
     dewPoint: (d) => `נקודת טל ${d}`,

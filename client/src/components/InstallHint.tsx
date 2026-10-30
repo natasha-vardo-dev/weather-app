@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { useI18n } from '../i18n/I18nProvider';
-import {
-  currentPlatform,
-  dismissInstallHint,
-  isInstallHintDismissed,
-  shouldShowInstallHint,
-} from '../installHint';
+import { currentPlatform, dismissInstallHint, isInstallHintDismissed, shouldShowInstallHint } from '../installHint';
 
 /** The iOS Share icon (a box with an arrow up), so the step points at what to look for. */
 export function ShareIcon() {
   return (
-    <svg className="install-hint__share" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg
+      className="install-hint__share"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
       <path d="M12 3v11M8 6.5L12 3l4 3.5M8.5 10H6.5v10.5h11V10h-2" />
     </svg>
   );

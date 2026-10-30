@@ -1,9 +1,5 @@
-import {
-  DEFAULT_ALERT_NOTIFICATIONS,
-  TEMPERATURE_UNITS,
-  type TemperatureUnit,
-} from '@weather/shared';
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { DEFAULT_ALERT_NOTIFICATIONS, TEMPERATURE_UNITS, type TemperatureUnit } from '@weather/shared';
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useAlertOverview } from '../hooks/useAlertNotifications';
 import { useAlerts } from '../hooks/useAlerts';
@@ -201,7 +197,11 @@ export function SettingsMenu() {
               )}
             </>
           ) : view === 'alerts' ? (
-            <AlertsList rows={alertRows ?? alerts.places} back={() => backToMain('alerts')} onNavigate={() => close(false)} />
+            <AlertsList
+              rows={alertRows ?? alerts.places}
+              back={() => backToMain('alerts')}
+              onNavigate={() => close(false)}
+            />
           ) : (
             <LanguageList
               label={t.language}
@@ -370,6 +370,16 @@ function AlertsList({
   const [failed, setFailed] = useState(false);
   // Places MeteoAlarm does not cover, as the rows find out: the note on why shows only then.
   const [uncovered, setUncovered] = useState<ReadonlySet<string>>(new Set());
+  // Stable, because each row reports from an effect that depends on it.
+  const reportCoverage = useCallback((key: string, covered: boolean) => {
+    setUncovered((keys) => {
+      if (keys.has(key) === !covered) return keys;
+      const next = new Set(keys);
+      if (covered) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
   const backRef = useRef<HTMLButtonElement>(null);
 
   const current = (place: { latitude: number; longitude: number }) => places.find((p) => samePlace(p, place));
@@ -477,15 +487,7 @@ function AlertsList({
                 pending={pending}
                 onToggle={toggle}
                 onNavigate={onNavigate}
-                onCoverage={(key, covered) =>
-                  setUncovered((keys) => {
-                    if (keys.has(key) === !covered) return keys;
-                    const next = new Set(keys);
-                    if (covered) next.delete(key);
-                    else next.add(key);
-                    return next;
-                  })
-                }
+                onCoverage={reportCoverage}
               />
             ))}
           </ul>
@@ -533,7 +535,7 @@ function AlertListItem({
   const key = `${row.latitude},${row.longitude}`;
   useEffect(() => {
     if (covered !== undefined) onCoverage(key, covered);
-  }, [key, covered]);
+  }, [key, covered, onCoverage]);
   const switchable = usable && (on || covered === true);
   return (
     <li className="settings__row settings__row--static">

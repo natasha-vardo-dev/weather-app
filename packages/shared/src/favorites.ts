@@ -33,10 +33,7 @@ export function toggleFavorite(favorites: readonly Favorite[], place: Favorite):
   if (isFavorite(favorites, place)) return favorites.filter((f) => key(f) !== key(place));
   if (favorites.length >= MAX_FAVORITES) return [...favorites];
   const { latitude, longitude, name, country, id } = place;
-  return [
-    { latitude, longitude, name, ...(country ? { country } : {}), ...(id ? { id } : {}) },
-    ...favorites,
-  ];
+  return [{ latitude, longitude, name, ...(country ? { country } : {}), ...(id ? { id } : {}) }, ...favorites];
 }
 
 /**

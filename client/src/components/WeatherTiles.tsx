@@ -109,6 +109,7 @@ export function WeatherTiles({ forecast, airQuality }: Props) {
   const [open, setOpen] = useState<Detail | null>(null);
   const toggle = (detail: Detail) => setOpen((now) => (now === detail ? null : detail));
   const id = useId();
+  // The effect below builds the same id inline: this function is new on every render.
   const panelId = (detail: Detail) => `${id}-${detail}`;
 
   // Opening a panel below the bottom of the screen would look like nothing happened: bring
@@ -118,10 +119,12 @@ export function WeatherTiles({ forecast, airQuality }: Props) {
   useEffect(() => {
     if (open && !wasOpen.current) {
       const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-      document.getElementById(panelId(open))?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+      document
+        .getElementById(`${id}-${open}`)
+        ?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
     }
     wasOpen.current = open !== null;
-  }, [open]);
+  }, [open, id]);
 
   const hours = forecast.hourly;
   const next = t.hourly.title(hours.length);
@@ -169,9 +172,11 @@ export function WeatherTiles({ forecast, airQuality }: Props) {
   const plain = new Intl.NumberFormat(locale, { useGrouping: false, maximumFractionDigits: 0 });
   const hPa = (value: number) => `${plain.format(value)} ${t.tiles.hPa}`;
   const km = (metres: number) =>
-    new Intl.NumberFormat(locale, { style: 'unit', unit: 'kilometer', maximumFractionDigits: metres < 10_000 ? 1 : 0 }).format(
-      metres / 1000,
-    );
+    new Intl.NumberFormat(locale, {
+      style: 'unit',
+      unit: 'kilometer',
+      maximumFractionDigits: metres < 10_000 ? 1 : 0,
+    }).format(metres / 1000);
 
   const charts = [
     {
@@ -319,7 +324,12 @@ export function WeatherTiles({ forecast, airQuality }: Props) {
               note={
                 <>
                   <UvBar value={uv} />
-                  {protection ? t.tiles.uvProtect(protectionDay + clock(protection.from), protection.until ? clock(protection.until) : '…') : t.tiles.uvNone}
+                  {protection
+                    ? t.tiles.uvProtect(
+                        protectionDay + clock(protection.from),
+                        protection.until ? clock(protection.until) : '…',
+                      )
+                    : t.tiles.uvNone}
                 </>
               }
               opener={opener('uv', hasData(series.uv))}
@@ -364,7 +374,13 @@ export function WeatherTiles({ forecast, airQuality }: Props) {
         .filter((chart) => hasData(chart.values))
         .map(({ detail, ...chart }) => (
           // All panels exist (aria-controls must point at something); only the open one shows.
-          <section key={detail} id={panelId(detail)} className="detail-panel" aria-label={chart.title} hidden={open !== detail}>
+          <section
+            key={detail}
+            id={panelId(detail)}
+            className="detail-panel"
+            aria-label={chart.title}
+            hidden={open !== detail}
+          >
             <p className="detail-panel__title" aria-hidden="true">
               {chart.title}
             </p>

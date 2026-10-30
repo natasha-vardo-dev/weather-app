@@ -2,7 +2,13 @@ import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
 import { manageTopics, sendMessages } from '../src/providers/fcm.js';
-import type { AlertBroadcastSource, BroadcastWarning, ProviderAlert, PushMessage, PushSender } from '../src/providers/types.js';
+import type {
+  AlertBroadcastSource,
+  BroadcastWarning,
+  ProviderAlert,
+  PushMessage,
+  PushSender,
+} from '../src/providers/types.js';
 import { AlertNotifier, topicsForWarning } from '../src/services/alertNotifier.js';
 import { cellKey, cellsCovering } from '../src/services/regions.js';
 import { WeatherService } from '../src/services/weatherService.js';
@@ -28,7 +34,15 @@ function fakeSender() {
 type Full = ProviderAlert & { replaces: string[] };
 
 function alert(id: string, level: Full['level'], type: Full['type'] = 'wind', replaces: string[] = []): Full {
-  return { id, level, type, onset: '2026-10-28T10:00:00Z', expires: LATER, replaces, texts: [{ language: 'en-GB', event: 'Wind', headline: 'Orange wind warning' }] };
+  return {
+    id,
+    level,
+    type,
+    onset: '2026-10-28T10:00:00Z',
+    expires: LATER,
+    replaces,
+    texts: [{ language: 'en-GB', event: 'Wind', headline: 'Orange wind warning' }],
+  };
 }
 
 /** A source whose warnings (and which feeds could be read) can be changed between runs. */
@@ -49,7 +63,12 @@ function fakeSource(initial: [BroadcastWarning, Full][] = []) {
   return source;
 }
 
-const warning = (ref: string, areas = ['PL1261'], source = 'PL'): BroadcastWarning => ({ ref, source, expires: LATER, areas });
+const warning = (ref: string, areas = ['PL1261'], source = 'PL'): BroadcastWarning => ({
+  ref,
+  source,
+  expires: LATER,
+  areas,
+});
 
 describe('topicsForWarning', () => {
   it('reaches every minimum level it meets, and storm topics only for storms', () => {
@@ -65,7 +84,13 @@ describe('topicsForWarning', () => {
 
 describe('grid cells for drawn areas', () => {
   it('covers the cell of a place inside the area, even near its edge', () => {
-    const ring: [number, number][] = [[10.6, 59.8], [10.9, 59.8], [10.9, 60.0], [10.6, 60.0], [10.6, 59.8]];
+    const ring: [number, number][] = [
+      [10.6, 59.8],
+      [10.9, 59.8],
+      [10.9, 60.0],
+      [10.6, 60.0],
+      [10.6, 59.8],
+    ];
     const cells = cellsCovering([[ring]]);
     expect(cells).toContain(cellKey(59.91, 10.75)); // Oslo
     expect(cells).toContain(cellKey(59.99, 10.89));
@@ -87,7 +112,9 @@ describe('AlertNotifier', () => {
     ]);
     expect(await notifier.run()).toMatchObject({ warmUp: false, notified: 1, messages: 6 });
     expect(sender.sent[0]!.data).toMatchObject({ key: 'B', level: 'red', type: 'thunderstorm' });
-    expect(JSON.parse(sender.sent[0]!.data.texts!)).toEqual({ 'en-GB': { event: 'Wind', headline: 'Orange wind warning' } });
+    expect(JSON.parse(sender.sent[0]!.data.texts!)).toEqual({
+      'en-GB': { event: 'Wind', headline: 'Orange wind warning' },
+    });
 
     expect(await notifier.run()).toMatchObject({ notified: 0, messages: 0 });
   });
@@ -181,10 +208,12 @@ describe('AlertNotifier when parts fail', () => {
 
 describe('sendMessages', () => {
   const message: PushMessage = { topic: 'PL1261.all.yellow', data: { key: 'A' }, ttlSeconds: 60 };
-  const answer = (...codes: (string | null)[]) => async () => ({
-    successCount: codes.filter((c) => c === null).length,
-    responses: codes.map((code) => (code ? { success: false, error: { code, message: 'x' } } : { success: true })),
-  });
+  const answer =
+    (...codes: (string | null)[]) =>
+    async () => ({
+      successCount: codes.filter((c) => c === null).length,
+      responses: codes.map((code) => (code ? { success: false, error: { code, message: 'x' } } : { success: true })),
+    });
 
   it('counts the accepted messages', async () => {
     expect(await sendMessages([message, message], answer(null, null))).toBe(2);
@@ -192,7 +221,9 @@ describe('sendMessages', () => {
 
   it('fails on a transient rejection, so the warning is retried, even though sendEach resolved', async () => {
     await expect(sendMessages([message], answer('messaging/server-unavailable'))).rejects.toBeInstanceOf(Error);
-    await expect(sendMessages([message, message], answer(null, 'messaging/quota-exceeded'))).rejects.toBeInstanceOf(Error);
+    await expect(sendMessages([message, message], answer(null, 'messaging/quota-exceeded'))).rejects.toBeInstanceOf(
+      Error,
+    );
     // A lost connection: firebase-admin reports it per message, not by throwing.
     await expect(sendMessages([message], answer('app/network-error'))).rejects.toBeInstanceOf(Error);
     await expect(sendMessages([message], answer('app/network-timeout'))).rejects.toBeInstanceOf(Error);
@@ -231,7 +262,14 @@ describe('push routes', () => {
       }),
     };
   }
-  const body = { token: 'x'.repeat(40), latitude: 50.06, longitude: 19.94, group: 'storm', level: 'orange', subscribe: true };
+  const body = {
+    token: 'x'.repeat(40),
+    latitude: 50.06,
+    longitude: 19.94,
+    group: 'storm',
+    level: 'orange',
+    subscribe: true,
+  };
 
   it('subscribes a device to its areas, never cached', async () => {
     const { app: server, sender } = app();
@@ -244,15 +282,25 @@ describe('push routes', () => {
 
   it('unsubscribes the same topics, and validates the request', async () => {
     const { app: server, sender } = app();
-    await request(server).post('/api/push/topics').send({ ...body, subscribe: false });
+    await request(server)
+      .post('/api/push/topics')
+      .send({ ...body, subscribe: false });
     expect(sender.unsubscribe).toHaveBeenCalledWith(body.token, ['PL1261.storm.orange']);
-    expect((await request(server).post('/api/push/topics').send({ ...body, level: 'green' })).status).toBe(400);
+    expect(
+      (
+        await request(server)
+          .post('/api/push/topics')
+          .send({ ...body, level: 'green' })
+      ).status,
+    ).toBe(400);
   });
 
   it('runs the check only with the secret', async () => {
     const { app: server } = app();
     expect((await request(server).post('/api/internal/alerts/notify')).status).toBe(404);
-    const res = await request(server).post('/api/internal/alerts/notify').set('Authorization', 'Bearer secret-1234567890');
+    const res = await request(server)
+      .post('/api/internal/alerts/notify')
+      .set('Authorization', 'Bearer secret-1234567890');
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ warmUp: true });
   });

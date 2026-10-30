@@ -35,7 +35,9 @@ function formatTime(iso, locale, timeZone) {
   const instant = Date.parse(iso);
   if (!Number.isFinite(instant)) return '';
   try {
-    return new Intl.DateTimeFormat(locale, { weekday: 'short', hour: 'numeric', minute: '2-digit', timeZone }).format(instant);
+    return new Intl.DateTimeFormat(locale, { weekday: 'short', hour: 'numeric', minute: '2-digit', timeZone }).format(
+      instant,
+    );
   } catch {
     return new Intl.DateTimeFormat(locale, { weekday: 'short', hour: 'numeric', minute: '2-digit' }).format(instant);
   }

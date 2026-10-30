@@ -20,14 +20,12 @@ interface Props {
 export function CurrentWeather({ name, country, area = [], forecast, actions, here }: Props) {
   const { t, deg } = useI18n();
   const { temp } = useUnits();
-  const { current, units } = forecast;
+  const { current } = forecast;
   const label = t.conditions[describeWeather(current.weatherCode).condition];
   const today = forecast.daily[0];
   // Compared in the chosen unit, so the difference reads in that unit too (2 °C apart is 4 °F).
   const trend =
-    today && forecast.yesterday
-      ? compareWithYesterday(temp(today.tempMax), temp(forecast.yesterday.tempMax))
-      : null;
+    today && forecast.yesterday ? compareWithYesterday(temp(today.tempMax), temp(forecast.yesterday.tempMax)) : null;
   const headingRef = useRef<HTMLHeadingElement>(null);
   const hereMark = here && (
     <span className={here === 'approximate' ? 'now__here now__here--approximate' : 'now__here'}>
@@ -55,7 +53,12 @@ export function CurrentWeather({ name, country, area = [], forecast, actions, he
           {(country || here) && (
             <span className="now__sub">
               {country && <span className="now__country">{country}</span>}
-              {country && here && <span className="now__sep" aria-hidden="true"> · </span>}
+              {country && here && (
+                <span className="now__sep" aria-hidden="true">
+                  {' '}
+                  ·{' '}
+                </span>
+              )}
               {here && hereMark}
             </span>
           )}
@@ -102,9 +105,7 @@ export function CurrentWeather({ name, country, area = [], forecast, actions, he
       </p>
       {trend && (
         <p className="now__trend">
-          {trend.trend === 'same'
-            ? t.current.same
-            : t.current[trend.trend](trend.difference)}
+          {trend.trend === 'same' ? t.current.same : t.current[trend.trend](trend.difference)}
         </p>
       )}
     </section>

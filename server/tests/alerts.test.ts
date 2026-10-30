@@ -30,13 +30,22 @@ function square(code: string, lat: number, lon: number): Region {
     [lon - 0.1, lat + 0.1],
     [lon - 0.1, lat - 0.1],
   ];
-  return { code, country: code.slice(0, 2), name: code, bbox: [lon - 0.1, lat - 0.1, lon + 0.1, lat + 0.1], polygons: [[ring]] };
+  return {
+    code,
+    country: code.slice(0, 2),
+    name: code,
+    bbox: [lon - 0.1, lat - 0.1, lon + 0.1, lat + 0.1],
+    polygons: [[ring]],
+  };
 }
 
 // Węgorzewo county (PL2819) with fog in the fixture; the central coastal zone (PL804) with expired wind.
 const WEGORZEWO = { lat: 54.21, lon: 21.74 };
 const COAST = { lat: 54.6, lon: 17.0 };
-const regions = new RegionIndex([square('PL2819', WEGORZEWO.lat, WEGORZEWO.lon), square('PL804', COAST.lat, COAST.lon)]);
+const regions = new RegionIndex([
+  square('PL2819', WEGORZEWO.lat, WEGORZEWO.lon),
+  square('PL804', COAST.lat, COAST.lon),
+]);
 
 function fakeFetch(overrides: Record<string, () => Response> = {}) {
   return vi.fn(async (url: string | URL) => {
@@ -62,8 +71,20 @@ function provider(fetchFn = fakeFetch(), now = () => NOW, index = regions) {
 }
 
 describe('region geometry', () => {
-  const ring: [number, number][] = [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]];
-  const hole: [number, number][] = [[4, 4], [6, 4], [6, 6], [4, 6], [4, 4]];
+  const ring: [number, number][] = [
+    [0, 0],
+    [10, 0],
+    [10, 10],
+    [0, 10],
+    [0, 0],
+  ];
+  const hole: [number, number][] = [
+    [4, 4],
+    [6, 4],
+    [6, 6],
+    [4, 6],
+    [4, 4],
+  ];
 
   it('tells inside from outside, holes included', () => {
     expect(polygonContains([ring, hole], [2, 2])).toBe(true);
@@ -72,7 +93,13 @@ describe('region geometry', () => {
   });
 
   it('counts a place just outside a border as near (rounded places, simplified borders)', () => {
-    const county: [number, number][] = [[21, 54], [21.5, 54], [21.5, 54.5], [21, 54.5], [21, 54]];
+    const county: [number, number][] = [
+      [21, 54],
+      [21.5, 54],
+      [21.5, 54.5],
+      [21, 54.5],
+      [21, 54],
+    ];
     expect(polygonsNear([[county]], [21.51, 54.25], 1.5)).toBe(true); // ~650 m east
     expect(polygonsNear([[county]], [21.6, 54.25], 1.5)).toBe(false); // ~6.5 km east
   });
@@ -103,7 +130,9 @@ describe('MeteoAlarm parsing', () => {
     const noOnset = fogCap.replace(/<onset>.*?<\/onset>/g, '');
     expect(parseCap(noOnset, entry)!.onset).toBe('2026-10-27T11:22:00+01:00'); // effective
     const noOnsetNorEffective = noOnset.replace(/<effective>.*?<\/effective>/g, '');
-    expect(parseCap(noOnsetNorEffective, { ...entry, onset: '2026-10-27T10:00:00Z' })!.onset).toBe('2026-10-27T10:00:00Z');
+    expect(parseCap(noOnsetNorEffective, { ...entry, onset: '2026-10-27T10:00:00Z' })!.onset).toBe(
+      '2026-10-27T10:00:00Z',
+    );
     expect(parseCap(noOnsetNorEffective, entry)!.onset).toBe('2026-10-27T11:22:00+01:00'); // sent
   });
 
@@ -120,7 +149,11 @@ describe('MeteoAlarmProvider', () => {
   it('finds the warnings of the region the place is in', async () => {
     const alerts = await provider().getAlerts(WEGORZEWO.lat, WEGORZEWO.lon);
     expect(alerts).toHaveLength(1);
-    expect(alerts[0]).toMatchObject({ level: 'yellow', type: 'fog', id: '2.49.0.0.616.0.PL.Sk20261027102244306.PL2819' });
+    expect(alerts[0]).toMatchObject({
+      level: 'yellow',
+      type: 'fog',
+      id: '2.49.0.0.616.0.PL.Sk20261027102244306.PL2819',
+    });
   });
 
   it('reaches a seaside town that coarse coasts put "in the sea", only when no region is near', async () => {
@@ -166,7 +199,9 @@ describe('MeteoAlarmProvider', () => {
 
   it('does not keep a failed feed: the next request tries again', async () => {
     let fail = true;
-    const fetchFn = fakeFetch({ 'legacy-atom-poland': () => (fail ? new Response('down', { status: 503 }) : new Response(polandFeed)) });
+    const fetchFn = fakeFetch({
+      'legacy-atom-poland': () => (fail ? new Response('down', { status: 503 }) : new Response(polandFeed)),
+    });
     const p = provider(fetchFn);
     await expect(p.getAlerts(WEGORZEWO.lat, WEGORZEWO.lon)).rejects.toBeInstanceOf(ProviderError);
     fail = false;
@@ -186,9 +221,9 @@ describe('MeteoAlarmProvider', () => {
 
     it("fails when the place's own country feed fails", async () => {
       const fetchFn = fakeFetch({ 'legacy-atom-finland': down });
-      await expect(provider(fetchFn, () => NOW, withFinland).getAlerts(HELSINKI.lat, HELSINKI.lon)).rejects.toBeInstanceOf(
-        ProviderError,
-      );
+      await expect(
+        provider(fetchFn, () => NOW, withFinland).getAlerts(HELSINKI.lat, HELSINKI.lon),
+      ).rejects.toBeInstanceOf(ProviderError);
     });
 
     it('fails for a border town whose own feed is only guessed, though a neighbour is near', async () => {
@@ -220,12 +255,16 @@ describe('MeteoAlarmProvider', () => {
   it('still shows a warning whose full text failed to load, from the feed summary', async () => {
     const fetchFn = fakeFetch({ '6b0b72c3': () => new Response('down', { status: 500 }) });
     const [alert] = await provider(fetchFn).getAlerts(WEGORZEWO.lat, WEGORZEWO.lon);
-    expect(alert).toMatchObject({ level: 'yellow', type: 'other', texts: [{ language: 'en', event: 'Yellow Fog warning' }] });
+    expect(alert).toMatchObject({
+      level: 'yellow',
+      type: 'other',
+      texts: [{ language: 'en', event: 'Yellow Fog warning' }],
+    });
   });
 });
 
 describe('MeteoAlarmProvider for push', () => {
-  it('names a place\'s areas: its regions, plus its grid cell where countries draw areas', async () => {
+  it("names a place's areas: its regions, plus its grid cell where countries draw areas", async () => {
     expect(await provider().areasAt(WEGORZEWO.lat, WEGORZEWO.lon)).toEqual(['PL2819']);
     expect(await provider().areasAt(59.91, 10.75)).toEqual([cellKey(59.91, 10.75)]); // Oslo
   });
@@ -287,7 +326,12 @@ describe('AlertService', () => {
 
   it('sorts by severity, drops expired ones and credits the source only when there are warnings', async () => {
     const alert = (id: string, level: ProviderAlert['level'], expires: string): ProviderAlert => ({
-      id, level, type: 'wind', onset: '2026-10-27T10:00:00Z', expires, texts,
+      id,
+      level,
+      type: 'wind',
+      onset: '2026-10-27T10:00:00Z',
+      expires,
+      texts,
     });
     const fake: AlertsProvider = {
       attribution: { name: 'Source', url: 'https://example.org' },
@@ -299,7 +343,10 @@ describe('AlertService', () => {
       covers: async () => true,
     };
     const result = await new AlertService(fake, () => NOW).getAlerts(54, 21, 'pl');
-    expect(result.alerts.map((a) => [a.id, a.event])).toEqual([['b', 'Żółty alert'], ['a', 'Żółty alert']]);
+    expect(result.alerts.map((a) => [a.id, a.event])).toEqual([
+      ['b', 'Żółty alert'],
+      ['a', 'Żółty alert'],
+    ]);
     expect(result.attribution).toEqual(fake.attribution);
 
     const none = await new AlertService({ ...fake, getAlerts: async () => [] }, () => NOW).getAlerts(54, 21, 'pl');
@@ -311,7 +358,14 @@ describe('AlertService', () => {
 
 describe('GET /api/alerts', () => {
   function app(alerts: AlertsProvider) {
-    return createApp(new WeatherService(createFakeProvider()), [], undefined, undefined, false, new AlertService(alerts, () => NOW));
+    return createApp(
+      new WeatherService(createFakeProvider()),
+      [],
+      undefined,
+      undefined,
+      false,
+      new AlertService(alerts, () => NOW),
+    );
   }
 
   it('returns warnings for a place, cached briefly (delivery deadlines)', async () => {

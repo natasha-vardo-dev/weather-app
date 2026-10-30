@@ -12,8 +12,7 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
   offline: 'Je bent offline. De laatst geladen verwachting wordt getoond, die mogelijk verouderd is.',
   home: {
     title: 'Wat voor weer is het waar je heen gaat?',
-    text: (days) =>
-      `Zoek een stad om het huidige weer en de verwachting voor ${num(days)} dagen te zien.`,
+    text: (days) => `Zoek een stad om het huidige weer en de verwachting voor ${num(days)} dagen te zien.`,
   },
   alerts: {
     title: 'Weerwaarschuwingen',
@@ -54,21 +53,25 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     levels: { yellow: 'Geel', orange: 'Oranje', red: 'Rood' },
     once: 'Eén melding per waarschuwing. Een gesloten melding komt niet terug; alleen een hoger niveau meldt opnieuw.',
     iosTitle: 'Op iPhone komen waarschuwingen in de app',
-    iosSteps: 'Zet Weather eerst op je beginscherm: tik op {icon} ‘Deel’ en daarna op ‘Zet op beginscherm’. Open hem van daaruit en zet waarschuwingen aan.',
+    iosSteps:
+      'Zet Weather eerst op je beginscherm: tik op {icon} ‘Deel’ en daarna op ‘Zet op beginscherm’. Open hem van daaruit en zet waarschuwingen aan.',
     blockedTitle: 'Meldingen zijn geblokkeerd',
-    blockedText: 'Je hebt ze voor deze site uitgezet. Sta meldingen toe in de site-instellingen van de browser en kom dan hier terug.',
+    blockedText:
+      'Je hebt ze voor deze site uitgezet. Sta meldingen toe in de site-instellingen van de browser en kom dan hier terug.',
     bannerWorks: 'De waarschuwingsbalk op deze pagina werkt hoe dan ook.',
     failed: 'Meldingen konden niet worden gewijzigd. Probeer het opnieuw.',
     unavailable: 'Meldingen werken alleen in de geïnstalleerde versie van de app.',
     cities: (n) => plural(n, { one: '{n} stad', other: '{n} steden' }),
     off: 'Uit',
-    noneOn: 'Meldingen staan voor geen enkele stad aan. Open een stad en tik op de bel naast de naam om officiële weerwaarschuwingen te krijgen.',
+    noneOn:
+      'Meldingen staan voor geen enkele stad aan. Open een stad en tik op de bel naast de naam om officiële weerwaarschuwingen te krijgen.',
     leavesOnClose: 'Uitgeschakelde steden verdwijnen uit de lijst als je het menu sluit.',
     placeLeavesOnClose: (place) => `${place} verdwijnt uit de lijst als je het menu sluit.`,
     listRule: 'Favoriete steden {star} staan altijd in de lijst, andere alleen zolang hun meldingen aan staan.',
     howToConfigure: 'Tik op de naam van een stad en daarna op de bel {icon} om de waarschuwingen in te stellen.',
     uncovered: 'Geen gegevens van MeteoAlarm',
-    meteoAlarmOnly: 'Waarschuwingen zijn er alleen voor MeteoAlarm-landen (Europa, behalve Belarus, Rusland en enkele andere).',
+    meteoAlarmOnly:
+      'Waarschuwingen zijn er alleen voor MeteoAlarm-landen (Europa, behalve Belarus, Rusland en enkele andere).',
   },
   installHint: {
     title: 'Zet op je beginscherm',
@@ -113,7 +116,11 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     sunset: 'Zonsondergang',
     pressure: 'Luchtdruk',
     hPa: 'hPa',
-    pressureTrends: { rising: 'Stijgend de komende 3 uur', falling: 'Dalend de komende 3 uur', steady: 'Stabiel de komende 3 uur' },
+    pressureTrends: {
+      rising: 'Stijgend de komende 3 uur',
+      falling: 'Dalend de komende 3 uur',
+      steady: 'Stabiel de komende 3 uur',
+    },
     visibility: 'Zicht',
     visibilityLevels: { fog: 'Mist', poor: 'Nevel', moderate: 'Matig zicht', good: 'Goed zicht' },
     dewPoint: (d) => `Dauwpunt ${d}`,

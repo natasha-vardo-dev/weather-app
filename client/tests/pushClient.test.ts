@@ -17,8 +17,20 @@ vi.mock('firebase/messaging', () => ({
 }));
 
 const setAlertTopics = vi.mocked(api.setAlertTopics);
-const KRAKOW = { latitude: 50.06, longitude: 19.94, name: 'Kraków', url: '/weather/50.06,19.94', timeZone: 'Europe/Warsaw' };
-const WARSAW = { latitude: 52.23, longitude: 21.01, name: 'Warsaw', url: '/weather/52.23,21.01', timeZone: 'Europe/Warsaw' };
+const KRAKOW = {
+  latitude: 50.06,
+  longitude: 19.94,
+  name: 'Kraków',
+  url: '/weather/50.06,19.94',
+  timeZone: 'Europe/Warsaw',
+};
+const WARSAW = {
+  latitude: 52.23,
+  longitude: 21.01,
+  name: 'Warsaw',
+  url: '/weather/52.23,21.01',
+  timeZone: 'Europe/Warsaw',
+};
 
 function stored(tokenValue: string, places: object[]) {
   localStorage.setItem(ALERT_SUBSCRIPTIONS_KEY, JSON.stringify({ token: tokenValue, places }));

@@ -23,13 +23,13 @@ A web application that shows the current weather and a 10-day forecast for a sel
 
 ## Tech stack
 
-| Layer    | Technology                       |
-|----------|----------------------------------|
-| Frontend | React 18, TypeScript, Vite       |
-| Backend  | Node.js, Express, TypeScript, Zod |
-| Weather  | Open-Meteo (forecast + geocoding) |
-| Testing  | Vitest, Supertest                |
-| CI       | GitHub Actions                   |
+| Layer    | Technology                                            |
+| -------- | ----------------------------------------------------- |
+| Frontend | React 18, TypeScript, Vite                            |
+| Backend  | Node.js, Express, TypeScript, Zod                     |
+| Weather  | Open-Meteo (forecast + geocoding)                     |
+| Testing  | Vitest, Supertest, ESLint, Prettier                   |
+| CI       | GitHub Actions (format, lint, typecheck, test, build) |
 
 ## Architecture
 
@@ -78,24 +78,26 @@ Notifications need the production build (the service worker is off in `npm run d
 
 ```bash
 npm test           # all tests
+npm run lint       # ESLint, including React hook rules
+npm run format     # Prettier (CI runs format:check)
 npm run typecheck  # TypeScript checks
 npm run build      # production build
 ```
 
 ## API
 
-| Method | Endpoint                                 | Description            |
-|--------|------------------------------------------|------------------------|
-| GET    | `/api/locations?q=warsaw&limit=5`        | Search cities          |
-| GET    | `/api/locations/756135?lang=ru`          | One place by id, names in a language |
-| GET    | `/api/forecast?lat=52.23&lon=21.01&days=10` | Current weather, next 24 hours, yesterday and daily forecast |
-| GET    | `/api/air-quality?lat=52.23&lon=21.01`   | Current air quality (European and US AQI) |
-| GET    | `/api/alerts?lat=54.21&lon=21.74&lang=pl` | Official weather warnings in force or announced at a place (Europe, MeteoAlarm), texts in the language where the issuer has it |
-| GET    | `/api/places/approximate?lang=ru` | The user's city guessed from their IP address (fallback when the browser can't locate them); never cached |
-| GET    | `/api/places/reverse?lat=52.25&lon=21.05&lang=ru` | The place at the user's location: the city with its coordinates and id (as from search), named via OpenStreetMap Nominatim |
-| POST   | `/api/push/topics` | Subscribe or unsubscribe a device's push token to warnings for a place (only with Firebase configured) |
-| POST   | `/api/internal/alerts/notify` | Push new warnings; called every 5 minutes by an external scheduler, needs `Authorization: Bearer <ALERTS_NOTIFY_SECRET>` |
-| GET    | `/api/health`                            | Health check           |
+| Method | Endpoint                                          | Description                                                                                                                    |
+| ------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/api/locations?q=warsaw&limit=5`                 | Search cities                                                                                                                  |
+| GET    | `/api/locations/756135?lang=ru`                   | One place by id, names in a language                                                                                           |
+| GET    | `/api/forecast?lat=52.23&lon=21.01&days=10`       | Current weather, next 24 hours, yesterday and daily forecast                                                                   |
+| GET    | `/api/air-quality?lat=52.23&lon=21.01`            | Current air quality (European and US AQI)                                                                                      |
+| GET    | `/api/alerts?lat=54.21&lon=21.74&lang=pl`         | Official weather warnings in force or announced at a place (Europe, MeteoAlarm), texts in the language where the issuer has it |
+| GET    | `/api/places/approximate?lang=ru`                 | The user's city guessed from their IP address (fallback when the browser can't locate them); never cached                      |
+| GET    | `/api/places/reverse?lat=52.25&lon=21.05&lang=ru` | The place at the user's location: the city with its coordinates and id (as from search), named via OpenStreetMap Nominatim     |
+| POST   | `/api/push/topics`                                | Subscribe or unsubscribe a device's push token to warnings for a place (only with Firebase configured)                         |
+| POST   | `/api/internal/alerts/notify`                     | Push new warnings; called every 5 minutes by an external scheduler, needs `Authorization: Bearer <ALERTS_NOTIFY_SECRET>`       |
+| GET    | `/api/health`                                     | Health check                                                                                                                   |
 
 Errors use one format: `{ "error": { "code": "INVALID_REQUEST", "message": "..." } }`.
 
@@ -127,5 +129,5 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 ## What I would do next
 
 - [Wind unit setting; accounts so favourites sync between devices]
-- [ESLint, component and e2e tests with Playwright]
+- [Component and e2e tests with Playwright; React 19 with the React Compiler and its lint rules]
 - [Redis cache and rate limiting, monitoring]

@@ -1,4 +1,11 @@
-import { ALERT_LEVELS, STORM_TYPES, type AlertGroup, type AlertLevel, type AlertPushData, type AlertType } from '@weather/shared';
+import {
+  ALERT_LEVELS,
+  STORM_TYPES,
+  type AlertGroup,
+  type AlertLevel,
+  type AlertPushData,
+  type AlertType,
+} from '@weather/shared';
 import { ProviderError } from '../errors.js';
 import type { AlertBroadcastSource, PushMessage, PushSender } from '../providers/types.js';
 
@@ -127,9 +134,11 @@ export class AlertNotifier {
         ),
       };
       const ttlSeconds = Math.max(60, Math.round((expiresAt - now) / 1000));
-      const batch = topicsForWarning(warning.areas, alert.type, alert.level).map(
-        (topic): PushMessage => ({ topic, data: { ...data }, ttlSeconds }),
-      );
+      const batch = topicsForWarning(warning.areas, alert.type, alert.level).map((topic): PushMessage => ({
+        topic,
+        data: { ...data },
+        ttlSeconds,
+      }));
       // One warning at a time, recorded only once sent: a failure leaves just this warning
       // to retry, and never repeats the ones already pushed.
       try {

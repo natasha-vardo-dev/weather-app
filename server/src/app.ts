@@ -70,9 +70,7 @@ export function createApp(
       console.warn(`${req.method} ${req.originalUrl} -> provider error: ${err.detail ?? 'unknown'}`);
     }
     if (err instanceof ZodError) {
-      res
-        .status(400)
-        .json(errorBody(ERROR_CODES.INVALID_REQUEST, err.issues[0]?.message ?? 'Invalid request.'));
+      res.status(400).json(errorBody(ERROR_CODES.INVALID_REQUEST, err.issues[0]?.message ?? 'Invalid request.'));
       return;
     }
     if (err instanceof AppError) {

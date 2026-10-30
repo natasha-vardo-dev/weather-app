@@ -59,11 +59,15 @@
   }
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 /* Always reserve the scrollbar's space, so content width does not jump when a page
    briefly gets shorter or longer than the window. */
-html { scrollbar-gutter: stable; }
+html {
+  scrollbar-gutter: stable;
+}
 
 body {
   margin: 0;
@@ -96,7 +100,9 @@ body {
   gap: 2rem;
 }
 
-.page__main { flex: 1; }
+.page__main {
+  flex: 1;
+}
 
 .offline-banner {
   margin: 0 0 1.5rem;
@@ -112,12 +118,21 @@ body {
   color: var(--ink-soft);
 }
 
-.page__footer a { color: inherit; }
+.page__footer a {
+  color: inherit;
+}
 
 /* Header: search and settings */
 /* Header: the app's name on top, then search and settings. */
-.page__bar { display: flex; gap: 0.75rem; align-items: stretch; }
-.page__bar > .search { flex: 1; min-width: 0; }
+.page__bar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+.page__bar > .search {
+  flex: 1;
+  min-width: 0;
+}
 /* The logo: the app icon on its blue tile, as on the Home Screen, and the short name.
    Links to the start page. */
 .page__brand {
@@ -136,11 +151,25 @@ body {
 }
 /* Hover lights it up instead of underlining: a step softer at rest, full white on hover, and
    the tile a little brighter. */
-.page__brand:hover { color: #fff; }
-.page__brand:hover .page__badge { filter: brightness(1.15); }
-.page__badge { transition: filter 0.15s; }
-@media (prefers-reduced-motion: reduce) { .page__brand, .page__badge { transition: none; } }
-.page__brand:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+.page__brand:hover {
+  color: #fff;
+}
+.page__brand:hover .page__badge {
+  filter: brightness(1.15);
+}
+.page__badge {
+  transition: filter 0.15s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page__brand,
+  .page__badge {
+    transition: none;
+  }
+}
+.page__brand:focus-visible {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
 .page__badge {
   display: inline-flex;
   align-items: center;
@@ -155,7 +184,11 @@ body {
    one line on a phone too. The panel opens below it, from the end side. */
 /* Square: as wide as the search field is tall (its 1.1rem text at line-height 1.5, 0.8rem
    padding above and below, 1px borders). aspect-ratio would not size a stretched flex item. */
-.settings { position: relative; flex: none; width: calc(1.1rem * 1.5 + 1.6rem + 2px); }
+.settings {
+  position: relative;
+  flex: none;
+  width: calc(1.1rem * 1.5 + 1.6rem + 2px);
+}
 
 .settings__button {
   display: flex;
@@ -170,8 +203,16 @@ body {
   color: var(--field-ink);
   cursor: pointer;
 }
-.settings__button[aria-expanded='true'] { background: var(--field-active); }
-.settings__gear { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.settings__button[aria-expanded='true'] {
+  background: var(--field-active);
+}
+.settings__gear {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
 .settings__panel {
   position: absolute;
@@ -187,7 +228,8 @@ body {
   border-radius: 0.75rem;
 }
 
-.settings__row, .settings__back {
+.settings__row,
+.settings__back {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -202,18 +244,45 @@ body {
   font: inherit;
   text-align: start;
 }
-button.settings__row, .settings__back { cursor: pointer; }
-button.settings__row:hover, .settings__back:hover { background: var(--field-active); }
-.settings__row + .settings__row { border-top: 1px solid var(--field-line); border-radius: 0; }
+button.settings__row,
+.settings__back {
+  cursor: pointer;
+}
+button.settings__row:hover,
+.settings__back:hover {
+  background: var(--field-active);
+}
+.settings__row + .settings__row {
+  border-top: 1px solid var(--field-line);
+  border-radius: 0;
+}
 
-.settings__value { display: flex; align-items: center; gap: 0.35rem; color: var(--field-ink-soft); }
+.settings__value {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--field-ink-soft);
+}
 /* The down arrow turned to point onwards (right, or left in right-to-left) and back. */
-.settings__forward { transform: rotate(-90deg); }
-.settings__backward { transform: rotate(90deg); }
-[dir='rtl'] .settings__forward { transform: rotate(90deg); }
-[dir='rtl'] .settings__backward { transform: rotate(-90deg); }
+.settings__forward {
+  transform: rotate(-90deg);
+}
+.settings__backward {
+  transform: rotate(90deg);
+}
+[dir='rtl'] .settings__forward {
+  transform: rotate(90deg);
+}
+[dir='rtl'] .settings__backward {
+  transform: rotate(-90deg);
+}
 
-.settings__units { display: inline-flex; border: 1px solid var(--field-line); border-radius: 0.5rem; overflow: hidden; }
+.settings__units {
+  display: inline-flex;
+  border: 1px solid var(--field-line);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
 .settings__unit {
   min-width: 2.75rem;
   min-height: 2rem;
@@ -224,32 +293,96 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   font: inherit;
   cursor: pointer;
 }
-.settings__unit[aria-pressed='true'] { background: var(--field-active); font-weight: 600; }
+.settings__unit[aria-pressed='true'] {
+  background: var(--field-active);
+  font-weight: 600;
+}
 
-.settings__back { justify-content: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--field-line); border-radius: 0.5rem 0.5rem 0 0; font-weight: 600; }
+.settings__back {
+  justify-content: flex-start;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--field-line);
+  border-radius: 0.5rem 0.5rem 0 0;
+  font-weight: 600;
+}
 
 /* Warnings: places with notifications on, each with a switch. */
-.settings__alerts { margin: 0.25rem 0 0; padding: 0; list-style: none; max-height: min(20rem, 60vh); overflow-y: auto; }
-.settings__alerts > .settings__row + .settings__row { border-top: 1px solid var(--field-line); border-radius: 0; }
-.settings__place { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
-.settings__place--off { color: var(--field-ink-soft); }
-.settings__summary { font-size: 0.8rem; color: var(--field-ink-soft); }
+.settings__alerts {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: min(20rem, 60vh);
+  overflow-y: auto;
+}
+.settings__alerts > .settings__row + .settings__row {
+  border-top: 1px solid var(--field-line);
+  border-radius: 0;
+}
+.settings__place {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.settings__place--off {
+  color: var(--field-ink-soft);
+}
+.settings__summary {
+  font-size: 0.8rem;
+  color: var(--field-ink-soft);
+}
 /* The name opens the city's page (its bell sets which warnings come): underlined as a link. */
-.settings__link { color: inherit; text-decoration: underline; text-decoration-color: var(--field-line); text-underline-offset: 0.2em; }
-.settings__link:hover { text-decoration-color: currentColor; }
+.settings__link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--field-line);
+  text-underline-offset: 0.2em;
+}
+.settings__link:hover {
+  text-decoration-color: currentColor;
+}
 /* Yellow fill, outlined: plain yellow is too faint on the white panel of the light theme. */
-.settings__star { fill: var(--sun); stroke: var(--field-ink-soft); stroke-width: 1.5; stroke-linejoin: round; margin-inline-end: 0.3rem; vertical-align: -0.1em; }
+.settings__star {
+  fill: var(--sun);
+  stroke: var(--field-ink-soft);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  margin-inline-end: 0.3rem;
+  vertical-align: -0.1em;
+}
 /* Above the list: which cities it shows, and where a city's warnings are set. */
-.settings__intro { margin: 0.35rem 0.6rem 0.25rem; font-size: 0.8rem; line-height: 1.45; color: var(--field-ink-soft); }
-.settings__intro p { margin: 0; }
-.settings__intro p + p { margin-top: 0.3rem; }
-.settings__intro .bell__icon { vertical-align: -0.15em; }
-.settings__intro .settings__star { margin-inline-end: 0; }
+.settings__intro {
+  margin: 0.35rem 0.6rem 0.25rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--field-ink-soft);
+}
+.settings__intro p {
+  margin: 0;
+}
+.settings__intro p + p {
+  margin-top: 0.3rem;
+}
+.settings__intro .bell__icon {
+  vertical-align: -0.15em;
+}
+.settings__intro .settings__star {
+  margin-inline-end: 0;
+}
 /* Why there are no switches, set apart from the rules below it. */
-.settings__status { padding-bottom: 0.4rem; margin-bottom: 0.4rem; border-bottom: 1px solid var(--field-line); }
+.settings__status {
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.4rem;
+  border-bottom: 1px solid var(--field-line);
+}
 /* The bell's explanations (install, allow, use the build) in the settings panel's colours. */
-.settings__intro .bell__title { color: var(--field-ink); }
-.settings__intro .bell__text { color: var(--field-ink-soft); font-size: inherit; }
+.settings__intro .bell__title {
+  color: var(--field-ink);
+}
+.settings__intro .bell__text {
+  color: var(--field-ink-soft);
+  font-size: inherit;
+}
 /* A switch, 44 × 26: the knob moves to the end side when on. */
 .settings__switch {
   position: relative;
@@ -273,15 +406,40 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   background: var(--field-ink-soft);
   transition: inset-inline-start 0.15s;
 }
-.settings__switch[aria-checked='true'] { background: var(--field-query); border-color: var(--field-query); }
+.settings__switch[aria-checked='true'] {
+  background: var(--field-query);
+  border-color: var(--field-query);
+}
 /* The knob takes the panel's own colour: white on dark blue, dark on light in the dark theme. */
-.settings__switch[aria-checked='true']::after { inset-inline-start: calc(100% - 1.25rem - 2px); background: var(--field-list); }
-.settings__switch[aria-disabled='true'] { cursor: progress; opacity: 0.6; }
-.settings__switch[aria-busy='true'] { opacity: 1; }
-.settings__switch:focus-visible { outline: 2px solid var(--field-query); outline-offset: 2px; }
-.settings__note { margin: 0.35rem 0.6rem 0.25rem; font-size: 0.8rem; line-height: 1.4; color: var(--field-ink-soft); }
-.settings__note:empty { margin: 0; }
-@media (prefers-reduced-motion: reduce) { .settings__switch::after { transition: none; } }
+.settings__switch[aria-checked='true']::after {
+  inset-inline-start: calc(100% - 1.25rem - 2px);
+  background: var(--field-list);
+}
+.settings__switch[aria-disabled='true'] {
+  cursor: progress;
+  opacity: 0.6;
+}
+.settings__switch[aria-busy='true'] {
+  opacity: 1;
+}
+.settings__switch:focus-visible {
+  outline: 2px solid var(--field-query);
+  outline-offset: 2px;
+}
+.settings__note {
+  margin: 0.35rem 0.6rem 0.25rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--field-ink-soft);
+}
+.settings__note:empty {
+  margin: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings__switch::after {
+    transition: none;
+  }
+}
 
 /* 19 languages: the list scrolls within the window, not the page. */
 .settings__list {
@@ -292,14 +450,30 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-.settings__list:focus { outline: none; }
-.settings__list:focus-visible .settings__option--active { outline: 2px solid var(--field-query); outline-offset: -2px; }
-.settings__option { padding: 0.5rem 0.6rem; border-radius: 0.5rem; cursor: pointer; white-space: nowrap; }
-.settings__option--active { background: var(--field-active); }
-.settings__option[aria-selected='true'] { font-weight: 600; }
+.settings__list:focus {
+  outline: none;
+}
+.settings__list:focus-visible .settings__option--active {
+  outline: 2px solid var(--field-query);
+  outline-offset: -2px;
+}
+.settings__option {
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.settings__option--active {
+  background: var(--field-active);
+}
+.settings__option[aria-selected='true'] {
+  font-weight: 600;
+}
 
 /* Search */
-.search { position: relative; }
+.search {
+  position: relative;
+}
 
 .search__locate {
   position: absolute;
@@ -317,12 +491,24 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   color: var(--field-query);
   cursor: pointer;
 }
-.search__locate:hover { background: var(--field-active); }
-.search__locate:focus-visible { outline: 2px solid var(--field-query); outline-offset: -2px; }
+.search__locate:hover {
+  background: var(--field-active);
+}
+.search__locate:focus-visible {
+  outline: 2px solid var(--field-query);
+  outline-offset: -2px;
+}
 
 /* Below the field, over the page: the header must not grow (the switches would stretch). */
-.search__notice-text { margin: 0; }
-.search__notice-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+.search__notice-text {
+  margin: 0;
+}
+.search__notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
 .search__notice-button {
   display: inline-flex;
   align-items: center;
@@ -337,8 +523,13 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   color: var(--field-query);
   cursor: pointer;
 }
-.search__notice-button:hover { background: var(--field-active); }
-.search__notice-button:focus-visible { outline: 2px solid var(--field-query); outline-offset: 2px; }
+.search__notice-button:hover {
+  background: var(--field-active);
+}
+.search__notice-button:focus-visible {
+  outline: 2px solid var(--field-query);
+  outline-offset: 2px;
+}
 .search__notice {
   position: absolute;
   z-index: 10;
@@ -352,10 +543,25 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   border: 1px solid var(--field-line);
 }
 
-.location-icon { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; flex: none; }
-.location-icon__dot { fill: currentColor; stroke: none; }
-.spinner { animation: spin 0.9s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+.location-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  flex: none;
+}
+.location-icon__dot {
+  fill: currentColor;
+  stroke: none;
+}
+.spinner {
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 .search input {
   width: 100%;
@@ -370,7 +576,10 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   color: var(--field-query);
 }
 
-.search input::placeholder { color: var(--field-ink-soft); opacity: 1; }
+.search input::placeholder {
+  color: var(--field-ink-soft);
+  opacity: 1;
+}
 
 .search__list {
   position: absolute;
@@ -396,17 +605,34 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   cursor: pointer;
 }
 
-.search__option[aria-selected='true'] { background: var(--field-active); }
+.search__option[aria-selected='true'] {
+  background: var(--field-active);
+}
 
-.search__name { font-weight: 500; }
-.search__meta { color: var(--field-ink-soft); text-align: end; }
-.search__kind { font-weight: 400; color: var(--field-ink-soft); }
+.search__name {
+  font-weight: 500;
+}
+.search__meta {
+  color: var(--field-ink-soft);
+  text-align: end;
+}
+.search__kind {
+  font-weight: 400;
+  color: var(--field-ink-soft);
+}
 
-.search__hint { padding: 0.6rem 0.75rem; color: var(--field-ink-soft); }
-.search__hint--error { color: var(--field-danger); }
+.search__hint {
+  padding: 0.6rem 0.75rem;
+  color: var(--field-ink-soft);
+}
+.search__hint--error {
+  color: var(--field-danger);
+}
 
 /* Empty and messages */
-.empty { padding-top: 12vh; }
+.empty {
+  padding-top: 12vh;
+}
 
 .empty__title {
   margin: 0 0 0.5rem;
@@ -417,10 +643,19 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   max-width: 18ch;
 }
 
-.empty__text { margin: 0; color: var(--ink-soft); max-width: 40ch; }
+.empty__text {
+  margin: 0;
+  color: var(--ink-soft);
+  max-width: 40ch;
+}
 
-.message { color: var(--ink-soft); }
-.message[role='alert'] p { color: var(--danger); margin: 0 0 0.75rem; }
+.message {
+  color: var(--ink-soft);
+}
+.message[role='alert'] p {
+  color: var(--danger);
+  margin: 0 0 0.75rem;
+}
 
 .message button {
   font: inherit;
@@ -432,7 +667,11 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   cursor: pointer;
 }
 
-.content { display: grid; gap: 2.5rem; transition: opacity 0.2s; }
+.content {
+  display: grid;
+  gap: 2.5rem;
+  transition: opacity 0.2s;
+}
 
 /* Loading placeholder shaped like the city page */
 .skeleton__block {
@@ -441,11 +680,20 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   animation: skeleton-pulse 1.4s ease-in-out infinite;
 }
 /* Text-height placeholder inside a line, e.g. a value that is still loading */
-.skeleton__inline { display: inline-block; width: 6.5rem; height: 1.1em; vertical-align: middle; }
-@keyframes skeleton-pulse {
-  50% { opacity: 0.5; }
+.skeleton__inline {
+  display: inline-block;
+  width: 6.5rem;
+  height: 1.1em;
+  vertical-align: middle;
 }
-.content--stale { opacity: 0.55; }
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+.content--stale {
+  opacity: 0.55;
+}
 
 /* Current weather: the temperature is the one loud element */
 .now__place {
@@ -465,39 +713,89 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
 }
 
 /* The country keeps to one line beside the name; the name wraps instead. */
-.now__sub { font-size: 1rem; font-weight: 400; color: var(--ink-soft); white-space: nowrap; }
+.now__sub {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
 /* District and region: a line of their own under the name and the buttons, smaller. Each
    part stays whole, so a long line breaks at the dot. */
-.now__area { margin: 0.15rem 0 0; font-size: 0.85rem; color: var(--ink-soft); }
+.now__area {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
 /* An inline block moves to the next line whole, and wraps inside only if longer than a line. */
-.now__part { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
+.now__part {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
 /* The phone's copy of "You are here", under the area line; hidden on wider screens. */
-.now__below { display: none; margin: 0.15rem 0 0; font-size: 1rem; color: var(--ink-soft); }
+.now__below {
+  display: none;
+  margin: 0.15rem 0 0;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
 /* On a phone the country goes under the name, so the name and the buttons share one line. */
 @media (max-width: 480px) {
   /* A block, not a flex row: its width is then its longest line, not the whole row. */
-  .now__place { display: block; }
-  .now__sub { display: block; font-size: 0.9rem; white-space: normal; }
+  .now__place {
+    display: block;
+  }
+  .now__sub {
+    display: block;
+    font-size: 0.9rem;
+    white-space: normal;
+  }
   /* The mark leaves the heading for its own line under the district and region (by the
      name it made the column beside the buttons four lines tall). Scoped by .now: the
      general rules come later in the file. */
   /* Visually hidden, not display: none: screen readers still hear it with the name. */
-  .now .now__place .now__here { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .now .now__sep { display: none; }
-  .now .now__below { display: block; }
-  .now .now__below .now__here { white-space: normal; text-wrap: balance; }
+  .now .now__place .now__here {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .now .now__sep {
+    display: none;
+  }
+  .now .now__below {
+    display: block;
+  }
+  .now .now__below .now__here {
+    white-space: normal;
+    text-wrap: balance;
+  }
   /* Buttons level with the name, not centred on name and country together (that put them
      ~11 px low). The name's line is 36 px, as tall as the buttons. */
-  .now .now__head { column-gap: 0.5rem; align-items: flex-start; }
-  .now__head .save-wrap { column-gap: 0.4rem; }
+  .now .now__head {
+    column-gap: 0.5rem;
+    align-items: flex-start;
+  }
+  .now__head .save-wrap {
+    column-gap: 0.4rem;
+  }
 }
 
 /* "You are here" after the country, a step smaller, same colour, on the same baseline. */
-.now__here { font-size: 0.85em; white-space: nowrap; }
-.now__here .location-icon { margin-inline-end: 0.2rem; vertical-align: -0.1em; }
+.now__here {
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+.now__here .location-icon {
+  margin-inline-end: 0.2rem;
+  vertical-align: -0.1em;
+}
 /* Guessed from the IP: a yellow pin and its own words ("Approximate, by IP"); the text keeps
    the soft colour for contrast (yellow text on blue is below 4.5:1). */
-.now__here--approximate .location-icon { color: var(--sun); }
+.now__here--approximate .location-icon {
+  color: var(--sun);
+}
 
 .now__temp {
   margin: 0;
@@ -510,12 +808,23 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
 
 /* Under the number: the condition a little larger, then the details (feels like, high and
    low, change since yesterday) in one size and the soft colour, one step apart. */
-.now__label { margin: 0.9rem 0 0; font-size: 1.1rem; font-weight: 500; }
-.now__line, .now__trend { margin: 0.25rem 0 0; font-size: 0.9rem; color: var(--ink-soft); }
+.now__label {
+  margin: 0.9rem 0 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+.now__line,
+.now__trend {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
 
 /* The details as tiles below the 10-day forecast: four in a row, two on a phone. Outline
    only, no fill: a fill on the blue background drops the soft text below 4.5:1. */
-.tiles { margin: 2rem 0 0; }
+.tiles {
+  margin: 2rem 0 0;
+}
 .tiles__grid {
   list-style: none;
   margin: 0;
@@ -525,9 +834,13 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   gap: 0.5rem;
 }
 @media (max-width: 640px) {
-  .tiles__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tiles__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
-.tiles__grid > li { display: flex; }
+.tiles__grid > li {
+  display: flex;
+}
 .tile {
   position: relative;
   box-sizing: border-box;
@@ -545,11 +858,29 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   font: inherit;
   text-align: start;
 }
-.tile__label { font-size: 0.85rem; color: var(--ink-soft); padding-inline-end: 1.25rem; }
-.tile__value { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 1.4rem; font-weight: 500; }
-.tile__note { margin-top: auto; font-size: 0.82rem; color: var(--ink-soft); }
+.tile__label {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  padding-inline-end: 1.25rem;
+}
+.tile__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+.tile__note {
+  margin-top: auto;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
 /* A word or unit after the number ("5 Moderate", "1009 hPa"): smaller and soft. */
-.tile__unit { font-size: 0.85rem; font-weight: 400; color: var(--ink-soft); }
+.tile__unit {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
 /* UV on the WHO scale: a dot on a bar in the scale's colours, filling from the inline start. */
 .uvbar {
   position: relative;
@@ -559,7 +890,9 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   border-radius: 3px;
   background: linear-gradient(to right, #4eb400 0%, #f7e400 30%, #f85900 55%, #d8001d 80%, #8f6ae0 100%);
 }
-[dir='rtl'] .uvbar { background: linear-gradient(to left, #4eb400 0%, #f7e400 30%, #f85900 55%, #d8001d 80%, #8f6ae0 100%); }
+[dir='rtl'] .uvbar {
+  background: linear-gradient(to left, #4eb400 0%, #f7e400 30%, #f85900 55%, #d8001d 80%, #8f6ae0 100%);
+}
 .uvbar__dot {
   position: absolute;
   top: 50%;
@@ -570,21 +903,49 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   background: #fff;
   transform: translate(-50%, -50%);
 }
-[dir='rtl'] .uvbar__dot { transform: translate(50%, -50%); }
-.tile__arrow { flex: none; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.tile__chevron { position: absolute; top: 0.8rem; inset-inline-end: 0.75rem; color: var(--ink-soft); transition: transform 0.15s; }
-.tile--button { cursor: pointer; }
-.tile--button:hover { background: rgba(255, 255, 255, 0.05); }
-.tile--button:hover .tile__chevron { color: var(--ink); }
-.tile--button:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+[dir='rtl'] .uvbar__dot {
+  transform: translate(50%, -50%);
+}
+.tile__arrow {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tile__chevron {
+  position: absolute;
+  top: 0.8rem;
+  inset-inline-end: 0.75rem;
+  color: var(--ink-soft);
+  transition: transform 0.15s;
+}
+.tile--button {
+  cursor: pointer;
+}
+.tile--button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.tile--button:hover .tile__chevron {
+  color: var(--ink);
+}
+.tile--button:focus-visible {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
 /* The open tile: lighter fill and outline, so it is clear which one the panel shows. Its
    soft texts turn white: on the lighter fill the soft colour would fall below 4.5:1. */
 .tile--button[aria-expanded='true'] {
   background: rgba(255, 255, 255, 0.1);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
 }
-.tile--button[aria-expanded='true'] :is(.tile__label, .tile__note, .tile__unit, .tile__chevron) { color: var(--ink); }
-.tile--button[aria-expanded='true'] .tile__chevron { transform: rotate(180deg); }
+.tile--button[aria-expanded='true'] :is(.tile__label, .tile__note, .tile__unit, .tile__chevron) {
+  color: var(--ink);
+}
+.tile--button[aria-expanded='true'] .tile__chevron {
+  transform: rotate(180deg);
+}
 
 .detail-panel {
   margin: 1rem 0 0;
@@ -592,24 +953,65 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   border: 1px solid var(--line);
   border-radius: 0.75rem;
 }
-.detail-panel__title { margin: 0 0 0.25rem; font-size: 0.85rem; color: var(--ink-soft); }
+.detail-panel__title {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
 
 /* 24-hour chart: time runs left to right in every language, like the hourly strip's bar. */
-.hchart { position: relative; direction: ltr; }
+.hchart {
+  position: relative;
+  direction: ltr;
+}
 /* Reserves the chart's height before its width is measured, so the panel doesn't grow
    a moment after opening (and scrolling to it lands in the right place). */
-.hchart { min-height: 120px; }
-.hchart__svg { display: block; overflow: visible; }
-.hchart__grid { stroke: var(--line); stroke-width: 1; }
-.hchart__tick { fill: var(--ink-soft); font-size: 11px; font-variant-numeric: tabular-nums; }
-.hchart__line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-.hchart__svg--wind .hchart__line { stroke: var(--ink); }
-.hchart__svg--humidity .hchart__line { stroke: var(--cool); }
-.hchart__svg--uv .hchart__line { stroke: var(--sun); }
-.hchart__svg--pressure .hchart__line { stroke: var(--ink-soft); }
-.hchart__bar { fill: var(--cool); }
-.hchart__focus line { stroke: var(--ink-soft); stroke-width: 1; }
-.hchart__focus circle { fill: var(--sky); stroke: var(--ink); stroke-width: 2; }
+.hchart {
+  min-height: 120px;
+}
+.hchart__svg {
+  display: block;
+  overflow: visible;
+}
+.hchart__grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.hchart__tick {
+  fill: var(--ink-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.hchart__line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.hchart__svg--wind .hchart__line {
+  stroke: var(--ink);
+}
+.hchart__svg--humidity .hchart__line {
+  stroke: var(--cool);
+}
+.hchart__svg--uv .hchart__line {
+  stroke: var(--sun);
+}
+.hchart__svg--pressure .hchart__line {
+  stroke: var(--ink-soft);
+}
+.hchart__bar {
+  fill: var(--cool);
+}
+.hchart__focus line {
+  stroke: var(--ink-soft);
+  stroke-width: 1;
+}
+.hchart__focus circle {
+  fill: var(--sky);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
 .hchart__tip {
   position: absolute;
   transform: translate(-50%, calc(-100% - 10px));
@@ -634,20 +1036,48 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.6);
   background: var(--ink-soft);
 }
-.aqi__dot[data-scale='european'][data-level='good'] { background: #50f0e6; }
-.aqi__dot[data-scale='european'][data-level='fair'] { background: #50ccaa; }
-.aqi__dot[data-scale='european'][data-level='moderate'] { background: #f0e641; }
-.aqi__dot[data-scale='european'][data-level='poor'] { background: #ff5050; }
-.aqi__dot[data-scale='european'][data-level='very-poor'] { background: #d1306e; }
-.aqi__dot[data-scale='european'][data-level='extremely-poor'] { background: #a855d6; }
-.aqi__dot[data-scale='us'][data-level='good'] { background: #00e400; }
-.aqi__dot[data-scale='us'][data-level='moderate'] { background: #ffff00; }
-.aqi__dot[data-scale='us'][data-level='unhealthy-sensitive'] { background: #ff7e00; }
-.aqi__dot[data-scale='us'][data-level='unhealthy'] { background: #ff3b3b; }
-.aqi__dot[data-scale='us'][data-level='very-unhealthy'] { background: #a95fd6; }
-.aqi__dot[data-scale='us'][data-level='hazardous'] { background: #c0304e; }
+.aqi__dot[data-scale='european'][data-level='good'] {
+  background: #50f0e6;
+}
+.aqi__dot[data-scale='european'][data-level='fair'] {
+  background: #50ccaa;
+}
+.aqi__dot[data-scale='european'][data-level='moderate'] {
+  background: #f0e641;
+}
+.aqi__dot[data-scale='european'][data-level='poor'] {
+  background: #ff5050;
+}
+.aqi__dot[data-scale='european'][data-level='very-poor'] {
+  background: #d1306e;
+}
+.aqi__dot[data-scale='european'][data-level='extremely-poor'] {
+  background: #a855d6;
+}
+.aqi__dot[data-scale='us'][data-level='good'] {
+  background: #00e400;
+}
+.aqi__dot[data-scale='us'][data-level='moderate'] {
+  background: #ffff00;
+}
+.aqi__dot[data-scale='us'][data-level='unhealthy-sensitive'] {
+  background: #ff7e00;
+}
+.aqi__dot[data-scale='us'][data-level='unhealthy'] {
+  background: #ff3b3b;
+}
+.aqi__dot[data-scale='us'][data-level='very-unhealthy'] {
+  background: #a95fd6;
+}
+.aqi__dot[data-scale='us'][data-level='hazardous'] {
+  background: #c0304e;
+}
 
-.pollutants { margin: 0; padding: 0; list-style: none; }
+.pollutants {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
 /* Four rows the height of a 24-hour chart (120 px), so switching details doesn't move the page. */
 .pollutants__row {
   display: grid;
@@ -656,8 +1086,16 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   gap: 0.75rem;
   height: 30px;
 }
-.pollutants__code { font-size: 0.85rem; color: var(--ink-soft); }
-.pollutants__track { position: relative; height: 0.5rem; border-radius: 0.25rem; background: var(--line); }
+.pollutants__code {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.pollutants__track {
+  position: relative;
+  height: 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--line);
+}
 .pollutants__fill {
   position: absolute;
   inset-block: 0;
@@ -680,12 +1118,23 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   vertical-align: -0.1em;
   background: var(--ink);
 }
-.pollutants__value { font-weight: 500; font-variant-numeric: tabular-nums; text-align: end; white-space: nowrap; }
-.pollutants__unit { font-size: 0.8rem; font-weight: 400; color: var(--ink-soft); }
+.pollutants__value {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: nowrap;
+}
+.pollutants__unit {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
 
 /* Hourly strip */
 /* Grid items default to min-width: auto, so without this the strip widens the page instead of scrolling. */
-.hours { min-width: 0; }
+.hours {
+  min-width: 0;
+}
 
 .hours__title {
   margin: 0 0 0.75rem;
@@ -720,8 +1169,14 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   scroll-snap-align: start;
 }
 
-.hour__time { font-size: 0.85rem; color: var(--ink-soft); }
-.hour__temp { font-size: 1.1rem; font-weight: 500; }
+.hour__time {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.hour__temp {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
 /* Icon and chance of rain in one slot of fixed height (icon, gap, one line of the chance):
    the strip keeps one height and the temperatures one line; without a chance the icon is
    centred in the slot rather than sitting over an empty row (like Apple Weather). */
@@ -735,19 +1190,57 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
 }
 /* 11 px, smaller than the time and the temperature: a caption to the icon, not a value of
    its own. Medium weight and the 10-day list's colour keep it legible on the blue. */
-.hour__rain { font-size: 0.6875rem; font-weight: 500; line-height: 1.1; color: var(--rain); }
+.hour__rain {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--rain);
+}
 /* Sunrise and sunset between the hours: same grid, the word in place of a temperature. */
-.hour__sun { fill: var(--sun); }
-.hour__sun .hour__sun-line { fill: none; stroke: var(--sun); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.hour__event { font-size: 0.8rem; color: var(--ink-soft); align-self: center; }
+.hour__sun {
+  fill: var(--sun);
+}
+.hour__sun .hour__sun-line {
+  fill: none;
+  stroke: var(--sun);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hour__event {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  align-self: center;
+}
 
 /* Icons are graphics, so they need 3:1 contrast, not 4.5:1. */
-.weather-icon { flex: none; }
-.wi-cloud, .wi-moon, .wi-flake { fill: var(--ink); }
-.wi-sun circle, .wi-bolt { fill: var(--sun); }
-.wi-sun path { stroke: var(--sun); stroke-width: 2; stroke-linecap: round; }
-.wi-line { stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; }
-.wi-drop { stroke: var(--cool); stroke-width: 1.8; stroke-linecap: round; }
+.weather-icon {
+  flex: none;
+}
+.wi-cloud,
+.wi-moon,
+.wi-flake {
+  fill: var(--ink);
+}
+.wi-sun circle,
+.wi-bolt {
+  fill: var(--sun);
+}
+.wi-sun path {
+  stroke: var(--sun);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.wi-line {
+  stroke: var(--ink);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.wi-drop {
+  stroke: var(--cool);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
 
 /* Weekly forecast with temperature range bars */
 .week__title {
@@ -757,13 +1250,24 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   color: var(--ink-soft);
 }
 
-.week__list { list-style: none; margin: 0; padding: 0; }
+.week__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
 /* The day names share one column as wide as the longest of them ("Сегодня", "Aujourd'hui"):
    the rows are subgrids of the list. A fixed 3.5rem left "Сегодня" touching the icon and
    put "Aujourd'hui" over it; a wider fixed one would leave "Thu" far from its icon. */
 @supports (grid-template-columns: subgrid) {
-  .week__list { display: grid; grid-template-columns: max-content 1.5rem 1fr auto; column-gap: 0.75rem; }
-  .week__list > .day { grid-column: 1 / -1; grid-template-columns: subgrid; }
+  .week__list {
+    display: grid;
+    grid-template-columns: max-content 1.5rem 1fr auto;
+    column-gap: 0.75rem;
+  }
+  .week__list > .day {
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+  }
 }
 
 .day {
@@ -776,11 +1280,16 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   font-variant-numeric: tabular-nums;
 }
 
-.day__name { font-weight: 500; }
+.day__name {
+  font-weight: 500;
+}
 /* Today, a little lighter, with a dot for the temperature now on its bar. */
 /* The lighter background is drawn outside the row (a pseudo-element), not with padding: in a
    subgrid, padding would shift this row's columns against the others. */
-.day--today { position: relative; isolation: isolate; }
+.day--today {
+  position: relative;
+  isolation: isolate;
+}
 .day--today::before {
   content: '';
   position: absolute;
@@ -799,10 +1308,19 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   background: var(--ink);
   transform: translate(-50%, -50%);
 }
-.day__label { color: var(--ink-soft); }
+.day__label {
+  color: var(--ink-soft);
+}
 /* Kept whole: it moves to the next line as one piece rather than splitting "rain | 31%". */
-.day__rain { color: var(--rain); font-weight: 500; white-space: nowrap; }
-.day__min { text-align: end; color: var(--ink-soft); }
+.day__rain {
+  color: var(--rain);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.day__min {
+  text-align: end;
+  color: var(--ink-soft);
+}
 
 /*
  * A temperature scale reads cold-to-warm left to right in every language, so low,
@@ -836,23 +1354,46 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
     grid-template-columns: 3rem 1.5rem 1fr auto;
     row-gap: 0.25rem;
   }
-  .week__list > .day { grid-template-columns: subgrid; }
-  .day__temps { grid-template-columns: 2rem 2rem; }
-  .day__bar { display: none; }
+  .week__list > .day {
+    grid-template-columns: subgrid;
+  }
+  .day__temps {
+    grid-template-columns: 2rem 2rem;
+  }
+  .day__bar {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root, .content { transition: none; }
-  .tile__chevron, .alerts__more-chevron, .alert__chevron, .bell__switch::after { transition: none; }
+  :root,
+  .content {
+    transition: none;
+  }
+  .tile__chevron,
+  .alerts__more-chevron,
+  .alert__chevron,
+  .bell__switch::after {
+    transition: none;
+  }
   /* Slower, not stopped: a frozen spinner would look broken. */
-  .spinner { animation-duration: 2.5s; }
-  .skeleton__block { animation: none; }
+  .spinner {
+    animation-duration: 2.5s;
+  }
+  .skeleton__block {
+    animation: none;
+  }
 }
 
-.now__place:focus { outline: none; }
+.now__place:focus {
+  outline: none;
+}
 
 /* Saved cities as a scrolling strip at the top of a city page */
-.fav-strip { margin: 0 0 1.75rem; min-width: 0; }
+.fav-strip {
+  margin: 0 0 1.75rem;
+  min-width: 0;
+}
 .fav-strip__list {
   /* Contains the absolutely positioned screen-reader text, so the scroller clips it. */
   position: relative;
@@ -865,7 +1406,10 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   scroll-snap-type: x proximity;
   scrollbar-color: var(--line) transparent;
 }
-.fav-strip__list > li { flex: 0 0 auto; scroll-snap-align: start; }
+.fav-strip__list > li {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
 
 .fav-tile {
   display: flex;
@@ -877,15 +1421,34 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   color: inherit;
   text-decoration: none;
 }
-.fav-tile:hover { border-color: var(--ink-soft); }
-.fav-tile:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
-.fav-tile--current { border: 1.5px solid var(--ink); background: var(--surface); }
+.fav-tile:hover {
+  border-color: var(--ink-soft);
+}
+.fav-tile:focus-visible {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
+.fav-tile--current {
+  border: 1.5px solid var(--ink);
+  background: var(--surface);
+}
 /* Warning triangle inside the top corner (the end side, so on the left in RTL); only a
    tile with a warning gives up the room at the end of its name. */
-.fav-tile { position: relative; }
-.fav-tile__alert { position: absolute; top: 0.55rem; inset-inline-end: 0.55rem; }
-.fav-tile--alert .fav-tile__name { padding-right: 1.1rem; }
-[dir='rtl'] .fav-tile--alert .fav-tile__name { padding-right: 0; padding-left: 1.1rem; }
+.fav-tile {
+  position: relative;
+}
+.fav-tile__alert {
+  position: absolute;
+  top: 0.55rem;
+  inset-inline-end: 0.55rem;
+}
+.fav-tile--alert .fav-tile__name {
+  padding-right: 1.1rem;
+}
+[dir='rtl'] .fav-tile--alert .fav-tile__name {
+  padding-right: 0;
+  padding-left: 1.1rem;
+}
 .fav-tile__name,
 .fav-tile__country {
   white-space: nowrap;
@@ -895,9 +1458,17 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
 /* Names carry dir="auto", so a Latin name in an Arabic interface is cut at its own end
    ("Węgorze…", not "…gorzewo"). Their alignment and the room for the warning mark follow
    the page instead (the name's own direction would put them on the wrong side). */
-[dir='rtl'] :is(.fav-tile__name, .fav-tile__country, .fav-card__name, .fav-card__country) { text-align: right; }
-.fav-tile__name { font-weight: 500; font-size: 0.9rem; }
-.fav-tile__country { font-size: 0.8rem; color: var(--ink-soft); }
+[dir='rtl'] :is(.fav-tile__name, .fav-tile__country, .fav-card__name, .fav-card__country) {
+  text-align: right;
+}
+.fav-tile__name {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+.fav-tile__country {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
 .fav-tile__weather {
   display: flex;
   align-items: center;
@@ -932,7 +1503,10 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   color: var(--ink);
   cursor: pointer;
 }
-.save:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+.save:focus-visible {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
 
 .save-wrap {
   display: inline-flex;
@@ -942,7 +1516,9 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   gap: 0.25rem 0.75rem;
 }
 /* The star's message when the list is full: under the buttons, from the end side. */
-.save-wrap--star { position: relative; }
+.save-wrap--star {
+  position: relative;
+}
 .save__notice {
   position: absolute;
   top: calc(100% + 0.4rem);
@@ -960,15 +1536,32 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   line-height: 1.45;
   text-align: start;
 }
-.save__notice-line { display: block; font-weight: 600; margin-bottom: 0.2rem; }
+.save__notice-line {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
 /* No tooltip over the open message. */
-.save[data-open]::after { display: none; }
+.save[data-open]::after {
+  display: none;
+}
 /* The live region takes no place in the row of buttons (even empty it was a flex item and
    doubled the gap before the bell); the message in it is positioned against the star. */
-.save__live { position: absolute; inset: 0; pointer-events: none; }
-.save__notice { pointer-events: auto; }
+.save__live {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.save__notice {
+  pointer-events: auto;
+}
 /* Save and warnings: round icon buttons, at least 36 px for a finger. */
-.save--icon { justify-content: center; width: 2.25rem; height: 2.25rem; padding: 0; }
+.save--icon {
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+}
 /* The name as a tooltip under the icon, on hover and on keyboard focus (title would show
    only on hover, late, and screen readers would read it twice). Decorative: the name is
    already hidden text in the button. */
@@ -988,14 +1581,36 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   pointer-events: none;
 }
 /* No tooltip over the open warnings panel. */
-.save[aria-expanded='true']::after { display: none; }
-.save__star { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
-.save[data-saved] .save__star { fill: var(--sun); stroke: var(--sun); }
+.save[aria-expanded='true']::after {
+  display: none;
+}
+.save__star {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+.save[data-saved] .save__star {
+  fill: var(--sun);
+  stroke: var(--sun);
+}
 
 /* Warning notifications: a bell next to the star, its settings in a panel below. */
-.bell { position: relative; display: inline-flex; }
-.bell__icon { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
-.save[data-on] .bell__icon { fill: var(--sun); stroke: var(--sun); }
+.bell {
+  position: relative;
+  display: inline-flex;
+}
+.bell__icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.save[data-on] .bell__icon {
+  fill: var(--sun);
+  stroke: var(--sun);
+}
 .bell__panel {
   position: absolute;
   top: calc(100% + 0.5rem);
@@ -1009,11 +1624,30 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   text-align: start;
   font-size: 0.9rem;
 }
-.bell__panel[hidden] { display: none; }
-.bell__title { margin: 0 0 0.25rem; font-weight: 500; }
-.bell__text { display: block; margin: 0.25rem 0; font-size: 0.82rem; color: var(--ink-soft); }
-.bell__error { margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--danger); }
-.bell__row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.bell__panel[hidden] {
+  display: none;
+}
+.bell__title {
+  margin: 0 0 0.25rem;
+  font-weight: 500;
+}
+.bell__text {
+  display: block;
+  margin: 0.25rem 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+.bell__error {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+.bell__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
 /* A switch: track and knob, the knob moving to the end side when on. */
 .bell__switch {
   flex: none;
@@ -1036,14 +1670,46 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   background: var(--ink-soft);
   transition: inset-inline-start 0.15s;
 }
-.bell__switch[aria-checked='true'] { background: var(--cool); border-color: var(--cool); }
-.bell__switch[aria-checked='true']::after { inset-inline-start: 1.15rem; background: #fff; }
-.bell__switch:disabled { opacity: 0.6; cursor: progress; }
-.bell__switch:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
-.bell__choice { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin: 0.6rem 0 0; padding: 0; border: 0; }
-.bell__choice legend { float: inline-start; margin-inline-end: 0.5rem; padding: 0; font-size: 0.85rem; }
-.bell__choice label { display: inline-flex; }
-.bell__choice input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.bell__switch[aria-checked='true'] {
+  background: var(--cool);
+  border-color: var(--cool);
+}
+.bell__switch[aria-checked='true']::after {
+  inset-inline-start: 1.15rem;
+  background: #fff;
+}
+.bell__switch:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.bell__switch:focus-visible {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
+.bell__choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  border: 0;
+}
+.bell__choice legend {
+  float: inline-start;
+  margin-inline-end: 0.5rem;
+  padding: 0;
+  font-size: 0.85rem;
+}
+.bell__choice label {
+  display: inline-flex;
+}
+.bell__choice input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
 .bell__choice span {
   display: inline-flex;
   align-items: center;
@@ -1055,17 +1721,36 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   cursor: pointer;
 }
 /* The change being applied: a spinner in the option that started it (or by the switch). */
-.bell .spinner { color: var(--ink-soft); }
-.bell__row > .spinner { align-self: center; margin-inline-start: auto; }
-.bell__choice input:checked + span { background: var(--surface); border-color: var(--ink-soft); }
-.bell__choice input:focus-visible + span { outline: 2px solid var(--cool); outline-offset: 2px; }
+.bell .spinner {
+  color: var(--ink-soft);
+}
+.bell__row > .spinner {
+  align-self: center;
+  margin-inline-start: auto;
+}
+.bell__choice input:checked + span {
+  background: var(--surface);
+  border-color: var(--ink-soft);
+}
+.bell__choice input:focus-visible + span {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
 /* A change is being applied: the other options wait, the chosen one stays highlighted. */
-.bell__choice input:disabled + span { cursor: progress; }
-.bell__choice input:disabled:not(:checked) + span { opacity: 0.45; }
+.bell__choice input:disabled + span {
+  cursor: progress;
+}
+.bell__choice input:disabled:not(:checked) + span {
+  opacity: 0.45;
+}
 
 /* Official weather warnings on a city page. The level is always written out; its colour
    (MeteoAlarm's yellow, orange, red) is a second signal, so a dark mark on it reads well. */
-.alerts { display: grid; gap: 0.5rem; margin: 0 0 1.75rem; }
+.alerts {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1.75rem;
+}
 /* "2 more warnings": a quiet text button under the most severe one. */
 .alerts__more {
   justify-self: start;
@@ -1080,10 +1765,23 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   font-size: 0.9rem;
   cursor: pointer;
 }
-.alerts__more:hover { text-decoration: underline; }
-.alerts__more-chevron { color: var(--ink-soft); transition: transform 0.15s; }
-.alerts__more[aria-expanded='true'] .alerts__more-chevron { transform: rotate(180deg); }
-.alerts__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.alerts__more:hover {
+  text-decoration: underline;
+}
+.alerts__more-chevron {
+  color: var(--ink-soft);
+  transition: transform 0.15s;
+}
+.alerts__more[aria-expanded='true'] .alerts__more-chevron {
+  transform: rotate(180deg);
+}
+.alerts__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
 .alert {
   --alert: #ffd84d;
   border: 1px solid var(--line);
@@ -1091,12 +1789,23 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   border-radius: 0.75rem;
   background: var(--surface);
 }
-.alert--orange { --alert: #ff9f40; }
-.alert--red { --alert: #ff6b6b; }
+.alert--orange {
+  --alert: #ff9f40;
+}
+.alert--red {
+  --alert: #ff6b6b;
+}
 /* The triangle alone, on favourite tiles and cards. */
-.alert-mark { --alert: #ffd84d; display: inline-flex; }
-.alert-mark.alert--orange { --alert: #ff9f40; }
-.alert-mark.alert--red { --alert: #ff6b6b; }
+.alert-mark {
+  --alert: #ffd84d;
+  display: inline-flex;
+}
+.alert-mark.alert--orange {
+  --alert: #ff9f40;
+}
+.alert-mark.alert--red {
+  --alert: #ff6b6b;
+}
 .alert__summary {
   display: flex;
   align-items: center;
@@ -1105,22 +1814,67 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   list-style: none;
   cursor: pointer;
 }
-div.alert__summary { cursor: default; }
-.alert__summary::-webkit-details-marker { display: none; }
-.alert__icon { flex: none; }
-.alert__icon-shape { fill: var(--alert); stroke: var(--alert); stroke-width: 1.5; stroke-linejoin: round; }
-.alert__icon-mark { stroke: #1b1b1b; stroke-width: 2.2; stroke-linecap: round; }
-.alert__text { flex: 1; display: grid; }
-.alert__title { font-weight: 500; }
-.alert__time { font-size: 0.9rem; color: var(--ink-soft); }
-.alert__chevron { flex: none; color: var(--ink-soft); transition: transform 0.15s; }
-details[open] .alert__chevron { color: var(--ink); transform: rotate(180deg); }
-.alert__body { padding: 0 1rem; }
-.alert__body p { margin: 0 0 0.5rem; }
-.alert__headline { font-weight: 500; }
-.alert__source, .alerts__credit { margin: 0; font-size: 0.85rem; color: var(--ink-soft); }
-.alert__source { padding: 0 1rem 0.75rem; }
-.alerts__credit a { color: inherit; }
+div.alert__summary {
+  cursor: default;
+}
+.alert__summary::-webkit-details-marker {
+  display: none;
+}
+.alert__icon {
+  flex: none;
+}
+.alert__icon-shape {
+  fill: var(--alert);
+  stroke: var(--alert);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.alert__icon-mark {
+  stroke: #1b1b1b;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+.alert__text {
+  flex: 1;
+  display: grid;
+}
+.alert__title {
+  font-weight: 500;
+}
+.alert__time {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+.alert__chevron {
+  flex: none;
+  color: var(--ink-soft);
+  transition: transform 0.15s;
+}
+details[open] .alert__chevron {
+  color: var(--ink);
+  transform: rotate(180deg);
+}
+.alert__body {
+  padding: 0 1rem;
+}
+.alert__body p {
+  margin: 0 0 0.5rem;
+}
+.alert__headline {
+  font-weight: 500;
+}
+.alert__source,
+.alerts__credit {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.alert__source {
+  padding: 0 1rem 0.75rem;
+}
+.alerts__credit a {
+  color: inherit;
+}
 
 /* "Add to Home Screen" steps on iOS, start page */
 .install-hint {
@@ -1133,10 +1887,23 @@ details[open] .alert__chevron { color: var(--ink); transform: rotate(180deg); }
   border-radius: 0.75rem;
   background: var(--surface);
 }
-.install-hint > div { flex: 1; }
-.install-hint__logo { flex: none; border-radius: 0.5rem; }
-.install-hint__title { margin: 0; font-size: 1rem; font-weight: 500; }
-.install-hint__text { margin: 0; font-size: 0.9rem; color: var(--ink-soft); }
+.install-hint > div {
+  flex: 1;
+}
+.install-hint__logo {
+  flex: none;
+  border-radius: 0.5rem;
+}
+.install-hint__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+.install-hint__text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
 .install-hint__share {
   vertical-align: -0.15em;
   fill: none;
@@ -1158,11 +1925,20 @@ details[open] .alert__chevron { color: var(--ink); transform: rotate(180deg); }
   color: var(--ink-soft);
   cursor: pointer;
 }
-.install-hint__close:hover { color: var(--ink); }
-.install-hint__close svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.install-hint__close:hover {
+  color: var(--ink);
+}
+.install-hint__close svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
 
 /* Saved cities on the start page */
-.favorites { margin-top: 2.5rem; }
+.favorites {
+  margin-top: 2.5rem;
+}
 .favorites__title {
   margin: 0 0 0.5rem;
   font-size: 1rem;
@@ -1178,7 +1954,10 @@ details[open] .alert__chevron { color: var(--ink); transform: rotate(180deg); }
   list-style: none;
 }
 /* Contains the screen-reader text, which is absolutely positioned */
-.fav-grid > li { position: relative; min-width: 0; }
+.fav-grid > li {
+  position: relative;
+  min-width: 0;
+}
 
 .fav-card {
   display: flex;
@@ -1190,17 +1969,45 @@ details[open] .alert__chevron { color: var(--ink); transform: rotate(180deg); }
   color: inherit;
   text-decoration: none;
 }
-.fav-card:hover { border-color: var(--ink-soft); }
-.fav-card:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+.fav-card:hover {
+  border-color: var(--ink-soft);
+}
+.fav-card:focus-visible {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
 
-.fav-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
-.fav-card__place { display: flex; flex-direction: column; min-width: 0; }
+.fav-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.fav-card__place {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
 .fav-card__name,
-.fav-card__country { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fav-card__name { font-weight: 500; }
-.fav-card__country { font-size: 0.85rem; color: var(--ink-soft); }
+.fav-card__country {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fav-card__name {
+  font-weight: 500;
+}
+.fav-card__country {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
 
-.fav-card__body { display: flex; flex-direction: column; min-height: 4.6rem; margin-top: 0.5rem; }
+.fav-card__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 4.6rem;
+  margin-top: 0.5rem;
+}
 .fav-card__temp {
   display: flex;
   align-items: center;
@@ -1219,4 +2026,6 @@ details[open] .alert__chevron { color: var(--ink); transform: rotate(180deg); }
   text-overflow: ellipsis;
 }
 
-.empty__text a { color: inherit; }
+.empty__text a {
+  color: inherit;
+}

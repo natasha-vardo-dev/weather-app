@@ -20,14 +20,45 @@ const FEED_URL = 'https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-';
 
 /** ISO 3166-1 code → MeteoAlarm feed name. */
 const FEEDS: Record<string, string> = {
-  AD: 'andorra', AT: 'austria', BA: 'bosnia-herzegovina', BE: 'belgium', BG: 'bulgaria',
-  CH: 'switzerland', CY: 'cyprus', CZ: 'czechia', DE: 'germany', DK: 'denmark',
-  EE: 'estonia', ES: 'spain', FI: 'finland', FR: 'france', GB: 'united-kingdom',
-  GR: 'greece', HR: 'croatia', HU: 'hungary', IE: 'ireland', IL: 'israel',
-  IS: 'iceland', IT: 'italy', LT: 'lithuania', LU: 'luxembourg', LV: 'latvia',
-  MD: 'moldova', ME: 'montenegro', MK: 'republic-of-north-macedonia', MT: 'malta', NL: 'netherlands',
-  NO: 'norway', PL: 'poland', PT: 'portugal', RO: 'romania', RS: 'serbia',
-  SE: 'sweden', SI: 'slovenia', SK: 'slovakia', UA: 'ukraine',
+  AD: 'andorra',
+  AT: 'austria',
+  BA: 'bosnia-herzegovina',
+  BE: 'belgium',
+  BG: 'bulgaria',
+  CH: 'switzerland',
+  CY: 'cyprus',
+  CZ: 'czechia',
+  DE: 'germany',
+  DK: 'denmark',
+  EE: 'estonia',
+  ES: 'spain',
+  FI: 'finland',
+  FR: 'france',
+  GB: 'united-kingdom',
+  GR: 'greece',
+  HR: 'croatia',
+  HU: 'hungary',
+  IE: 'ireland',
+  IL: 'israel',
+  IS: 'iceland',
+  IT: 'italy',
+  LT: 'lithuania',
+  LU: 'luxembourg',
+  LV: 'latvia',
+  MD: 'moldova',
+  ME: 'montenegro',
+  MK: 'republic-of-north-macedonia',
+  MT: 'malta',
+  NL: 'netherlands',
+  NO: 'norway',
+  PL: 'poland',
+  PT: 'portugal',
+  RO: 'romania',
+  RS: 'serbia',
+  SE: 'sweden',
+  SI: 'slovenia',
+  SK: 'slovakia',
+  UA: 'ukraine',
 };
 
 /**
@@ -123,9 +154,20 @@ function levelOf(awareness: string, severity: string): AlertLevel | null {
 
 /** MeteoAlarm awareness type numbers (CAP profile v2.0); 11 is unused there. */
 const TYPE_NUMBERS: Record<number, AlertType> = {
-  1: 'wind', 2: 'snow-ice', 3: 'thunderstorm', 4: 'fog', 5: 'high-temperature',
-  6: 'low-temperature', 7: 'coastal-event', 8: 'forest-fire', 9: 'avalanches', 10: 'rain',
-  12: 'flooding', 13: 'rain-flood', 14: 'marine-hazard', 15: 'drought',
+  1: 'wind',
+  2: 'snow-ice',
+  3: 'thunderstorm',
+  4: 'fog',
+  5: 'high-temperature',
+  6: 'low-temperature',
+  7: 'coastal-event',
+  8: 'forest-fire',
+  9: 'avalanches',
+  10: 'rain',
+  12: 'flooding',
+  13: 'rain-flood',
+  14: 'marine-hazard',
+  15: 'drought',
 };
 
 function typeOf(awareness: string): AlertType {
@@ -137,7 +179,10 @@ function typeOf(awareness: string): AlertType {
 export type CapAlert = ProviderAlert & { replaces: string[] };
 
 /** The full warning: level, type, times and texts in every language the issuer gave. */
-export function parseCap(body: string, entry: Pick<FeedEntry, 'severity' | 'event' | 'onset' | 'expires'>): CapAlert | null {
+export function parseCap(
+  body: string,
+  entry: Pick<FeedEntry, 'severity' | 'event' | 'onset' | 'expires'>,
+): CapAlert | null {
   const alert = (xml.parse(body) as Node).alert as Node | undefined;
   const infos = nodes(alert?.info);
   if (!alert || infos.length === 0) return null;
@@ -258,9 +303,7 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
     );
     // A feed can list a warning and its update side by side: keep only the latest version.
     const replaced = new Set(alerts.flatMap((alert) => alert.replaces));
-    return alerts
-      .filter((alert) => !replaced.has(alert.id))
-      .map(({ replaces: _replaces, ...alert }) => alert);
+    return alerts.filter((alert) => !replaced.has(alert.id)).map(({ replaces: _replaces, ...alert }) => alert);
   }
 
   /**
@@ -309,7 +352,10 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
     }
     this.listed = new Map([...byUrl].map(([ref, { entry }]) => [ref, entry]));
     return {
-      warnings: [...byUrl.values()].map(({ entry: _entry, ...warning }) => ({ ...warning, areas: [...new Set(warning.areas)] })),
+      warnings: [...byUrl.values()].map(({ entry: _entry, ...warning }) => ({
+        ...warning,
+        areas: [...new Set(warning.areas)],
+      })),
       read: countries.filter((_, i) => results[i]!.status === 'fulfilled'),
     };
   }
@@ -339,7 +385,9 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
 
   /** Cached as a promise, so concurrent requests for one country share a download. */
   private feed(country: string): Promise<FeedEntry[]> {
-    return this.cached(this.feeds, country, async () => parseFeed(await this.fetchText(`${FEED_URL}${FEEDS[country]}`)));
+    return this.cached(this.feeds, country, async () =>
+      parseFeed(await this.fetchText(`${FEED_URL}${FEEDS[country]}`)),
+    );
   }
 
   /**
@@ -380,7 +428,9 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
     try {
       response = await this.fetchFn(url, { signal: AbortSignal.timeout(this.timeoutMs) });
     } catch (err) {
-      throw new ProviderError(`${new URL(url).host}: ${(err as Error).name === 'TimeoutError' ? 'timeout' : 'network error'}`);
+      throw new ProviderError(
+        `${new URL(url).host}: ${(err as Error).name === 'TimeoutError' ? 'timeout' : 'network error'}`,
+      );
     }
     if (!response.ok) throw new ProviderError(`${new URL(url).host}: HTTP ${response.status}`);
     return response.text();

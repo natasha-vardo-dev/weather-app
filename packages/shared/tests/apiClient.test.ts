@@ -15,16 +15,10 @@ describe('createApiClient', () => {
 
     await api.searchLocations('São Paulo');
 
-    expect(fetchFn).toHaveBeenCalledWith(
-      'https://api.test/api/locations?q=S%C3%A3o+Paulo',
-      expect.anything(),
-    );
+    expect(fetchFn).toHaveBeenCalledWith('https://api.test/api/locations?q=S%C3%A3o+Paulo', expect.anything());
 
     await api.searchLocations('Warsaw', { language: 'pl' });
-    expect(fetchFn).toHaveBeenLastCalledWith(
-      'https://api.test/api/locations?q=Warsaw&lang=pl',
-      expect.anything(),
-    );
+    expect(fetchFn).toHaveBeenLastCalledWith('https://api.test/api/locations?q=Warsaw&lang=pl', expect.anything());
   });
 
   it('gets a place by id in a language', async () => {
@@ -37,9 +31,7 @@ describe('createApiClient', () => {
   });
 
   it('turns API error bodies into ApiError with the server code', async () => {
-    const fetchFn = vi.fn(async () =>
-      json({ error: { code: 'PROVIDER_ERROR', message: 'Down' } }, 502),
-    );
+    const fetchFn = vi.fn(async () => json({ error: { code: 'PROVIDER_ERROR', message: 'Down' } }, 502));
     const api = createApiClient({ baseUrl: '', fetchFn });
 
     await expect(api.getForecast(1, 1)).rejects.toMatchObject({

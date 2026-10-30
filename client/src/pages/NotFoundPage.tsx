@@ -14,8 +14,7 @@ export function NotFoundPage({ message }: Props) {
     <div className="empty">
       <h1 className="empty__title">{t.notFound.title}</h1>
       <p className="empty__text">
-        {message ?? t.notFound.pageMissing} <Link to="/">{t.notFound.goHome}</Link>{' '}
-        {t.notFound.orSearch}
+        {message ?? t.notFound.pageMissing} <Link to="/">{t.notFound.goHome}</Link> {t.notFound.orSearch}
       </p>
     </div>
   );

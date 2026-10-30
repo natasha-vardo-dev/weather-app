@@ -12,8 +12,7 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
   offline: 'Vous êtes hors ligne. Dernières prévisions chargées affichées, elles peuvent être dépassées.',
   home: {
     title: 'Quel temps fera-t-il là où vous allez ?',
-    text: (days) =>
-      `Recherchez une ville pour voir la météo actuelle et les prévisions sur ${num(days)} jours.`,
+    text: (days) => `Recherchez une ville pour voir la météo actuelle et les prévisions sur ${num(days)} jours.`,
   },
   alerts: {
     title: 'Alertes météo',
@@ -54,21 +53,26 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
     levels: { yellow: 'Jaune', orange: 'Orange', red: 'Rouge' },
     once: 'Une notification par alerte. Une notification fermée ne revient pas ; seul un niveau relevé prévient à nouveau.',
     iosTitle: 'Sur iPhone, les alertes arrivent dans l’app',
-    iosSteps: 'Ajoutez d’abord Weather à l’écran d’accueil : touchez {icon} « Partager », puis « Sur l’écran d’accueil ». Ouvrez-la depuis là et activez les alertes.',
+    iosSteps:
+      'Ajoutez d’abord Weather à l’écran d’accueil : touchez {icon} « Partager », puis « Sur l’écran d’accueil ». Ouvrez-la depuis là et activez les alertes.',
     blockedTitle: 'Les notifications sont bloquées',
-    blockedText: 'Vous les avez désactivées pour ce site. Pour recevoir les alertes, autorisez les notifications dans les réglages du site du navigateur, puis revenez ici.',
+    blockedText:
+      'Vous les avez désactivées pour ce site. Pour recevoir les alertes, autorisez les notifications dans les réglages du site du navigateur, puis revenez ici.',
     bannerWorks: 'Le bandeau d’alertes de cette page fonctionne dans tous les cas.',
     failed: 'Impossible de modifier les notifications. Réessayez.',
     unavailable: 'Les notifications ne fonctionnent que dans la version installée de l’app.',
     cities: (n) => plural(n, { one: '{n} ville', other: '{n} villes' }),
     off: 'Désactivées',
-    noneOn: 'Les notifications ne sont activées pour aucune ville. Pour recevoir les alertes météo officielles, ouvrez une ville et touchez la cloche à côté de son nom.',
+    noneOn:
+      'Les notifications ne sont activées pour aucune ville. Pour recevoir les alertes météo officielles, ouvrez une ville et touchez la cloche à côté de son nom.',
     leavesOnClose: 'Les villes désactivées quittent la liste à la fermeture du menu.',
     placeLeavesOnClose: (place) => `${place} quittera la liste à la fermeture du menu.`,
-    listRule: 'Les villes favorites {star} restent toujours dans la liste ; les autres, tant que leurs notifications sont activées.',
+    listRule:
+      'Les villes favorites {star} restent toujours dans la liste ; les autres, tant que leurs notifications sont activées.',
     howToConfigure: 'Pour régler les alertes d’une ville, touchez son nom, puis la cloche {icon}.',
     uncovered: 'Pas de données de MeteoAlarm',
-    meteoAlarmOnly: 'Les alertes ne sont disponibles que pour les pays de MeteoAlarm (l’Europe, sauf la Biélorussie, la Russie et quelques autres).',
+    meteoAlarmOnly:
+      'Les alertes ne sont disponibles que pour les pays de MeteoAlarm (l’Europe, sauf la Biélorussie, la Russie et quelques autres).',
   },
   installHint: {
     title: 'Ajouter à l’écran d’accueil',
@@ -113,7 +117,11 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
     sunset: 'Coucher du soleil',
     pressure: 'Pression',
     hPa: 'hPa',
-    pressureTrends: { rising: 'En hausse dans les 3 prochaines heures', falling: 'En baisse dans les 3 prochaines heures', steady: 'Stable dans les 3 prochaines heures' },
+    pressureTrends: {
+      rising: 'En hausse dans les 3 prochaines heures',
+      falling: 'En baisse dans les 3 prochaines heures',
+      steady: 'Stable dans les 3 prochaines heures',
+    },
     visibility: 'Visibilité',
     visibilityLevels: { fog: 'Brouillard', poor: 'Brume', moderate: 'Visibilité moyenne', good: 'Bonne visibilité' },
     dewPoint: (d) => `Point de rosée ${d}`,
@@ -173,7 +181,8 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
     approximate: 'Approximatif, par IP',
     suggest: (city) => `Vous semblez être à ${city}`,
     errors: {
-      denied: "L'accès à la position est bloqué. Autorisez-le dans les paramètres du navigateur ou recherchez une ville.",
+      denied:
+        "L'accès à la position est bloqué. Autorisez-le dans les paramètres du navigateur ou recherchez une ville.",
       unavailable: 'Impossible de trouver votre position. Réessayez ou recherchez une ville.',
       timeout: 'La recherche de votre position a pris trop de temps. Réessayez.',
       unsupported: 'Ce navigateur ne peut pas partager votre position. Recherchez plutôt une ville.',

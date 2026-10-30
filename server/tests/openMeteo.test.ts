@@ -62,7 +62,13 @@ describe('OpenMeteoProvider', () => {
     const url = new URL(String((fetchFn.mock.calls[0] as unknown[])[0]));
     expect(url.searchParams.get('past_days')).toBe('1');
     expect(url.searchParams.get('forecast_hours')).toBe('24');
-    expect(forecast.current).toMatchObject({ temperature: 12, weatherCode: 61, isDay: true, windGusts: 32, windDirection: 315 });
+    expect(forecast.current).toMatchObject({
+      temperature: 12,
+      weatherCode: 61,
+      isDay: true,
+      windGusts: 32,
+      windDirection: 315,
+    });
     expect(forecast.units.precipitation).toBe('mm');
     expect(forecast.hourly).toEqual([
       {
@@ -177,8 +183,26 @@ describe('OpenMeteoProvider', () => {
     const fetchFn = vi.fn(async () =>
       jsonResponse({
         results: [
-          { id: 400666, name: 'Родос', feature_code: 'PPLA2', admin1: 'South Aegean', admin2: 'Dodecanese', country: 'Греция', latitude: 36.43556, longitude: 28.22199 },
-          { id: 400665, name: 'Родос', feature_code: 'ISL', admin1: 'South Aegean', admin2: 'Dodecanese', country: 'Греция', latitude: 36.19613, longitude: 27.96081 },
+          {
+            id: 400666,
+            name: 'Родос',
+            feature_code: 'PPLA2',
+            admin1: 'South Aegean',
+            admin2: 'Dodecanese',
+            country: 'Греция',
+            latitude: 36.43556,
+            longitude: 28.22199,
+          },
+          {
+            id: 400665,
+            name: 'Родос',
+            feature_code: 'ISL',
+            admin1: 'South Aegean',
+            admin2: 'Dodecanese',
+            country: 'Греция',
+            latitude: 36.19613,
+            longitude: 27.96081,
+          },
         ],
       }),
     );
@@ -193,7 +217,16 @@ describe('OpenMeteoProvider', () => {
     const fetchFn = vi.fn(async () =>
       jsonResponse({
         results: [
-          { id: 2847562, name: 'Rhode', admin1: 'Lower Saxony', admin3: 'Helmstedt (district)', admin4: 'Königslutter am Elm', country: 'Germany', latitude: 52.3, longitude: 10.87 },
+          {
+            id: 2847562,
+            name: 'Rhode',
+            admin1: 'Lower Saxony',
+            admin3: 'Helmstedt (district)',
+            admin4: 'Königslutter am Elm',
+            country: 'Germany',
+            latitude: 52.3,
+            longitude: 10.87,
+          },
           { id: 2961832, name: 'Rhode', admin1: 'Leinster', country: 'Ireland', latitude: 53.35, longitude: -7.2 },
         ],
       }),

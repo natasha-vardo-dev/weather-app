@@ -19,7 +19,11 @@ export function WeatherSkeleton({ place }: { place: string }) {
         <div className="skeleton__block" style={{ width: '16rem', height: '1.5rem', marginTop: '0.75rem' }} />
         <div className="skeleton__block" style={{ width: '100%', height: '6rem', marginTop: '2.5rem' }} />
         {Array.from({ length: FORECAST_DEFAULT_DAYS }, (_, i) => (
-          <div key={i} className="skeleton__block" style={{ width: '100%', height: '2.2rem', marginTop: i === 0 ? '2.5rem' : '0.6rem' }} />
+          <div
+            key={i}
+            className="skeleton__block"
+            style={{ width: '100%', height: '2.2rem', marginTop: i === 0 ? '2.5rem' : '0.6rem' }}
+          />
         ))}
         <div className="skeleton__block" style={{ width: '100%', height: '6.5rem', marginTop: '2rem' }} />
       </div>

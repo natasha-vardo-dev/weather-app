@@ -7,7 +7,9 @@
 
 /** Calendar date (YYYY-MM-DD) of an instant in a time zone. */
 function dateIn(instant: number, timeZone: string | undefined): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(instant);
+  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(
+    instant,
+  );
 }
 
 /** Whole days between the dates of two instants at the place (DST does not matter for dates). */
@@ -15,10 +17,7 @@ function dayOffset(instant: number, now: number, timeZone: string | undefined): 
   return Math.round((Date.parse(dateIn(instant, timeZone)) - Date.parse(dateIn(now, timeZone))) / 86_400_000);
 }
 
-export function formatAlertTime(
-  iso: string,
-  options: { locale: string; timeZone?: string; now?: number },
-): string {
+export function formatAlertTime(iso: string, options: { locale: string; timeZone?: string; now?: number }): string {
   const { locale, timeZone, now = Date.now() } = options;
   const instant = Date.parse(iso);
   // Intl throws on an invalid date; one bad upstream warning must not break the page.
