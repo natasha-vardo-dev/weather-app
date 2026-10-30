@@ -23,13 +23,13 @@ A web application that shows the current weather and a 10-day forecast for a sel
 
 ## Tech stack
 
-| Layer    | Technology                                    |
-| -------- | --------------------------------------------- |
-| Frontend | React 18, TypeScript, Vite                    |
-| Backend  | Node.js, Express, TypeScript, Zod             |
-| Weather  | Open-Meteo (forecast + geocoding)             |
-| Testing  | Vitest, Supertest, ESLint                     |
-| CI       | GitHub Actions (lint, typecheck, test, build) |
+| Layer    | Technology                                            |
+| -------- | ----------------------------------------------------- |
+| Frontend | React 18, TypeScript, Vite                            |
+| Backend  | Node.js, Express, TypeScript, Zod                     |
+| Weather  | Open-Meteo (forecast + geocoding)                     |
+| Testing  | Vitest, Supertest, ESLint, Prettier                   |
+| CI       | GitHub Actions (format, lint, typecheck, test, build) |
 
 ## Architecture
 
@@ -79,6 +79,7 @@ Notifications need the production build (the service worker is off in `npm run d
 ```bash
 npm test           # all tests
 npm run lint       # ESLint, including React hook rules
+npm run format     # Prettier (CI runs format:check)
 npm run typecheck  # TypeScript checks
 npm run build      # production build
 ```
