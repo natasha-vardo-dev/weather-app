@@ -10,6 +10,7 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
   placesBy: 'Plaatsnamen',
   dataBy: 'Weergegevens van',
   offline: 'Je bent offline. De laatst geladen verwachting wordt getoond, die mogelijk verouderd is.',
+  outdated: (time) => `Verwachting laatst bijgewerkt: ${time}.`,
   home: {
     title: 'Wat voor weer is het waar je heen gaat?',
     text: (days) => `Zoek een stad om het huidige weer en de verwachting voor ${num(days)} dagen te zien.`,

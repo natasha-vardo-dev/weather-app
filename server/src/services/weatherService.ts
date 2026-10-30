@@ -1,6 +1,21 @@
 import { FORECAST_DEFAULT_DAYS } from '@weather/shared';
+import type { Logger } from '../observability/logger.js';
 import type { AirQuality, Forecast, Location, WeatherProvider } from '../providers/types.js';
-import { TtlCache, type CacheStats } from './cache.js';
+import { staleErrorLogger } from './staleErrorLogger.js';
+import { TtlCache, type Cached, type CacheStats } from './cache.js';
+
+const MB = 1024 * 1024;
+const HOUR = 60 * 60 * 1000;
+const MINUTE = 60 * 1000;
+const DAY = 24 * HOUR;
+/** ~1 km: nearby requests share one entry, and the provider is asked for the same point. */
+const round = (degrees: number) => Number(degrees.toFixed(2));
+/**
+ * Memory is bounded in bytes (JSON size; the objects in memory take about 2–3 times more), so
+ * the entry limit is only a guard against many tiny entries. 10% of each TTL taken off at
+ * random spreads out entries stored together.
+ */
+const LIMITS = { maxEntries: 5000, jitter: 0.1 };
 
 export class WeatherService {
   private readonly forecastCache: TtlCache<Forecast>;
@@ -12,13 +27,30 @@ export class WeatherService {
   constructor(
     private readonly provider: WeatherProvider,
     forecastTtlMs = 10 * 60 * 1000,
+    logger?: Logger,
   ) {
-    this.forecastCache = new TtlCache(forecastTtlMs);
-    // City search results change very rarely, so they can live longer.
-    this.locationCache = new TtlCache(24 * 60 * 60 * 1000);
+    // Past the TTL: 5 more minutes answered at once while a new forecast loads, and up to an
+    // hour in all when the provider is down, instead of an error.
+    this.forecastCache = new TtlCache(forecastTtlMs, {
+      staleWhileRevalidateMs: 5 * MINUTE,
+      staleIfErrorMs: Math.max(HOUR - forecastTtlMs, 0),
+      onStaleError: staleErrorLogger(logger, 'forecast'),
+      ...LIMITS,
+      maxBytes: 16 * MB,
+    });
+    // City search results and names change very rarely: a day fresh, a day more answered at
+    // once, a week in all when the provider is down.
+    const names = { staleWhileRevalidateMs: DAY, staleIfErrorMs: 6 * DAY, ...LIMITS, maxBytes: 4 * MB };
+    this.locationCache = new TtlCache(DAY, { ...names, onStaleError: staleErrorLogger(logger, 'search') });
+    this.locationByIdCache = new TtlCache(DAY, { ...names, onStaleError: staleErrorLogger(logger, 'locationById') });
     // The provider updates air quality hourly, so it can live longer than forecasts.
-    this.airQualityCache = new TtlCache(30 * 60 * 1000);
-    this.locationByIdCache = new TtlCache(24 * 60 * 60 * 1000);
+    this.airQualityCache = new TtlCache(30 * MINUTE, {
+      staleWhileRevalidateMs: 10 * MINUTE,
+      staleIfErrorMs: 90 * MINUTE,
+      onStaleError: staleErrorLogger(logger, 'airQuality'),
+      ...LIMITS,
+      maxBytes: 4 * MB,
+    });
   }
 
   searchLocations(query: string, limit = 5, language = 'en'): Promise<Location[]> {
@@ -27,10 +59,10 @@ export class WeatherService {
     return this.locationCache.getOrLoad(key, () => this.provider.searchLocations(query.trim(), limit, language));
   }
 
-  getForecast(latitude: number, longitude: number, days = FORECAST_DEFAULT_DAYS): Promise<Forecast> {
-    // ~1 km precision: nearby requests share one cache entry.
-    const key = `${latitude.toFixed(2)}:${longitude.toFixed(2)}:${days}`;
-    return this.forecastCache.getOrLoad(key, () => this.provider.getForecast(latitude, longitude, days));
+  /** With `stale`: a stale forecast should be kept by browsers for less long. */
+  getForecast(latitude: number, longitude: number, days = FORECAST_DEFAULT_DAYS): Promise<Cached<Forecast>> {
+    const [lat, lon] = [round(latitude), round(longitude)];
+    return this.forecastCache.load(`${lat}:${lon}:${days}`, () => this.provider.getForecast(lat, lon, days));
   }
 
   /** Place names change only when the provider's data does, so they share the search TTL. */
@@ -39,10 +71,9 @@ export class WeatherService {
     return this.locationByIdCache.getOrLoad(key, () => this.provider.getLocation(id, language));
   }
 
-  getAirQuality(latitude: number, longitude: number): Promise<AirQuality> {
-    // Same ~1 km rounding as forecasts.
-    const key = `${latitude.toFixed(2)}:${longitude.toFixed(2)}`;
-    return this.airQualityCache.getOrLoad(key, () => this.provider.getAirQuality(latitude, longitude));
+  getAirQuality(latitude: number, longitude: number): Promise<Cached<AirQuality>> {
+    const [lat, lon] = [round(latitude), round(longitude)];
+    return this.airQualityCache.load(`${lat}:${lon}`, () => this.provider.getAirQuality(lat, lon));
   }
 
   cacheStats(): Record<string, CacheStats> {

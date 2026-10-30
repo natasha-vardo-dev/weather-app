@@ -10,6 +10,7 @@ export const uk: MessagesFactory = ({ deg, plural }) => ({
   placesBy: 'Назви місць',
   dataBy: 'Дані про погоду:',
   offline: 'Ви офлайн. Показано останній завантажений прогноз, він може бути застарілим.',
+  outdated: (time) => `Останнє оновлення прогнозу: ${time}.`,
   home: {
     title: 'Яка погода там, куди ви їдете?',
     text: (days) =>

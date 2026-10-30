@@ -56,6 +56,8 @@ function localTime(date: Date): string {
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
+const QUARTER = 15 * 60 * 1000;
+
 export function forecast(
   place: { latitude: number; longitude: number },
   { now = new Date(), temperature = 12.4 }: { now?: Date; temperature?: number } = {},
@@ -69,7 +71,9 @@ export function forecast(
     timezone: TIME_ZONE,
     units: { temperature: '°C', windSpeed: 'km/h', precipitation: 'mm' },
     current: {
-      time: localTime(hourStart),
+      // Per 15 minutes, as Open-Meteo's current weather: from the hour it could be ~1 h old, which the
+      // page calls an outdated forecast.
+      time: localTime(new Date(Math.floor(now.getTime() / QUARTER) * QUARTER)),
       temperature,
       apparentTemperature: temperature - 2.3,
       humidity: 71,

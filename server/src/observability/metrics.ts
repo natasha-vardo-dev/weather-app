@@ -167,9 +167,12 @@ export class Metrics {
     const caches: MetricsSnapshot['caches'] = {};
     for (const [name, stats] of this.caches) {
       const s = stats();
-      const asked = s.hits + s.misses + s.coalesced;
-      // Coalesced requests did not reach the provider either: they count as served from cache.
-      caches[name] = { ...s, hitRate: asked ? Math.round(((s.hits + s.coalesced) / asked) * 1000) / 1000 : null };
+      // Stale answers and joined loads count as served from cache: they did not wait for the provider.
+      const asked = s.hits + s.misses + s.coalesced + s.stale;
+      caches[name] = {
+        ...s,
+        hitRate: asked ? Math.round(((s.hits + s.coalesced + s.stale) / asked) * 1000) / 1000 : null,
+      };
     }
     const providers: MetricsSnapshot['providers'] = {};
     for (const [name, counter] of this.providers) providers[name] = counter.usage(now);

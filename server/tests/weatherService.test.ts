@@ -1,8 +1,44 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WeatherService } from '../src/services/weatherService.js';
 import { createFakeProvider } from './fakeProvider.js';
 
 describe('WeatherService', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('answers with the last forecast while the provider is down, for up to an hour', async () => {
+    vi.useFakeTimers();
+    const provider = createFakeProvider();
+    const service = new WeatherService(provider);
+    const { value: first } = await service.getForecast(52.23, 21.01);
+
+    provider.getForecast.mockRejectedValue(new Error('provider down'));
+    vi.advanceTimersByTime(30 * 60 * 1000);
+    await expect(service.getForecast(52.23, 21.01)).resolves.toEqual({ value: first, stale: true });
+
+    vi.advanceTimersByTime(31 * 60 * 1000);
+    await expect(service.getForecast(52.23, 21.01)).rejects.toThrow('provider down');
+  });
+
+  it('waits for a new forecast once the old one is more than 5 minutes past its TTL', async () => {
+    vi.useFakeTimers();
+    const provider = createFakeProvider();
+    const service = new WeatherService(provider);
+    await service.getForecast(52.23, 21.01);
+
+    vi.advanceTimersByTime(20 * 60 * 1000);
+    await expect(service.getForecast(52.23, 21.01)).resolves.toMatchObject({ stale: false });
+    expect(provider.getForecast).toHaveBeenCalledTimes(2);
+  });
+
+  it('asks the provider for the rounded point, the one the cache key stands for', async () => {
+    const provider = createFakeProvider();
+    const service = new WeatherService(provider);
+    await service.getForecast(52.2297, 21.0122);
+    await service.getAirQuality(52.2297, 21.0122);
+    expect(provider.getForecast).toHaveBeenCalledWith(52.23, 21.01, expect.any(Number));
+    expect(provider.getAirQuality).toHaveBeenCalledWith(52.23, 21.01);
+  });
+
   it('caches forecasts for nearby coordinates', async () => {
     const provider = createFakeProvider();
     const service = new WeatherService(provider);

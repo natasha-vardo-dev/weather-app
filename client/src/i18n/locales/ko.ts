@@ -10,6 +10,7 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
   placesBy: '지명',
   dataBy: '날씨 데이터 제공:',
   offline: '오프라인 상태입니다. 마지막으로 불러온 예보를 표시하며, 최신이 아닐 수 있습니다.',
+  outdated: (time) => `예보 마지막 업데이트: ${time}`,
   home: {
     title: '가는 곳의 날씨는 어떨까요?',
     text: (days) => `도시를 검색하면 현재 날씨와 ${num(days)}일 예보를 볼 수 있습니다.`,

@@ -10,6 +10,7 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
   placesBy: 'Názvy míst',
   dataBy: 'Data o počasí:',
   offline: 'Jste offline. Zobrazuje se naposledy načtená předpověď, může být zastaralá.',
+  outdated: (time) => `Poslední aktualizace předpovědi: ${time}.`,
   home: {
     title: 'Jaké bude počasí tam, kam jedete?',
     text: (days) =>

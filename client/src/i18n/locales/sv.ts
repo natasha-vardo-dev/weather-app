@@ -10,6 +10,7 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
   placesBy: 'Ortnamn',
   dataBy: 'Väderdata från',
   offline: 'Du är offline. Den senast hämtade prognosen visas och kan vara inaktuell.',
+  outdated: (time) => `Prognosen uppdaterades senast: ${time}.`,
   home: {
     title: 'Hur blir vädret dit du ska?',
     text: (days) => `Sök efter en stad för att se aktuellt väder och prognosen för ${num(days)} dagar.`,

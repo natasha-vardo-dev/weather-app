@@ -4,6 +4,7 @@ import { AlertBell } from '../components/AlertBell';
 import { CurrentWeather } from '../components/CurrentWeather';
 import { FavoriteButton } from '../components/FavoriteButton';
 import { FavoritesStrip } from '../components/FavoritesStrip';
+import { OutdatedNotice } from '../components/OutdatedNotice';
 import { ForecastList } from '../components/ForecastList';
 import { HourlyForecast } from '../components/HourlyForecast';
 import { WeatherAlerts } from '../components/WeatherAlerts';
@@ -141,6 +142,8 @@ export function WeatherPage() {
   // below moves down when they arrive a moment after a cached forecast.
   return (
     <>
+      {/* Where the offline banner is, which it gives way to. */}
+      <OutdatedNotice forecast={error ? null : current} />
       <FavoritesStrip place={place} />
       {/* Keyed by place, so the next city starts with its warnings folded again. */}
       <WeatherAlerts key={`alerts:${place.latitude},${place.longitude}`} data={alerts} timeZone={forecast?.timezone} />

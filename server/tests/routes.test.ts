@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
 import { ProviderError } from '../src/errors.js';
 import { WeatherService } from '../src/services/weatherService.js';
@@ -24,6 +24,41 @@ describe('GET /api/forecast', () => {
     const res = await request(app).get('/api/forecast?lat=200&lon=21');
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('INVALID_REQUEST');
+  });
+
+  it('lets browsers keep a stale forecast for a minute only', async () => {
+    const provider = createFakeProvider();
+    // A 1 ms TTL: the second answer is past it, returned at once while the forecast refreshes.
+    const app = createApp(new WeatherService(provider, 1));
+    const fresh = await request(app).get('/api/forecast?lat=52.23&lon=21.01');
+    // Warsaw's refresh never finishes, so it stays stale however fast the requests are.
+    provider.getForecast.mockImplementation((lat) =>
+      lat === 52.23 ? new Promise(() => {}) : Promise.resolve(sampleForecast),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const stale = await request(app).get('/api/forecast?lat=52.23&lon=21.01');
+    const batch = await request(app).get('/api/forecasts?places=52.23,21.01;50.06,19.94');
+
+    expect(fresh.headers['cache-control']).toBe('public, max-age=300');
+    expect(stale.headers['cache-control']).toBe('public, max-age=60');
+    expect(stale.body).toEqual(sampleForecast);
+    expect(batch.headers['cache-control']).toBe('public, max-age=60');
+  });
+
+  it('lets browsers keep stale air quality for a minute only', async () => {
+    // Only Date is faked: the HTTP machinery keeps its real timers.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const { app } = setup();
+      const fresh = await request(app).get('/api/air-quality?lat=52.23&lon=21.01');
+      vi.setSystemTime(Date.now() + 35 * 60 * 1000); // past the 30-minute TTL, within the 10 after it
+      const stale = await request(app).get('/api/air-quality?lat=52.23&lon=21.01');
+      expect(fresh.headers['cache-control']).toBe('public, max-age=900');
+      expect(stale.headers['cache-control']).toBe('public, max-age=60');
+      expect(stale.body).toEqual(sampleAirQuality);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('returns 502 when the provider fails', async () => {

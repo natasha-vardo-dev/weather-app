@@ -11,6 +11,7 @@ export const ar: MessagesFactory = ({ num, deg, plural }) => ({
   placesBy: 'أسماء الأماكن',
   dataBy: 'بيانات الطقس من',
   offline: 'أنت غير متصل. يُعرض آخر توقع تم تحميله، وقد لا يكون محدّثًا.',
+  outdated: (time) => `آخر تحديث للتوقعات: ${time}.`,
   home: {
     title: 'كيف سيكون الطقس حيث تذهب؟',
     text: (days) =>

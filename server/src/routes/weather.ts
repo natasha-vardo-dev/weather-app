@@ -12,6 +12,17 @@ import { AppError, errorDetails, NotFoundError, type ProviderError } from '../er
 import type { Logger } from '../observability/logger.js';
 import type { WeatherService } from '../services/weatherService.js';
 
+const FORECAST_MAX_AGE = 300;
+const AIR_QUALITY_MAX_AGE = 900;
+/**
+ * A stale answer (past the server's TTL: a refresh is under way, or the provider is down) is
+ * kept by browsers for a minute only, so the next look gets the new data instead of the old
+ * one for another five or fifteen minutes. Not `no-store`: the service worker still keeps it,
+ * as the best copy there is for offline.
+ */
+const STALE_MAX_AGE = 60;
+const maxAge = (seconds: number, stale: boolean) => `public, max-age=${stale ? STALE_MAX_AGE : seconds}`;
+
 export function weatherRouter(service: WeatherService, logger?: Logger): Router {
   const router = Router();
 
@@ -41,9 +52,9 @@ export function weatherRouter(service: WeatherService, logger?: Logger): Router 
   router.get('/forecast', async (req, res, next) => {
     try {
       const { lat, lon, days } = forecastQuerySchema.parse(req.query);
-      const forecast = await service.getForecast(lat, lon, days);
+      const { value: forecast, stale } = await service.getForecast(lat, lon, days);
       // Set only on success: an error must not be cached by browsers or CDNs.
-      res.set('Cache-Control', 'public, max-age=300');
+      res.set('Cache-Control', maxAge(FORECAST_MAX_AGE, stale));
       res.json(forecast);
     } catch (err) {
       next(err);
@@ -67,11 +78,12 @@ export function weatherRouter(service: WeatherService, logger?: Logger): Router 
       }
       const body: ForecastsResponse = {
         forecasts: settled.map((r) =>
-          r.status === 'fulfilled' ? { forecast: r.value } : { error: errorDetails(r.reason) },
+          r.status === 'fulfilled' ? { forecast: r.value.value } : { error: errorDetails(r.reason) },
         ),
       };
       // A partial answer is not cached: the failed places would stay missing for max-age.
-      res.set('Cache-Control', failed.length ? 'no-store' : 'public, max-age=300');
+      const stale = settled.some((r) => r.status === 'fulfilled' && r.value.stale);
+      res.set('Cache-Control', failed.length ? 'no-store' : maxAge(FORECAST_MAX_AGE, stale));
       res.json(body);
     } catch (err) {
       next(err);
@@ -83,8 +95,8 @@ export function weatherRouter(service: WeatherService, logger?: Logger): Router 
   router.get('/air-quality', async (req, res, next) => {
     try {
       const { lat, lon } = airQualityQuerySchema.parse(req.query);
-      const airQuality = await service.getAirQuality(lat, lon);
-      res.set('Cache-Control', 'public, max-age=900');
+      const { value: airQuality, stale } = await service.getAirQuality(lat, lon);
+      res.set('Cache-Control', maxAge(AIR_QUALITY_MAX_AGE, stale));
       res.json(airQuality);
     } catch (err) {
       next(err);

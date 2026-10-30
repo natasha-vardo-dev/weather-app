@@ -10,6 +10,7 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
   placesBy: 'Nazwy miejsc',
   dataBy: 'Dane pogodowe:',
   offline: 'Jesteś offline. Pokazujemy ostatnio pobraną prognozę, może być nieaktualna.',
+  outdated: (time) => `Ostatnia aktualizacja prognozy: ${time}.`,
   home: {
     title: 'Jaka pogoda czeka cię u celu?',
     text: (days) =>

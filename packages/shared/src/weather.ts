@@ -130,3 +130,66 @@ export function formatDay(date: string, today: string, options: FormatDayOptions
 
 /** At or below this chance, no chance of rain is shown: the hourly strip and the 10-day list alike. */
 export const PRECIPITATION_LIKELY = 30;
+
+/**
+ * Past this age the city page says the forecast is old. Fresh data is up to ~35 minutes
+ * behind: the provider's current weather is per 15 minutes, the server keeps it 10 (and 5
+ * more while refreshing), browsers 5. So 45 means something went wrong: the provider was
+ * down and the server answered with what it had (up to an hour), or the page stayed open.
+ */
+export const FORECAST_OUTDATED_MINUTES = 45;
+
+/** Building Intl formatters is costly, and the age is checked every minute: one per time zone. */
+const zoneClocks = new Map<string, Intl.DateTimeFormat>();
+
+/**
+ * The instant (ms) of a local time at a place ("2026-10-30T14:15" in its time zone), or null
+ * if the time or the zone is not readable. Through the zone's offset at that time, so it is
+ * right across daylight-saving changes; asked twice, since the first guess may sit on the
+ * other side of a change. A time the spring change skips lands an hour off, harmlessly.
+ */
+export function placeTimeToInstant(localTime: string, timeZone: string): number | null {
+  let clock = zoneClocks.get(timeZone);
+  try {
+    if (!clock) {
+      clock = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        hourCycle: 'h23',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+      });
+      zoneClocks.set(timeZone, clock);
+    }
+  } catch {
+    return null;
+  }
+  const zone = clock;
+  // The wall-clock time at the place for an instant, written as if it were UTC.
+  const wallClock = (instant: number) => {
+    const parts = zone.formatToParts(instant);
+    const part = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((p) => p.type === type)?.value);
+    return Date.UTC(part('year'), part('month') - 1, part('day'), part('hour'), part('minute'));
+  };
+  // Checked first: Date.parse reads almost anything ("not a time:00Z" is a date in V8).
+  const local = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(localTime) ? Date.parse(`${localTime}:00Z`) : NaN;
+  if (!Number.isFinite(local)) return null;
+  let instant = local - (wallClock(local) - local);
+  instant = local - (wallClock(instant) - instant);
+  return Number.isFinite(instant) ? instant : null;
+}
+
+/**
+ * Minutes from the forecast's current weather (`current.time`, the place's local time) to
+ * now. 0 if the time zone or the time is not readable: better no warning than a wrong one.
+ * From the data's instant, not two wall-clock times: those were an hour off across a
+ * daylight-saving change (at 03:00 on the spring night, data from 01:45 read 75 minutes old
+ * after 15). (Found by roborev.)
+ */
+export function forecastAgeMinutes(currentTime: string, timeZone: string, now: Date = new Date()): number {
+  const instant = placeTimeToInstant(currentTime, timeZone);
+  if (instant === null) return 0;
+  return Math.max(Math.round((now.getTime() - instant) / 60_000), 0);
+}

@@ -1,6 +1,8 @@
 import { CITY_MATCH_KM, distanceKm, type Location, type ReversePlace } from '@weather/shared';
 import type { ReverseGeocoder } from '../providers/types.js';
+import type { Logger } from '../observability/logger.js';
 import { TtlCache, type CacheStats } from './cache.js';
+import { staleErrorLogger } from './staleErrorLogger.js';
 
 /** City search, as the weather service offers it (cached there). */
 export interface CitySearch {
@@ -35,8 +37,18 @@ export class PlaceService {
     private readonly geocoder: ReverseGeocoder,
     private readonly cities: CitySearch,
     ttlMs = 7 * 24 * 60 * 60 * 1000,
+    logger?: Logger,
   ) {
-    this.cache = new TtlCache(ttlMs);
+    // A place's name hardly changes, and Nominatim is slow and strict: a stale answer is
+    // returned at once while it refreshes, and kept for another TTL when Nominatim fails.
+    this.cache = new TtlCache(ttlMs, {
+      staleWhileRevalidateMs: ttlMs,
+      staleIfErrorMs: ttlMs,
+      maxEntries: 5000,
+      maxBytes: 2 * 1024 * 1024,
+      jitter: 0.1,
+      onStaleError: staleErrorLogger(logger, 'reverse'),
+    });
   }
 
   /**

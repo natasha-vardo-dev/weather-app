@@ -10,6 +10,7 @@ export const ru: MessagesFactory = ({ deg, plural }) => ({
   placesBy: 'Названия мест',
   dataBy: 'Данные о погоде:',
   offline: 'Вы офлайн. Показан последний загруженный прогноз, он может быть устаревшим.',
+  outdated: (time) => `Последнее обновление прогноза: ${time}.`,
   home: {
     title: 'Какая погода там, куда вы едете?',
     text: (days) =>

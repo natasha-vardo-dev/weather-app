@@ -47,11 +47,17 @@ const metrics = new Metrics(logger);
 /** A provider's fetch, counted against its limits and logged (debug). */
 const counted = (name: string, limits = {}) => instrumentFetch(name, metrics.provider(name, limits), logger);
 
-const service = new WeatherService(new OpenMeteoProvider(counted('open-meteo', OPEN_METEO_LIMITS)), ttlSeconds * 1000);
+const service = new WeatherService(
+  new OpenMeteoProvider(counted('open-meteo', OPEN_METEO_LIMITS)),
+  ttlSeconds * 1000,
+  logger,
+);
 // Matches the user's location to a searched city through the weather service's cached search.
 const places = new PlaceService(
   new NominatimGeocoder({ userAgent: nominatimUserAgent, fetchFn: counted('nominatim') }),
   service,
+  undefined,
+  logger,
 );
 // Proxies in front of the server that may set X-Forwarded-For (Vercel and Render: 2).
 // Only these are trusted; otherwise anyone could fake their address in the header.
