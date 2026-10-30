@@ -23,13 +23,13 @@ A web application that shows the current weather and a 10-day forecast for a sel
 
 ## Tech stack
 
-| Layer    | Technology                                            |
-| -------- | ----------------------------------------------------- |
-| Frontend | React 18, TypeScript, Vite                            |
-| Backend  | Node.js, Express, TypeScript, Zod                     |
-| Weather  | Open-Meteo (forecast + geocoding)                     |
-| Testing  | Vitest, Supertest, ESLint, Prettier                   |
-| CI       | GitHub Actions (format, lint, typecheck, test, build) |
+| Layer    | Technology                                                                 |
+| -------- | -------------------------------------------------------------------------- |
+| Frontend | React 18, TypeScript, Vite                                                 |
+| Backend  | Node.js, Express, TypeScript, Zod                                          |
+| Weather  | Open-Meteo (forecast + geocoding)                                          |
+| Testing  | Vitest, Testing Library, Supertest, Playwright, axe-core, ESLint, Prettier |
+| CI       | GitHub Actions (format, lint, typecheck, test, build; e2e in a browser)    |
 
 ## Architecture
 
@@ -77,7 +77,8 @@ Notifications need the production build (the service worker is off in `npm run d
 ### Other commands
 
 ```bash
-npm test           # all tests
+npm test           # unit and component tests
+npm run test:e2e   # Playwright in Chromium, with axe accessibility checks (first: npx playwright install chromium)
 npm run lint       # ESLint, including React hook rules
 npm run format     # Prettier (CI runs format:check)
 npm run typecheck  # TypeScript checks
@@ -129,5 +130,5 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 ## What I would do next
 
 - [Wind unit setting; accounts so favourites sync between devices]
-- [Component and e2e tests with Playwright; React 19 with the React Compiler and its lint rules]
+- [More e2e scenarios (geolocation, offline, notifications); React 19 with the React Compiler and its lint rules]
 - [Redis cache and rate limiting, monitoring]

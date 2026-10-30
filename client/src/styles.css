@@ -12,13 +12,15 @@
   --field: #ffffff;
   --field-ink: #0f1d33;
   --field-query: #1d4f86;
-  --field-ink-soft: #5a6b82;
+  /* 4.85:1 on a highlighted row (--field-active), the darkest place it sits; #5a6b82 was
+     4.26 there (found by axe: the country of the highlighted search suggestion). */
+  --field-ink-soft: #52627a;
   --field-line: rgba(15, 29, 51, 0.16);
   /* One step darker than the panels, so a hovered or chosen row shows on them. */
   --field-active: #d9e5f2;
   --field-danger: #8f2219;
   /* Pop-up panels (settings, search suggestions): pale blue, not white, which glared on
-     the blue page. Soft text #5a6b82 on it is 4.7:1. */
+     the blue page. Soft text on it is 5.3:1. */
   --field-list: #e8eff7;
   /* The logo's tile: darker than the blue page. */
   --brand-tile: #1d4f86;
@@ -46,7 +48,8 @@
     --field: var(--surface);
     --field-ink: var(--ink);
     --field-query: var(--ink);
-    --field-ink-soft: var(--ink-soft);
+    /* Lighter than the page's soft text: on a highlighted row that was 4.37:1, this is 4.78. */
+    --field-ink-soft: #a8b8cc;
     --field-line: var(--line);
     --field-active: var(--line);
     --field-danger: var(--danger);

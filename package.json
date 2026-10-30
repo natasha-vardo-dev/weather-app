@@ -17,7 +17,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "pretest": "npm run build:shared",
-    "test": "npm test -w @weather/shared && npm test -w server && npm test -w client"
+    "test": "npm test -w @weather/shared && npm test -w server && npm test -w client",
+    "test:e2e": "npm run build:shared && npm run test:e2e -w client"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

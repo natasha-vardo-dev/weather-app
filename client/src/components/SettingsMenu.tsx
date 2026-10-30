@@ -289,7 +289,9 @@ function LanguageList({ label, back, value, onChoose, onBack }: ListProps) {
         ref={listRef}
         className="settings__list"
         role="listbox"
-        tabIndex={-1}
+        // In the Tab order, not only focused on opening: Shift+Tab back from outside must reach
+        // it, and a scrolling region needs keyboard access (axe: scrollable-region-focusable).
+        tabIndex={0}
         aria-labelledby={`${id}-label`}
         aria-activedescendant={`${id}-${active}`}
         onKeyDown={onKeyDown}

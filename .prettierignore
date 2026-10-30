@@ -5,3 +5,5 @@ package-lock.json
 server/data
 .roborev
 CLAUDE.md
+playwright-report
+test-results
