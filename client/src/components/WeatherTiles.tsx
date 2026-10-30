@@ -109,6 +109,7 @@ export function WeatherTiles({ forecast, airQuality }: Props) {
   const [open, setOpen] = useState<Detail | null>(null);
   const toggle = (detail: Detail) => setOpen((now) => (now === detail ? null : detail));
   const id = useId();
+  // The effect below builds the same id inline: this function is new on every render.
   const panelId = (detail: Detail) => `${id}-${detail}`;
 
   // Opening a panel below the bottom of the screen would look like nothing happened: bring
@@ -118,10 +119,10 @@ export function WeatherTiles({ forecast, airQuality }: Props) {
   useEffect(() => {
     if (open && !wasOpen.current) {
       const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-      document.getElementById(panelId(open))?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+      document.getElementById(`${id}-${open}`)?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
     }
     wasOpen.current = open !== null;
-  }, [open]);
+  }, [open, id]);
 
   const hours = forecast.hourly;
   const next = t.hourly.title(hours.length);

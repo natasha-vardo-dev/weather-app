@@ -147,7 +147,9 @@ export function useLocalizedPlace(place: Favorite | null): PlaceName | null {
     return () => {
       cancelled = true;
     };
-    // `key` covers everything loadNames depends on.
+    // `key` covers everything loadNames depends on. `place` itself is left out on purpose:
+    // callers pass a new object on every render, and the effect would refetch each time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   if (!key || !place) return null;
@@ -200,7 +202,9 @@ export function useLocalizedPlaces(places: Favorite[], inLanguage?: string): Pla
     return () => {
       cancelled = true;
     };
-    // `joined` covers every key, and so everything loadNames depends on.
+    // `joined` covers every key, and so everything loadNames depends on. `places` and `keys`
+    // are new arrays on every render: listing them would refetch on each one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [joined]);
 
   return places.map((place, i) => namesCache.get(keys[i]!) ?? loaded[keys[i]!] ?? { name: place.name, country: place.country });

@@ -104,9 +104,11 @@ export function AlertBell(props: Props) {
 
   // Once nothing is being applied, show what is actually stored: a change made in another
   // tab, or the previous settings again after a change failed.
+  // By fields: `saved` is a new object on every render.
+  const { group: savedGroup, level: savedLevel } = saved;
   useEffect(() => {
-    if (on && !busy) setDraft(saved);
-  }, [on, busy, saved.group, saved.level]);
+    if (on && !busy) setDraft({ group: savedGroup, level: savedLevel });
+  }, [on, busy, savedGroup, savedLevel]);
 
   useEffect(() => {
     if (!open) return;

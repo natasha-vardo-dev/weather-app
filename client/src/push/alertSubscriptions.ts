@@ -104,7 +104,7 @@ function read(): string | null {
 export function getAlertSubscriptions(): AlertSubscriptionsState {
   const raw = read();
   if (raw !== cache.raw) {
-    let parsed: unknown = null;
+    let parsed: unknown;
     try {
       parsed = raw ? JSON.parse(raw) : null;
     } catch {

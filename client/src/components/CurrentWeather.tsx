@@ -20,7 +20,7 @@ interface Props {
 export function CurrentWeather({ name, country, area = [], forecast, actions, here }: Props) {
   const { t, deg } = useI18n();
   const { temp } = useUnits();
-  const { current, units } = forecast;
+  const { current } = forecast;
   const label = t.conditions[describeWeather(current.weatherCode).condition];
   const today = forecast.daily[0];
   // Compared in the chosen unit, so the difference reads in that unit too (2 °C apart is 4 °F).

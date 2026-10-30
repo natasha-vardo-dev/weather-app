@@ -44,7 +44,8 @@ export function usePlaceRoute(route: PlaceRoute | null): {
     return () => {
       cancelled = true;
     };
-  }, [requestKey]);
+    // `requestKey` is built from `id` and `language`, so listing them changes nothing.
+  }, [id, language, requestKey]);
 
   const result = resolveRoute(route, {
     favorites,

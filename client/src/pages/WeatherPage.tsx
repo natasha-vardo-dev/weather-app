@@ -35,7 +35,7 @@ export function WeatherPage() {
   const location = useLocation();
   useEffect(() => {
     if (canonical && canonical !== location.pathname) navigate(canonical, { replace: true });
-  }, [canonical, location.pathname]);
+  }, [canonical, location.pathname, navigate]);
 
   const { forecast, loading, error, retry } = useForecast(
     place?.latitude ?? null,

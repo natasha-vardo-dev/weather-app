@@ -28,8 +28,8 @@ A web application that shows the current weather and a 10-day forecast for a sel
 | Frontend | React 18, TypeScript, Vite       |
 | Backend  | Node.js, Express, TypeScript, Zod |
 | Weather  | Open-Meteo (forecast + geocoding) |
-| Testing  | Vitest, Supertest                |
-| CI       | GitHub Actions                   |
+| Testing  | Vitest, Supertest, ESLint        |
+| CI       | GitHub Actions (lint, typecheck, test, build) |
 
 ## Architecture
 
@@ -78,6 +78,7 @@ Notifications need the production build (the service worker is off in `npm run d
 
 ```bash
 npm test           # all tests
+npm run lint       # ESLint, including React hook rules
 npm run typecheck  # TypeScript checks
 npm run build      # production build
 ```
@@ -127,5 +128,5 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 ## What I would do next
 
 - [Wind unit setting; accounts so favourites sync between devices]
-- [ESLint, component and e2e tests with Playwright]
+- [Component and e2e tests with Playwright; React 19 with the React Compiler and its lint rules]
 - [Redis cache and rate limiting, monitoring]
