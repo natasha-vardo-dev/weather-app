@@ -37,10 +37,7 @@ export function WeatherPage() {
     if (canonical && canonical !== location.pathname) navigate(canonical, { replace: true });
   }, [canonical, location.pathname, navigate]);
 
-  const { forecast, loading, error, retry } = useForecast(
-    place?.latitude ?? null,
-    place?.longitude ?? null,
-  );
+  const { forecast, loading, error, retry } = useForecast(place?.latitude ?? null, place?.longitude ?? null);
 
   // Fetched in parallel with the forecast and never blocks it.
   const { airQuality, retry: retryAirQuality } = useAirQuality(place?.latitude ?? null, place?.longitude ?? null);

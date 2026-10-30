@@ -101,9 +101,7 @@ export function FavoriteButton({ place }: { place: Favorite }) {
         }}
       >
         <StarIcon />
-        <span className="visually-hidden">
-          {saved ? t.favorites.remove : t.favorites.save}
-        </span>
+        <span className="visually-hidden">{saved ? t.favorites.remove : t.favorites.save}</span>
       </button>
       {/* Always in the page, so the message is announced when it appears. */}
       <span role="status" className="save__live">

@@ -10,11 +10,7 @@ export function baseLanguage(tag: string): string {
  * First of the user's preferred languages (e.g. `navigator.languages`) that the app supports,
  * matched by base language so "de-AT" picks "de". Falls back when nothing matches.
  */
-export function matchLanguage<T extends string>(
-  preferred: readonly string[],
-  supported: readonly T[],
-  fallback: T,
-): T {
+export function matchLanguage<T extends string>(preferred: readonly string[], supported: readonly T[], fallback: T): T {
   for (const tag of preferred) {
     const base = baseLanguage(tag) as T;
     if (supported.includes(base)) return base;

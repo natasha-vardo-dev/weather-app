@@ -8,7 +8,14 @@ import { ShareIcon } from './InstallHint';
 
 export function BellIcon({ on, size = 16 }: { on: boolean; size?: number }) {
   return (
-    <svg className={on ? 'bell__icon bell__icon--on' : 'bell__icon'} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg
+      className={on ? 'bell__icon bell__icon--on' : 'bell__icon'}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
       <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0" />
     </svg>
   );

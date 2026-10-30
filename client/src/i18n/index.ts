@@ -26,7 +26,25 @@ import { pluralize } from './plural';
  * the whole set is small, and the first render never waits for a language file.
  */
 export const MESSAGES = {
-  en, de, fr, es, it, pt, nl, pl, cs, uk, ru, sv, tr, ar, he, hi, ja, ko, zh,
+  en,
+  de,
+  fr,
+  es,
+  it,
+  pt,
+  nl,
+  pl,
+  cs,
+  uk,
+  ru,
+  sv,
+  tr,
+  ar,
+  he,
+  hi,
+  ja,
+  ko,
+  zh,
 } satisfies Record<string, MessagesFactory>;
 
 export type Language = keyof typeof MESSAGES;

@@ -59,7 +59,7 @@ describe('toFoundPlace', () => {
     expect(toFoundPlace(stale, position)).toEqual({ ...position, name: 'Warsaw', country: 'Poland' });
   });
 
-  it('never pairs an id with the user\'s own coordinates', () => {
+  it("never pairs an id with the user's own coordinates", () => {
     const odd = { id: 756135, name: 'Warsaw', latitude: Number.NaN, longitude: 21.01 };
     expect(toFoundPlace(odd, position)).toEqual({ ...position, name: 'Warsaw' });
   });
@@ -88,8 +88,20 @@ describe('approximatePlace', () => {
   const approximateLocation = vi.mocked(api.approximateLocation);
 
   it('offers the city from the IP, with its id', async () => {
-    approximateLocation.mockResolvedValueOnce({ id: 756135, name: 'Warsaw', country: 'Poland', latitude: 52.23, longitude: 21.01 });
-    expect(await approximatePlace('en')).toEqual({ id: 756135, name: 'Warsaw', country: 'Poland', latitude: 52.23, longitude: 21.01 });
+    approximateLocation.mockResolvedValueOnce({
+      id: 756135,
+      name: 'Warsaw',
+      country: 'Poland',
+      latitude: 52.23,
+      longitude: 21.01,
+    });
+    expect(await approximatePlace('en')).toEqual({
+      id: 756135,
+      name: 'Warsaw',
+      country: 'Poland',
+      latitude: 52.23,
+      longitude: 21.01,
+    });
     expect(approximateLocation).toHaveBeenCalledWith({ language: 'en' });
   });
 

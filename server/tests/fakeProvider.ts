@@ -27,9 +27,7 @@ export const sampleForecast: Forecast = {
     },
   ],
   yesterday: { date: '2026-10-14', weatherCode: 61, tempMax: 11, tempMin: 5, precipitationProbability: 90 },
-  daily: [
-    { date: '2026-10-15', weatherCode: 3, tempMax: 14, tempMin: 6, precipitationProbability: 20 },
-  ],
+  daily: [{ date: '2026-10-15', weatherCode: 3, tempMax: 14, tempMin: 6, precipitationProbability: 20 }],
 };
 
 export const sampleAirQuality: AirQuality = {

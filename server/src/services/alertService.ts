@@ -9,9 +9,7 @@ import type { AlertText, AlertsProvider } from '../providers/types.js';
 export function pickText(texts: AlertText[], language: string): AlertText | undefined {
   const base = (tag: string) => tag.toLowerCase().split('-')[0];
   return (
-    texts.find((t) => base(t.language) === base(language)) ??
-    texts.find((t) => base(t.language) === 'en') ??
-    texts[0]
+    texts.find((t) => base(t.language) === base(language)) ?? texts.find((t) => base(t.language) === 'en') ?? texts[0]
   );
 }
 

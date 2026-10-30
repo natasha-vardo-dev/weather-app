@@ -2,15 +2,7 @@
  * Which picture to show. Names, not components: each platform (web, React Native)
  * maps them to its own icons. Clear and partly cloudy also need day/night from the data.
  */
-export type WeatherIcon =
-  | 'clear'
-  | 'partly-cloudy'
-  | 'cloudy'
-  | 'fog'
-  | 'drizzle'
-  | 'rain'
-  | 'snow'
-  | 'storm';
+export type WeatherIcon = 'clear' | 'partly-cloudy' | 'cloudy' | 'fog' | 'drizzle' | 'rain' | 'snow' | 'storm';
 
 /**
  * What the weather is, as a key. Each client translates it into its own language,

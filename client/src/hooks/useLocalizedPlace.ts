@@ -207,9 +207,10 @@ export function useLocalizedPlaces(places: Favorite[], inLanguage?: string): Pla
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [joined]);
 
-  return places.map((place, i) => namesCache.get(keys[i]!) ?? loaded[keys[i]!] ?? { name: place.name, country: place.country });
+  return places.map(
+    (place, i) => namesCache.get(keys[i]!) ?? loaded[keys[i]!] ?? { name: place.name, country: place.country },
+  );
 }
-
 
 /**
  * The name as a heading or tab title: "Rhodes · island" for the island, so it is never

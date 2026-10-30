@@ -53,21 +53,26 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
     levels: { yellow: 'Amarillo', orange: 'Naranja', red: 'Rojo' },
     once: 'Una notificación por aviso. Si la cierras, no vuelve; solo un nivel más alto avisa otra vez.',
     iosTitle: 'En iPhone, los avisos llegan a la app',
-    iosSteps: 'Primero añade Weather a la pantalla de inicio: toca {icon} «Compartir» y luego «Añadir a pantalla de inicio». Ábrela desde ahí y activa los avisos.',
+    iosSteps:
+      'Primero añade Weather a la pantalla de inicio: toca {icon} «Compartir» y luego «Añadir a pantalla de inicio». Ábrela desde ahí y activa los avisos.',
     blockedTitle: 'Las notificaciones están bloqueadas',
-    blockedText: 'Las desactivaste para este sitio. Para recibir avisos, permite las notificaciones en la configuración del sitio del navegador y vuelve aquí.',
+    blockedText:
+      'Las desactivaste para este sitio. Para recibir avisos, permite las notificaciones en la configuración del sitio del navegador y vuelve aquí.',
     bannerWorks: 'El aviso de esta página funciona igualmente.',
     failed: 'No se pudieron cambiar las notificaciones. Inténtalo de nuevo.',
     unavailable: 'Las notificaciones solo funcionan en la versión instalada de la app.',
     cities: (n) => plural(n, { one: '{n} ciudad', other: '{n} ciudades' }),
     off: 'Desactivados',
-    noneOn: 'No hay notificaciones activadas para ninguna ciudad. Para recibir avisos meteorológicos oficiales, abre una ciudad y toca la campana junto a su nombre.',
+    noneOn:
+      'No hay notificaciones activadas para ninguna ciudad. Para recibir avisos meteorológicos oficiales, abre una ciudad y toca la campana junto a su nombre.',
     leavesOnClose: 'Las ciudades desactivadas salen de la lista al cerrar el menú.',
     placeLeavesOnClose: (place) => `${place} saldrá de la lista al cerrar el menú.`,
-    listRule: 'Las ciudades favoritas {star} siempre están en la lista; las demás, mientras sus notificaciones estén activadas.',
+    listRule:
+      'Las ciudades favoritas {star} siempre están en la lista; las demás, mientras sus notificaciones estén activadas.',
     howToConfigure: 'Para configurar los avisos de una ciudad, toca su nombre y luego la campana {icon}.',
     uncovered: 'Sin datos de MeteoAlarm',
-    meteoAlarmOnly: 'Los avisos solo están disponibles para los países de MeteoAlarm (Europa, salvo Bielorrusia, Rusia y algunos otros).',
+    meteoAlarmOnly:
+      'Los avisos solo están disponibles para los países de MeteoAlarm (Europa, salvo Bielorrusia, Rusia y algunos otros).',
   },
   installHint: {
     title: 'Añadir a la pantalla de inicio',
@@ -112,7 +117,11 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
     sunset: 'Atardecer',
     pressure: 'Presión',
     hPa: 'hPa',
-    pressureTrends: { rising: 'Subiendo en las próximas 3 horas', falling: 'Bajando en las próximas 3 horas', steady: 'Estable en las próximas 3 horas' },
+    pressureTrends: {
+      rising: 'Subiendo en las próximas 3 horas',
+      falling: 'Bajando en las próximas 3 horas',
+      steady: 'Estable en las próximas 3 horas',
+    },
     visibility: 'Visibilidad',
     visibilityLevels: { fog: 'Niebla', poor: 'Bruma', moderate: 'Visibilidad moderada', good: 'Buena visibilidad' },
     dewPoint: (d) => `Punto de rocío ${d}`,
@@ -172,7 +181,8 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
     approximate: 'Aproximado, por IP',
     suggest: (city) => `Parece que estás en ${city}`,
     errors: {
-      denied: 'El acceso a la ubicación está bloqueado. Permítelo en la configuración del navegador o busca una ciudad.',
+      denied:
+        'El acceso a la ubicación está bloqueado. Permítelo en la configuración del navegador o busca una ciudad.',
       unavailable: 'No se pudo encontrar tu ubicación. Inténtalo de nuevo o busca una ciudad.',
       timeout: 'Encontrar tu ubicación tardó demasiado. Inténtalo de nuevo.',
       unsupported: 'Este navegador no puede compartir tu ubicación. Busca una ciudad.',

@@ -32,7 +32,9 @@ function FavoriteTile({
   return (
     <li>
       <Link
-        className={['fav-tile', current && 'fav-tile--current', alertLevel && 'fav-tile--alert'].filter(Boolean).join(' ')}
+        className={['fav-tile', current && 'fav-tile--current', alertLevel && 'fav-tile--alert']
+          .filter(Boolean)
+          .join(' ')}
         to={placePath(favorite)}
         aria-current={current ? 'page' : undefined}
         // Full name on hover, since long names and countries are cut with an ellipsis.

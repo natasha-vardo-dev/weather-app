@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  compareWithYesterday,
-  describeWeather,
-  formatDay,
-  formatHour,
-  rangePosition,
-} from '../src/weather.js';
+import { compareWithYesterday, describeWeather, formatDay, formatHour, rangePosition } from '../src/weather.js';
 
 describe('describeWeather', () => {
   it('maps WMO codes to condition keys and icons', () => {

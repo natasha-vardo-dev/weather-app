@@ -22,7 +22,10 @@ afterEach(() => {
 
 describe('roundCoordinates', () => {
   it('rounds to ~1 km, like the rest of the app', () => {
-    expect(roundCoordinates({ latitude: 52.229676, longitude: 21.012229 })).toEqual({ latitude: 52.23, longitude: 21.01 });
+    expect(roundCoordinates({ latitude: 52.229676, longitude: 21.012229 })).toEqual({
+      latitude: 52.23,
+      longitude: 21.01,
+    });
   });
 });
 

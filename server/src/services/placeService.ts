@@ -84,6 +84,12 @@ export class PlaceService {
     }
     if (!best) return null;
     const { id, name: cityName, country, latitude, longitude } = best.city;
-    return { id, name: cityName, ...(country ? { country } : {}), latitude: round(latitude), longitude: round(longitude) };
+    return {
+      id,
+      name: cityName,
+      ...(country ? { country } : {}),
+      latitude: round(latitude),
+      longitude: round(longitude),
+    };
   }
 }

@@ -53,21 +53,25 @@ export const it: MessagesFactory = ({ num, deg, plural }) => ({
     levels: { yellow: 'Giallo', orange: 'Arancione', red: 'Rosso' },
     once: 'Una notifica per allerta. Una chiusa non ritorna; solo un livello più alto avvisa di nuovo.',
     iosTitle: 'Su iPhone, le allerte arrivano nell’app',
-    iosSteps: 'Aggiungi prima Weather alla schermata Home: tocca {icon} «Condividi», poi «Aggiungi alla schermata Home». Aprila da lì e attiva le allerte.',
+    iosSteps:
+      'Aggiungi prima Weather alla schermata Home: tocca {icon} «Condividi», poi «Aggiungi alla schermata Home». Aprila da lì e attiva le allerte.',
     blockedTitle: 'Le notifiche sono bloccate',
-    blockedText: 'Le hai disattivate per questo sito. Per ricevere le allerte, consenti le notifiche nelle impostazioni del sito del browser e poi torna qui.',
+    blockedText:
+      'Le hai disattivate per questo sito. Per ricevere le allerte, consenti le notifiche nelle impostazioni del sito del browser e poi torna qui.',
     bannerWorks: 'Il banner delle allerte in questa pagina funziona comunque.',
     failed: 'Impossibile modificare le notifiche. Riprova.',
     unavailable: 'Le notifiche funzionano solo nella versione installata dell’app.',
     cities: (n) => plural(n, { one: '{n} città', other: '{n} città' }),
     off: 'Disattivate',
-    noneOn: 'Le notifiche non sono attive per nessuna città. Per ricevere le allerte meteo ufficiali, apri una città e tocca la campanella accanto al nome.',
+    noneOn:
+      'Le notifiche non sono attive per nessuna città. Per ricevere le allerte meteo ufficiali, apri una città e tocca la campanella accanto al nome.',
     leavesOnClose: 'Le città disattivate escono dall’elenco quando chiudi il menu.',
     placeLeavesOnClose: (place) => `${place} uscirà dall’elenco quando chiudi il menu.`,
     listRule: 'Le città preferite {star} restano sempre nell’elenco; le altre, finché le notifiche sono attive.',
     howToConfigure: 'Per impostare le allerte di una città, tocca il suo nome e poi la campanella {icon}.',
     uncovered: 'Nessun dato da MeteoAlarm',
-    meteoAlarmOnly: 'Le allerte sono disponibili solo per i paesi di MeteoAlarm (l’Europa, tranne Bielorussia, Russia e pochi altri).',
+    meteoAlarmOnly:
+      'Le allerte sono disponibili solo per i paesi di MeteoAlarm (l’Europa, tranne Bielorussia, Russia e pochi altri).',
   },
   installHint: {
     title: 'Aggiungi alla schermata Home',
@@ -112,7 +116,11 @@ export const it: MessagesFactory = ({ num, deg, plural }) => ({
     sunset: 'Tramonto',
     pressure: 'Pressione',
     hPa: 'hPa',
-    pressureTrends: { rising: 'In aumento nelle prossime 3 ore', falling: 'In calo nelle prossime 3 ore', steady: 'Stabile nelle prossime 3 ore' },
+    pressureTrends: {
+      rising: 'In aumento nelle prossime 3 ore',
+      falling: 'In calo nelle prossime 3 ore',
+      steady: 'Stabile nelle prossime 3 ore',
+    },
     visibility: 'Visibilità',
     visibilityLevels: { fog: 'Nebbia', poor: 'Foschia', moderate: 'Visibilità discreta', good: 'Buona visibilità' },
     dewPoint: (d) => `Punto di rugiada ${d}`,

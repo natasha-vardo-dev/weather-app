@@ -39,7 +39,13 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     fromTo: (start, end) => `Od: ${start}, do: ${end}`,
     issuedBy: 'Vydal:',
     source: 'Zdroj:',
-    more: (n) => plural(n, { one: 'Ještě {n} výstraha', few: 'Ještě {n} výstrahy', many: 'Ještě {n} výstrahy', other: 'Ještě {n} výstrah' }),
+    more: (n) =>
+      plural(n, {
+        one: 'Ještě {n} výstraha',
+        few: 'Ještě {n} výstrahy',
+        many: 'Ještě {n} výstrahy',
+        other: 'Ještě {n} výstrah',
+      }),
     fewer: 'Sbalit',
   },
   notify: {
@@ -54,15 +60,18 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     levels: { yellow: 'Žlutá', orange: 'Oranžová', red: 'Červená' },
     once: 'Jedno oznámení na výstrahu. Zavřené se nevrátí; znovu upozorní jen vyšší stupeň.',
     iosTitle: 'Na iPhonu chodí výstrahy do aplikace',
-    iosSteps: 'Nejdřív přidejte Weather na plochu: klepněte na {icon} „Sdílet“ a pak na „Přidat na plochu“. Otevřete ji odtud a zapněte výstrahy.',
+    iosSteps:
+      'Nejdřív přidejte Weather na plochu: klepněte na {icon} „Sdílet“ a pak na „Přidat na plochu“. Otevřete ji odtud a zapněte výstrahy.',
     blockedTitle: 'Oznámení jsou blokována',
-    blockedText: 'Pro tento web jste je vypnuli. Chcete-li dostávat výstrahy, povolte oznámení v nastavení webu v prohlížeči a vraťte se sem.',
+    blockedText:
+      'Pro tento web jste je vypnuli. Chcete-li dostávat výstrahy, povolte oznámení v nastavení webu v prohlížeči a vraťte se sem.',
     bannerWorks: 'Pruh s výstrahami na této stránce funguje i tak.',
     failed: 'Oznámení se nepodařilo změnit. Zkuste to znovu.',
     unavailable: 'Oznámení fungují jen v nainstalované verzi aplikace.',
     cities: (n) => plural(n, { one: '{n} město', few: '{n} města', many: '{n} města', other: '{n} měst' }),
     off: 'Vypnuto',
-    noneOn: 'Oznámení nejsou zapnutá pro žádné město. Chcete-li dostávat oficiální výstrahy před počasím, otevřete město a klepněte na zvonek vedle jeho názvu.',
+    noneOn:
+      'Oznámení nejsou zapnutá pro žádné město. Chcete-li dostávat oficiální výstrahy před počasím, otevřete město a klepněte na zvonek vedle jeho názvu.',
     leavesOnClose: 'Vypnutá města zmizí ze seznamu po zavření nabídky.',
     placeLeavesOnClose: (place) => `${place} zmizí ze seznamu po zavření nabídky.`,
     listRule: 'Oblíbená města {star} jsou v seznamu vždy, ostatní jen se zapnutými oznámeními.',
@@ -91,8 +100,7 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
   place: { island: 'ostrov' },
   weather: { loading: (place) => `Načítám předpověď: ${place}…`, tryAgain: 'Zkusit znovu' },
   current: {
-    degrees: (n) =>
-      plural(n, { one: '{n} stupeň', few: '{n} stupně', many: '{n} stupně', other: '{n} stupňů' }),
+    degrees: (n) => plural(n, { one: '{n} stupeň', few: '{n} stupně', many: '{n} stupně', other: '{n} stupňů' }),
     highLow: (h, l) => `Max. ${deg(h)}, min. ${deg(l)}`,
     warmer: (n) => `O ${deg(n)} tepleji než včera`,
     cooler: (n) => `O ${deg(n)} chladněji než včera`,
@@ -192,7 +200,8 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     save: 'Přidat do oblíbených',
     saved: 'V oblíbených',
     remove: 'Odebrat z oblíbených',
-    full: (n) => `Do oblíbených můžete přidat až ${plural(n, { one: '{n} město', few: '{n} města', other: '{n} měst' })}`,
+    full: (n) =>
+      `Do oblíbených můžete přidat až ${plural(n, { one: '{n} město', few: '{n} města', other: '{n} měst' })}`,
     fullAction: 'Odeberte jedno, abyste mohli přidat toto.',
   },
   errors: {

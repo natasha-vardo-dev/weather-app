@@ -95,14 +95,7 @@ interface Props {
 /** Decorative: the text next to it (or screen-reader text) already describes the weather. */
 export function WeatherIcon({ icon, isDay, size = 24 }: Props) {
   return (
-    <svg
-      className="weather-icon"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      focusable="false"
-    >
+    <svg className="weather-icon" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       {(!isDay && night[icon]) || day[icon]}
     </svg>
   );

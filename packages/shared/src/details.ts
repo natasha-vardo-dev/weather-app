@@ -128,7 +128,9 @@ export function sunEventsAfter(
   ]);
   for (const event of events) {
     if (event.time <= now) continue;
-    const i = hours.findIndex((hour, j) => hour.time <= event.time && (hours[j + 1]?.time ?? nextHour(hour.time)) > event.time);
+    const i = hours.findIndex(
+      (hour, j) => hour.time <= event.time && (hours[j + 1]?.time ?? nextHour(hour.time)) > event.time,
+    );
     if (i !== -1) after.set(i, [...(after.get(i) ?? []), event]);
   }
   return after;

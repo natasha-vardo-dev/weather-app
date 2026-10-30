@@ -1,8 +1,4 @@
-import {
-  DEFAULT_ALERT_NOTIFICATIONS,
-  TEMPERATURE_UNITS,
-  type TemperatureUnit,
-} from '@weather/shared';
+import { DEFAULT_ALERT_NOTIFICATIONS, TEMPERATURE_UNITS, type TemperatureUnit } from '@weather/shared';
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useAlertOverview } from '../hooks/useAlertNotifications';
@@ -201,7 +197,11 @@ export function SettingsMenu() {
               )}
             </>
           ) : view === 'alerts' ? (
-            <AlertsList rows={alertRows ?? alerts.places} back={() => backToMain('alerts')} onNavigate={() => close(false)} />
+            <AlertsList
+              rows={alertRows ?? alerts.places}
+              back={() => backToMain('alerts')}
+              onNavigate={() => close(false)}
+            />
           ) : (
             <LanguageList
               label={t.language}

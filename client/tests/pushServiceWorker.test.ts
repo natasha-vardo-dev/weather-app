@@ -13,7 +13,7 @@ function loadServiceWorker(state: unknown) {
     location: { origin: 'https://weather.example' },
     clients: { matchAll: vi.fn(async () => []), openWindow: vi.fn(async () => null) },
   };
-  const request = <T,>(result: T) => {
+  const request = <T>(result: T) => {
     const req: { result: T; onsuccess?: () => void; onerror?: () => void } = { result };
     queueMicrotask(() => req.onsuccess?.());
     return req;
@@ -57,7 +57,8 @@ const message = {
     onset: '2000-01-01T00:00:00Z',
     expires: '2099-01-01T00:00:00Z',
     areas: '["PL1261"]',
-    texts: '{"pl-PL":{"event":"Burze","headline":"Burze z gradem"},"en-GB":{"event":"Thunderstorms","headline":"Thunderstorms with hail"}}',
+    texts:
+      '{"pl-PL":{"event":"Burze","headline":"Burze z gradem"},"en-GB":{"event":"Thunderstorms","headline":"Thunderstorms with hail"}}',
   },
 };
 
@@ -65,7 +66,10 @@ describe('push service worker', () => {
   it("writes the notification in the user's language, for their place, tagged by the warning", async () => {
     const sw = loadServiceWorker(state);
     await push(sw, message);
-    const [title, options] = sw.showNotification.mock.calls[0] as unknown as [string, NotificationOptions & { renotify: boolean }];
+    const [title, options] = sw.showNotification.mock.calls[0] as unknown as [
+      string,
+      NotificationOptions & { renotify: boolean },
+    ];
     expect(title).toBe('Оранжевое предупреждение: Грозы · Краков');
     // No Russian text from the issuer: English, as on the page.
     expect(options.body).toMatch(/^Действует до: .+\nThunderstorms with hail$/);

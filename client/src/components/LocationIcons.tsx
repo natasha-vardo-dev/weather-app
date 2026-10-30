@@ -22,7 +22,14 @@ export function PinIcon({ size = 13 }: { size?: number }) {
 /** Turns while the position is being found (still in reduced motion: see styles). */
 export function SpinnerIcon({ size = 20 }: { size?: number }) {
   return (
-    <svg className="location-icon spinner" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg
+      className="location-icon spinner"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
       <path d="M12 3.5a8.5 8.5 0 1 1-8.5 8.5" />
     </svg>
   );

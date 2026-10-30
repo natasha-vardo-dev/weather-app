@@ -12,8 +12,7 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
   offline: 'Sie sind offline. Angezeigt wird die zuletzt geladene Vorhersage, sie ist möglicherweise veraltet.',
   home: {
     title: 'Wie wird das Wetter dort, wo du hinwillst?',
-    text: (days) =>
-      `Suche nach einer Stadt, um das aktuelle Wetter und die Vorhersage für ${num(days)} Tage zu sehen.`,
+    text: (days) => `Suche nach einer Stadt, um das aktuelle Wetter und die Vorhersage für ${num(days)} Tage zu sehen.`,
   },
   alerts: {
     title: 'Wetterwarnungen',
@@ -54,19 +53,24 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
     levels: { yellow: 'Gelb', orange: 'Orange', red: 'Rot' },
     once: 'Eine Benachrichtigung pro Warnung. Eine geschlossene kommt nicht wieder; nur eine höhere Stufe meldet sich erneut.',
     iosTitle: 'Auf dem iPhone kommen Warnungen in die App',
-    iosSteps: 'Lege Weather zuerst auf den Home-Bildschirm: Tippe auf {icon} „Teilen“ und dann auf „Zum Home-Bildschirm“. Öffne es dort und schalte die Warnungen ein.',
+    iosSteps:
+      'Lege Weather zuerst auf den Home-Bildschirm: Tippe auf {icon} „Teilen“ und dann auf „Zum Home-Bildschirm“. Öffne es dort und schalte die Warnungen ein.',
     blockedTitle: 'Benachrichtigungen sind blockiert',
-    blockedText: 'Du hast sie für diese Seite ausgeschaltet. Erlaube Benachrichtigungen in den Website-Einstellungen des Browsers und komm dann hierher zurück.',
+    blockedText:
+      'Du hast sie für diese Seite ausgeschaltet. Erlaube Benachrichtigungen in den Website-Einstellungen des Browsers und komm dann hierher zurück.',
     bannerWorks: 'Das Warnbanner auf dieser Seite funktioniert trotzdem.',
     failed: 'Benachrichtigungen konnten nicht geändert werden. Versuche es erneut.',
     unavailable: 'Benachrichtigungen funktionieren nur in der installierten Version der App.',
     cities: (n) => plural(n, { one: '{n} Stadt', other: '{n} Städte' }),
     off: 'Aus',
-    noneOn: 'Für keine Stadt sind Benachrichtigungen an. Um amtliche Wetterwarnungen zu bekommen, öffne eine Stadt und tippe auf die Glocke neben ihrem Namen.',
+    noneOn:
+      'Für keine Stadt sind Benachrichtigungen an. Um amtliche Wetterwarnungen zu bekommen, öffne eine Stadt und tippe auf die Glocke neben ihrem Namen.',
     leavesOnClose: 'Ausgeschaltete Städte verschwinden aus der Liste, wenn du das Menü schließt.',
     placeLeavesOnClose: (place) => `${place} verschwindet aus der Liste, wenn du das Menü schließt.`,
-    listRule: 'Favoriten {star} bleiben immer in der Liste, andere Städte nur, solange ihre Benachrichtigungen an sind.',
-    howToConfigure: 'Um die Warnungen für eine Stadt einzustellen, tippe auf ihren Namen und dann auf die Glocke {icon}.',
+    listRule:
+      'Favoriten {star} bleiben immer in der Liste, andere Städte nur, solange ihre Benachrichtigungen an sind.',
+    howToConfigure:
+      'Um die Warnungen für eine Stadt einzustellen, tippe auf ihren Namen und dann auf die Glocke {icon}.',
     uncovered: 'Keine Daten von MeteoAlarm',
     meteoAlarmOnly: 'Warnungen gibt es nur für MeteoAlarm-Länder (Europa außer Belarus, Russland und einigen anderen).',
   },
@@ -113,7 +117,11 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
     sunset: 'Sonnenuntergang',
     pressure: 'Luftdruck',
     hPa: 'hPa',
-    pressureTrends: { rising: 'Steigt in den nächsten 3 Stunden', falling: 'Fällt in den nächsten 3 Stunden', steady: 'In den nächsten 3 Stunden gleichbleibend' },
+    pressureTrends: {
+      rising: 'Steigt in den nächsten 3 Stunden',
+      falling: 'Fällt in den nächsten 3 Stunden',
+      steady: 'In den nächsten 3 Stunden gleichbleibend',
+    },
     visibility: 'Sichtweite',
     visibilityLevels: { fog: 'Nebel', poor: 'Dunst', moderate: 'Mäßige Sicht', good: 'Gute Sicht' },
     dewPoint: (d) => `Taupunkt ${d}`,
@@ -173,7 +181,8 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
     approximate: 'Ungefähr, nach IP',
     suggest: (city) => `Sieht aus, als wären Sie in ${city}`,
     errors: {
-      denied: 'Der Standortzugriff ist blockiert. Erlauben Sie ihn in den Browsereinstellungen oder suchen Sie eine Stadt.',
+      denied:
+        'Der Standortzugriff ist blockiert. Erlauben Sie ihn in den Browsereinstellungen oder suchen Sie eine Stadt.',
       unavailable: 'Ihr Standort konnte nicht ermittelt werden. Versuchen Sie es erneut oder suchen Sie eine Stadt.',
       timeout: 'Die Standortermittlung hat zu lange gedauert. Versuchen Sie es erneut.',
       unsupported: 'Dieser Browser kann Ihren Standort nicht teilen. Suchen Sie stattdessen eine Stadt.',

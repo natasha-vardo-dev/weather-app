@@ -35,7 +35,10 @@ const forecastCache = createQueryCache<Forecast>({
 export function loadTimeZone(latitude: number, longitude: number): Promise<string | undefined> {
   return forecastCache
     .load(`${latitude},${longitude}`, () => api.getForecast(latitude, longitude))
-    .then((forecast) => forecast.timezone, () => undefined);
+    .then(
+      (forecast) => forecast.timezone,
+      () => undefined,
+    );
 }
 
 function toError(err: unknown): ForecastError {

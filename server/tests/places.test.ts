@@ -20,7 +20,10 @@ const warsawRu = {
 };
 const moskenes = { name: 'Moskenes', address: { municipality: 'Moskenes', county: 'Nordland', country: 'Norway' } };
 
-function geocoder(fetchFn: ReturnType<typeof vi.fn>, extra: { now?: () => number; sleep?: (ms: number) => Promise<void> } = {}) {
+function geocoder(
+  fetchFn: ReturnType<typeof vi.fn>,
+  extra: { now?: () => number; sleep?: (ms: number) => Promise<void> } = {},
+) {
   return new NominatimGeocoder({
     userAgent: 'weather-app-test/1.0',
     fetchFn: fetchFn as unknown as typeof fetch,
@@ -51,7 +54,9 @@ describe('NominatimGeocoder', () => {
 
   it('turns failed responses into provider errors with the reason', async () => {
     const fetchFn = vi.fn(async () => jsonResponse({ error: 'Too many requests' }, 429));
-    const err = await geocoder(fetchFn).reverse(52.23, 21.01, 'en').catch((e: unknown) => e);
+    const err = await geocoder(fetchFn)
+      .reverse(52.23, 21.01, 'en')
+      .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ProviderError);
     expect((err as ProviderError).detail).toMatch(/HTTP 429/);
   });
@@ -76,7 +81,13 @@ describe('NominatimGeocoder', () => {
 
 const warsaw = { id: 756135, name: 'Warsaw', country: 'Poland', latitude: 52.22977, longitude: 21.01178 };
 // Another Warsaw, in Indiana: same name, far away.
-const warsawIndiana = { id: 4927854, name: 'Warsaw', country: 'United States', latitude: 41.2381, longitude: -85.85305 };
+const warsawIndiana = {
+  id: 4927854,
+  name: 'Warsaw',
+  country: 'United States',
+  latitude: 41.2381,
+  longitude: -85.85305,
+};
 
 function cities(results = [warsawIndiana, warsaw]) {
   return { searchLocations: vi.fn<CitySearch['searchLocations']>(async () => results) };
@@ -103,7 +114,10 @@ describe('NominatimGeocoder queue', () => {
 
 describe('distanceKm', () => {
   it('measures great-circle distance', () => {
-    expect(distanceKm({ latitude: 52.23, longitude: 21.01 }, { latitude: 50.06, longitude: 19.94 })).toBeCloseTo(252, -1);
+    expect(distanceKm({ latitude: 52.23, longitude: 21.01 }, { latitude: 50.06, longitude: 19.94 })).toBeCloseTo(
+      252,
+      -1,
+    );
   });
 });
 
@@ -132,7 +146,9 @@ describe('PlaceService', () => {
   });
 
   it('answers with the position when city search fails, but does not cache that fallback', async () => {
-    const search = { searchLocations: vi.fn<CitySearch['searchLocations']>(async () => Promise.reject(new Error('down'))) };
+    const search = {
+      searchLocations: vi.fn<CitySearch['searchLocations']>(async () => Promise.reject(new Error('down'))),
+    };
     const reverse = vi.fn<ReverseGeocoder['reverse']>(async () => ({ name: 'Warsaw', country: 'Poland' }));
     const places = new PlaceService({ reverse }, search);
     expect(await places.reverse(52.25, 21.05, 'en')).toEqual({

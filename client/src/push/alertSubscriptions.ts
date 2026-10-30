@@ -49,7 +49,10 @@ export interface AlertSubscriptionsState {
 const EMPTY: AlertSubscriptionsState = { token: null, places: [] };
 
 /** Same place: coordinates rounded to ~1 km, as everywhere in the app. */
-export function samePlace(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }): boolean {
+export function samePlace(
+  a: { latitude: number; longitude: number },
+  b: { latitude: number; longitude: number },
+): boolean {
   return a.latitude.toFixed(2) === b.latitude.toFixed(2) && a.longitude.toFixed(2) === b.longitude.toFixed(2);
 }
 

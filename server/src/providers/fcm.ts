@@ -41,7 +41,8 @@ type SendEach = (batch: TopicMessage[]) => Promise<{
  * 'app/network-error' and the like, and recording a warning as sent when it wasn't is worse
  * than trying again (a credentials problem then fails every run, visibly in the scheduler).
  */
-const PERMANENT = /invalid-argument|invalid-payload|payload-size-limit-exceeded|invalid-data-payload-key|invalid-options/;
+const PERMANENT =
+  /invalid-argument|invalid-payload|payload-size-limit-exceeded|invalid-data-payload-key|invalid-options/;
 
 /**
  * Sends in batches of 500 (sendEach's limit) and returns how many were accepted. sendEach
@@ -71,7 +72,9 @@ export async function sendMessages(messages: PushMessage[], sendEach: SendEach):
   return accepted;
 }
 
-type TopicCall = (topic: string) => Promise<{ failureCount: number; errors: { error: { code: string; message: string } }[] }>;
+type TopicCall = (
+  topic: string,
+) => Promise<{ failureCount: number; errors: { error: { code: string; message: string } }[] }>;
 
 /**
  * Subscribes or unsubscribes a token, topic by topic. A token FCM no longer knows (expired,
@@ -79,13 +82,20 @@ type TopicCall = (topic: string) => Promise<{ failureCount: number; errors: { er
  * unsubscribing it is success: a dead token is subscribed to nothing, and failing there
  * would leave the user unable to turn notifications off.
  */
-export async function manageTopics(topics: string[], call: TopicCall, action: 'subscribe' | 'unsubscribe'): Promise<void> {
+export async function manageTopics(
+  topics: string[],
+  call: TopicCall,
+  action: 'subscribe' | 'unsubscribe',
+): Promise<void> {
   for (const topic of topics) {
     let result;
     try {
       result = await call(topic);
     } catch (err) {
-      throw new ProviderError(`FCM topics: ${(err as Error).message}`, 'Could not change notifications. Try again later.');
+      throw new ProviderError(
+        `FCM topics: ${(err as Error).message}`,
+        'Could not change notifications. Try again later.',
+      );
     }
     if (result.failureCount > 0) {
       const { code, message } = result.errors[0]!.error;

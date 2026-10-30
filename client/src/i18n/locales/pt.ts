@@ -53,21 +53,26 @@ export const pt: MessagesFactory = ({ num, deg, plural }) => ({
     levels: { yellow: 'Amarelo', orange: 'Laranja', red: 'Vermelho' },
     once: 'Uma notificação por aviso. Uma fechada não volta; só um nível mais alto avisa de novo.',
     iosTitle: 'No iPhone, os avisos chegam ao app',
-    iosSteps: 'Primeiro adicione o Weather à Tela de Início: toque em {icon} “Compartilhar” e depois em “Adicionar à Tela de Início”. Abra-o de lá e ative os avisos.',
+    iosSteps:
+      'Primeiro adicione o Weather à Tela de Início: toque em {icon} “Compartilhar” e depois em “Adicionar à Tela de Início”. Abra-o de lá e ative os avisos.',
     blockedTitle: 'As notificações estão bloqueadas',
-    blockedText: 'Você as desativou para este site. Para receber avisos, permita notificações nas configurações do site no navegador e volte aqui.',
+    blockedText:
+      'Você as desativou para este site. Para receber avisos, permita notificações nas configurações do site no navegador e volte aqui.',
     bannerWorks: 'O aviso nesta página funciona de qualquer forma.',
     failed: 'Não foi possível alterar as notificações. Tente de novo.',
     unavailable: 'As notificações só funcionam na versão instalada do app.',
     cities: (n) => plural(n, { one: '{n} cidade', other: '{n} cidades' }),
     off: 'Desativados',
-    noneOn: 'As notificações não estão ativadas para nenhuma cidade. Para receber avisos meteorológicos oficiais, abra uma cidade e toque no sino ao lado do nome.',
+    noneOn:
+      'As notificações não estão ativadas para nenhuma cidade. Para receber avisos meteorológicos oficiais, abra uma cidade e toque no sino ao lado do nome.',
     leavesOnClose: 'As cidades desativadas saem da lista quando fechar o menu.',
     placeLeavesOnClose: (place) => `${place} sai da lista quando fechar o menu.`,
-    listRule: 'As cidades favoritas {star} ficam sempre na lista; as outras, enquanto as notificações estiverem ativadas.',
+    listRule:
+      'As cidades favoritas {star} ficam sempre na lista; as outras, enquanto as notificações estiverem ativadas.',
     howToConfigure: 'Para configurar os avisos de uma cidade, toque no nome e depois no sino {icon}.',
     uncovered: 'Sem dados do MeteoAlarm',
-    meteoAlarmOnly: 'Os avisos só existem para os países do MeteoAlarm (Europa, exceto Bielorrússia, Rússia e alguns outros).',
+    meteoAlarmOnly:
+      'Os avisos só existem para os países do MeteoAlarm (Europa, exceto Bielorrússia, Rússia e alguns outros).',
   },
   installHint: {
     title: 'Adicionar à Tela de Início',
@@ -112,7 +117,11 @@ export const pt: MessagesFactory = ({ num, deg, plural }) => ({
     sunset: 'Pôr do sol',
     pressure: 'Pressão',
     hPa: 'hPa',
-    pressureTrends: { rising: 'Subindo nas próximas 3 horas', falling: 'Caindo nas próximas 3 horas', steady: 'Estável nas próximas 3 horas' },
+    pressureTrends: {
+      rising: 'Subindo nas próximas 3 horas',
+      falling: 'Caindo nas próximas 3 horas',
+      steady: 'Estável nas próximas 3 horas',
+    },
     visibility: 'Visibilidade',
     visibilityLevels: { fog: 'Nevoeiro', poor: 'Névoa', moderate: 'Visibilidade moderada', good: 'Boa visibilidade' },
     dewPoint: (d) => `Ponto de orvalho ${d}`,

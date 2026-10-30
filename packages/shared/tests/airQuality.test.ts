@@ -40,19 +40,28 @@ describe('summarizeAirQuality', () => {
   it('maps band edges to levels', () => {
     const eu = (v: number) => summarizeAirQuality({ ...base, europeanAqi: v, timezone: 'Europe/Paris' })?.level;
     expect([eu(20), eu(21), eu(40), eu(60), eu(80), eu(100), eu(101)]).toEqual([
-      'good', 'fair', 'fair', 'moderate', 'poor', 'very-poor', 'extremely-poor',
+      'good',
+      'fair',
+      'fair',
+      'moderate',
+      'poor',
+      'very-poor',
+      'extremely-poor',
     ]);
     const us = (v: number) => summarizeAirQuality({ ...base, usAqi: v, timezone: 'Asia/Tokyo' })?.level;
     expect([us(50), us(51), us(150), us(200), us(300), us(301)]).toEqual([
-      'good', 'moderate', 'unhealthy-sensitive', 'unhealthy', 'very-unhealthy', 'hazardous',
+      'good',
+      'moderate',
+      'unhealthy-sensitive',
+      'unhealthy',
+      'very-unhealthy',
+      'hazardous',
     ]);
   });
 
   it('falls back to the other index, and to null without data', () => {
     expect(summarizeAirQuality({ ...base, europeanAqi: null, timezone: 'Europe/Berlin' })?.scale).toBe('us');
-    expect(
-      summarizeAirQuality({ ...base, europeanAqi: null, usAqi: null, timezone: 'Europe/Berlin' }),
-    ).toBeNull();
+    expect(summarizeAirQuality({ ...base, europeanAqi: null, usAqi: null, timezone: 'Europe/Berlin' })).toBeNull();
   });
 });
 

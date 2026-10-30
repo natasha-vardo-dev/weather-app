@@ -13,7 +13,16 @@ import {
 describe('uvLevel', () => {
   it('follows the WHO bands, by the rounded value', () => {
     expect([0, 2.4, 2.5, 5, 6, 7.4, 8, 10, 11, 14].map(uvLevel)).toEqual([
-      'low', 'low', 'moderate', 'moderate', 'high', 'high', 'very-high', 'very-high', 'extreme', 'extreme',
+      'low',
+      'low',
+      'moderate',
+      'moderate',
+      'high',
+      'high',
+      'very-high',
+      'very-high',
+      'extreme',
+      'extreme',
     ]);
   });
 });
@@ -23,7 +32,10 @@ describe('uvProtectionWindow', () => {
     values.map((uvIndex, i) => ({ time: `2026-07-01T${String(9 + i).padStart(2, '0')}:00`, uvIndex }));
 
   it('runs from the first hour at 3 or above to the end of that run', () => {
-    expect(uvProtectionWindow(hours([1, 2.6, 5, 6, 3, 2, 4]))).toEqual({ from: '2026-07-01T10:00', until: '2026-07-01T14:00' });
+    expect(uvProtectionWindow(hours([1, 2.6, 5, 6, 3, 2, 4]))).toEqual({
+      from: '2026-07-01T10:00',
+      until: '2026-07-01T14:00',
+    });
   });
 
   it('is null when the UV never gets there, or is unknown', () => {
@@ -63,7 +75,13 @@ describe('visibilityLevel and dewPointComfort', () => {
   });
   it('bands the dew point', () => {
     expect([-3, 9.9, 10, 15.9, 16, 20.9, 21].map(dewPointComfort)).toEqual([
-      'fresh', 'fresh', 'comfortable', 'comfortable', 'humid', 'humid', 'muggy',
+      'fresh',
+      'fresh',
+      'comfortable',
+      'comfortable',
+      'humid',
+      'humid',
+      'muggy',
     ]);
   });
 });
@@ -84,10 +102,12 @@ describe('nextSunEvents', () => {
     ]);
   });
   it('skips days without one (polar night), and is null when none is known', () => {
-    expect(nextSunEvents('2026-12-21T10:00', [{ sunrise: null, sunset: null }, { sunrise: '2026-12-22T11:50', sunset: null }])).toEqual([
-      { event: 'sunrise', time: '2026-12-22T11:50' },
-      null,
-    ]);
+    expect(
+      nextSunEvents('2026-12-21T10:00', [
+        { sunrise: null, sunset: null },
+        { sunrise: '2026-12-22T11:50', sunset: null },
+      ]),
+    ).toEqual([{ event: 'sunrise', time: '2026-12-22T11:50' }, null]);
     expect(nextSunEvents('2026-10-28T05:00', [{}])).toBeNull();
   });
 });
@@ -101,7 +121,9 @@ describe('nextHour', () => {
 
 describe('sunEventsAfter', () => {
   // 24 hours from 14:00 on the 29th to 13:00 on the 30th, local times as the provider gives them.
-  const hours = Array.from({ length: 24 }, (_, i) => ({ time: new Date(Date.UTC(2026, 9, 29, 14 + i)).toISOString().slice(0, 16) }));
+  const hours = Array.from({ length: 24 }, (_, i) => ({
+    time: new Date(Date.UTC(2026, 9, 29, 14 + i)).toISOString().slice(0, 16),
+  }));
   const days = [
     { sunrise: '2026-10-29T06:40', sunset: '2026-10-29T14:21' },
     { sunrise: '2026-10-30T06:42', sunset: '2026-10-30T16:19' },
@@ -120,7 +142,9 @@ describe('sunEventsAfter', () => {
   it('shows an event in the last hour', () => {
     // Hours run 14:00 today to 13:00 tomorrow; a sunset at 13:30 tomorrow is in the last one.
     const late = [{ sunset: '2026-10-30T13:30' }];
-    expect(sunEventsAfter(hours, late, '2026-10-29T14:00').get(23)).toEqual([{ event: 'sunset', time: '2026-10-30T13:30' }]);
+    expect(sunEventsAfter(hours, late, '2026-10-29T14:00').get(23)).toEqual([
+      { event: 'sunset', time: '2026-10-30T13:30' },
+    ]);
   });
 
   it('skips days without a sunrise or sunset (polar day or night)', () => {

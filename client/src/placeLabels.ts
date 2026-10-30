@@ -97,7 +97,11 @@ function withoutSharedWords(value: string, values: string[]): string {
   let start = 0;
   while (start < shortest - 1 && split.every((w) => w[start] === split[0]![start])) start++;
   let end = 0;
-  while (end < shortest - 1 - start && split.every((w) => w[w.length - 1 - end] === split[0]![split[0]!.length - 1 - end])) end++;
+  while (
+    end < shortest - 1 - start &&
+    split.every((w) => w[w.length - 1 - end] === split[0]![split[0]!.length - 1 - end])
+  )
+    end++;
   return words.slice(start, words.length - end).join(' ');
 }
 
@@ -114,7 +118,8 @@ const NON_LATIN = new Set(['ru', 'uk', 'ar', 'he', 'hi', 'ja', 'ko', 'zh']);
  */
 export function regionToShow(name: string, region: string | undefined, language: string): string | undefined {
   if (!region || region.toLocaleLowerCase() === name.toLocaleLowerCase()) return undefined;
-  const untranslated = NON_LATIN.has(language) && /\p{Script=Latin}/u.test(region) && !/[^\p{Script=Latin}\p{P}\p{Z}\d]/u.test(region);
+  const untranslated =
+    NON_LATIN.has(language) && /\p{Script=Latin}/u.test(region) && !/[^\p{Script=Latin}\p{P}\p{Z}\d]/u.test(region);
   return untranslated ? undefined : region;
 }
 
@@ -128,10 +133,7 @@ export function regionToShow(name: string, region: string | undefined, language:
  * between them rather than inside one (as one string, "Powiat warszawski zachodni ·
  * Masovian Voivodeship" left the last word alone on a phone line).
  */
-export function placeArea(
-  names: { name: string; region?: string; areas?: string[] },
-  language: string,
-): string[] {
+export function placeArea(names: { name: string; region?: string; areas?: string[] }, language: string): string[] {
   const [district = '', ...below] = names.areas ?? [];
   const region = regionToShow(names.name, names.region, language);
   const repeats = [names.name, names.region ?? '', ...below];

@@ -2,7 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { addTyped, isTyping, nextTypeaheadIndex, NOTHING_TYPED, TYPEAHEAD_RESET_MS } from '../src/typeahead';
 
 // The language list order: Português comes before Polski.
-const LANGUAGES = ['English', 'Deutsch', 'Français', 'Español', 'Italiano', 'Português', 'Nederlands', 'Polski', 'Русский'];
+const LANGUAGES = [
+  'English',
+  'Deutsch',
+  'Français',
+  'Español',
+  'Italiano',
+  'Português',
+  'Nederlands',
+  'Polski',
+  'Русский',
+];
 const index = (label: string) => LANGUAGES.indexOf(label);
 
 describe('nextTypeaheadIndex', () => {

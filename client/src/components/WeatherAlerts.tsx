@@ -51,7 +51,11 @@ function AlertItem({ alert, timeZone }: { alert: WeatherAlert; timeZone?: string
 
   const details = [alert.headline, alert.description, alert.instruction].filter(Boolean);
   if (details.length === 0 && !alert.sender) {
-    return <li className={`alert alert--${alert.level}`}><div className="alert__summary">{summary}</div></li>;
+    return (
+      <li className={`alert alert--${alert.level}`}>
+        <div className="alert__summary">{summary}</div>
+      </li>
+    );
   }
 
   return (
@@ -64,7 +68,11 @@ function AlertItem({ alert, timeZone }: { alert: WeatherAlert; timeZone?: string
         {/* The issuer's own words, unmodified (MeteoAlarm terms), in their language; dir="auto"
             so English text keeps its direction in an Arabic or Hebrew interface. */}
         <div className="alert__body" lang={alert.language}>
-          {alert.headline && <p className="alert__headline" dir="auto">{alert.headline}</p>}
+          {alert.headline && (
+            <p className="alert__headline" dir="auto">
+              {alert.headline}
+            </p>
+          )}
           {alert.description && <p dir="auto">{alert.description}</p>}
           {alert.instruction && <p dir="auto">{alert.instruction}</p>}
         </div>

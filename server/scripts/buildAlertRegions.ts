@@ -62,7 +62,9 @@ const round = (n: number) => Number(n.toFixed(DECIMALS));
 
 function simplifyRing(ring: Point[]): Point[] | null {
   const simplified = simplify(ring).map(([lon, lat]): Point => [round(lon), round(lat)]);
-  const unique = simplified.filter((p, i) => i === 0 || p[0] !== simplified[i - 1]![0] || p[1] !== simplified[i - 1]![1]);
+  const unique = simplified.filter(
+    (p, i) => i === 0 || p[0] !== simplified[i - 1]![0] || p[1] !== simplified[i - 1]![1],
+  );
   // A ring needs 3 distinct corners plus the closing point; smaller ones are slivers.
   return unique.length >= 4 ? unique : null;
 }
@@ -87,7 +89,13 @@ for (const { properties, geometry } of source.features) {
     dropped++;
     continue;
   }
-  regions.push({ code: properties.code, country: properties.country, name: properties.name, bbox: bboxOf(polygons), polygons });
+  regions.push({
+    code: properties.code,
+    country: properties.country,
+    name: properties.name,
+    bbox: bboxOf(polygons),
+    polygons,
+  });
 }
 
 const file: RegionsFile = { source: SOURCE, version: VERSION, regions };

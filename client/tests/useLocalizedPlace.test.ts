@@ -11,7 +11,13 @@ const getLocation = vi.mocked(api.getLocation);
 const searchLocations = vi.mocked(api.searchLocations);
 
 const warsaw: Location = { id: 756135, name: 'Варшава', country: 'Польша', latitude: 52.22977, longitude: 21.01178 };
-const london: Location = { id: 2643743, name: 'Лондон', country: 'Великобритания', latitude: 51.50853, longitude: -0.12574 };
+const london: Location = {
+  id: 2643743,
+  name: 'Лондон',
+  country: 'Великобритания',
+  latitude: 51.50853,
+  longitude: -0.12574,
+};
 
 // A place as it comes from a URL: rounded coordinates, names in the language it was found in.
 const warsawLink: Favorite = { latitude: 52.23, longitude: 21.01, name: 'Warsaw', country: 'Poland', id: 756135 };

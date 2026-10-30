@@ -31,14 +31,23 @@ describe('resolveRoute, an id link', () => {
     expect(resolveRoute(byId, { ...none, english: warsawEn, failed: 'NETWORK_ERROR' }).state.status).toBe('ready');
     // Neither is cached any more, but the page had the place.
     const previous = { latitude: 52.23, longitude: 21.01, name: 'Warsaw', id: 756135 };
-    expect(resolveRoute(byId, { ...none, previous, failed: 'NETWORK_ERROR' }).state).toEqual({ status: 'ready', place: previous });
+    expect(resolveRoute(byId, { ...none, previous, failed: 'NETWORK_ERROR' }).state).toEqual({
+      status: 'ready',
+      place: previous,
+    });
     // A previous place of another id does not count.
-    expect(resolveRoute(byId, { ...none, previous: { ...previous, id: 1 }, failed: 'NETWORK_ERROR' }).state).toEqual({ status: 'error', code: 'NETWORK_ERROR' });
+    expect(resolveRoute(byId, { ...none, previous: { ...previous, id: 1 }, failed: 'NETWORK_ERROR' }).state).toEqual({
+      status: 'error',
+      code: 'NETWORK_ERROR',
+    });
   });
 
   it('is "not found" for an unknown id, and an error when nothing is known and the lookup failed', () => {
     expect(resolveRoute(byId, { ...none, local: null }).state).toEqual({ status: 'not-found' });
-    expect(resolveRoute(byId, { ...none, failed: 'NETWORK_ERROR' }).state).toEqual({ status: 'error', code: 'NETWORK_ERROR' });
+    expect(resolveRoute(byId, { ...none, failed: 'NETWORK_ERROR' }).state).toEqual({
+      status: 'error',
+      code: 'NETWORK_ERROR',
+    });
   });
 });
 

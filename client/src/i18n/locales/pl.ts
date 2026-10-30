@@ -39,7 +39,13 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     fromTo: (start, end) => `Od: ${start}, do: ${end}`,
     issuedBy: 'Wydał:',
     source: 'Źródło:',
-    more: (n) => plural(n, { one: 'Jeszcze {n} ostrzeżenie', few: 'Jeszcze {n} ostrzeżenia', many: 'Jeszcze {n} ostrzeżeń', other: 'Jeszcze {n} ostrzeżenia' }),
+    more: (n) =>
+      plural(n, {
+        one: 'Jeszcze {n} ostrzeżenie',
+        few: 'Jeszcze {n} ostrzeżenia',
+        many: 'Jeszcze {n} ostrzeżeń',
+        other: 'Jeszcze {n} ostrzeżenia',
+      }),
     fewer: 'Zwiń',
   },
   notify: {
@@ -54,15 +60,18 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     levels: { yellow: 'Żółty', orange: 'Pomarańczowy', red: 'Czerwony' },
     once: 'Jedno powiadomienie na ostrzeżenie. Zamknięte nie wraca; ponownie powiadomi tylko wyższy poziom.',
     iosTitle: 'Na iPhonie ostrzeżenia trafiają do aplikacji',
-    iosSteps: 'Najpierw dodaj Weather do ekranu początkowego: stuknij {icon} „Udostępnij”, a potem „Do ekranu początkowego”. Otwórz ją stamtąd i włącz ostrzeżenia.',
+    iosSteps:
+      'Najpierw dodaj Weather do ekranu początkowego: stuknij {icon} „Udostępnij”, a potem „Do ekranu początkowego”. Otwórz ją stamtąd i włącz ostrzeżenia.',
     blockedTitle: 'Powiadomienia są zablokowane',
-    blockedText: 'Wyłączono je dla tej strony. Aby dostawać ostrzeżenia, zezwól na powiadomienia w ustawieniach strony w przeglądarce i wróć tutaj.',
+    blockedText:
+      'Wyłączono je dla tej strony. Aby dostawać ostrzeżenia, zezwól na powiadomienia w ustawieniach strony w przeglądarce i wróć tutaj.',
     bannerWorks: 'Pasek ostrzeżeń na tej stronie działa niezależnie od tego.',
     failed: 'Nie udało się zmienić powiadomień. Spróbuj ponownie.',
     unavailable: 'Powiadomienia działają tylko w zainstalowanej wersji aplikacji.',
     cities: (n) => plural(n, { one: '{n} miasto', few: '{n} miasta', many: '{n} miast', other: '{n} miasta' }),
     off: 'Wyłączone',
-    noneOn: 'Powiadomienia nie są włączone dla żadnego miasta. Aby dostawać oficjalne ostrzeżenia pogodowe, otwórz miasto i dotknij dzwonka obok nazwy.',
+    noneOn:
+      'Powiadomienia nie są włączone dla żadnego miasta. Aby dostawać oficjalne ostrzeżenia pogodowe, otwórz miasto i dotknij dzwonka obok nazwy.',
     leavesOnClose: 'Wyłączone miasta znikną z listy po zamknięciu menu.',
     placeLeavesOnClose: (place) => `${place} zniknie z listy po zamknięciu menu.`,
     listRule: 'Ulubione miasta {star} są zawsze na liście, pozostałe — dopóki powiadomienia są włączone.',
@@ -91,8 +100,7 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
   place: { island: 'wyspa' },
   weather: { loading: (place) => `Wczytywanie prognozy: ${place}…`, tryAgain: 'Spróbuj ponownie' },
   current: {
-    degrees: (n) =>
-      plural(n, { one: '{n} stopień', few: '{n} stopnie', many: '{n} stopni', other: '{n} stopnia' }),
+    degrees: (n) => plural(n, { one: '{n} stopień', few: '{n} stopnie', many: '{n} stopni', other: '{n} stopnia' }),
     highLow: (h, l) => `Maks. ${deg(h)}, min. ${deg(l)}`,
     warmer: (n) => `O ${deg(n)} cieplej niż wczoraj`,
     cooler: (n) => `O ${deg(n)} zimniej niż wczoraj`,
@@ -107,14 +115,24 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
   },
   tiles: {
     uvIndex: 'Indeks UV',
-    uvLevels: { low: 'Niski', moderate: 'Umiarkowany', high: 'Wysoki', 'very-high': 'Bardzo wysoki', extreme: 'Ekstremalny' },
+    uvLevels: {
+      low: 'Niski',
+      moderate: 'Umiarkowany',
+      high: 'Wysoki',
+      'very-high': 'Bardzo wysoki',
+      extreme: 'Ekstremalny',
+    },
     uvProtect: (f, u) => `Ochrona przed słońcem: ${f}–${u}`,
     uvNone: 'Ochrona przed słońcem niepotrzebna',
     sunrise: 'Wschód słońca',
     sunset: 'Zachód słońca',
     pressure: 'Ciśnienie',
     hPa: 'hPa',
-    pressureTrends: { rising: 'Rośnie w ciągu 3 godzin', falling: 'Spada w ciągu 3 godzin', steady: 'Stabilne przez 3 godziny' },
+    pressureTrends: {
+      rising: 'Rośnie w ciągu 3 godzin',
+      falling: 'Spada w ciągu 3 godzin',
+      steady: 'Stabilne przez 3 godziny',
+    },
     visibility: 'Widoczność',
     visibilityLevels: { fog: 'Mgła', poor: 'Zamglenie', moderate: 'Umiarkowana widoczność', good: 'Dobra widoczność' },
     dewPoint: (d) => `Punkt rosy ${d}`,
@@ -180,7 +198,8 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     approximate: 'W przybliżeniu, wg IP',
     suggest: (city) => `Wygląda na to, że jesteś tu: ${city}`,
     errors: {
-      denied: 'Dostęp do lokalizacji jest zablokowany. Zezwól na niego w ustawieniach przeglądarki lub wyszukaj miasto.',
+      denied:
+        'Dostęp do lokalizacji jest zablokowany. Zezwól na niego w ustawieniach przeglądarki lub wyszukaj miasto.',
       unavailable: 'Nie udało się ustalić lokalizacji. Spróbuj ponownie lub wyszukaj miasto.',
       timeout: 'Ustalanie lokalizacji trwało zbyt długo. Spróbuj ponownie.',
       unsupported: 'Ta przeglądarka nie może udostępnić lokalizacji. Wyszukaj miasto.',
@@ -191,7 +210,8 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     save: 'Dodaj do ulubionych',
     saved: 'W ulubionych',
     remove: 'Usuń z ulubionych',
-    full: (n) => `Do ulubionych możesz dodać maksymalnie ${plural(n, { one: '{n} miasto', few: '{n} miasta', many: '{n} miast', other: '{n} miasta' })}`,
+    full: (n) =>
+      `Do ulubionych możesz dodać maksymalnie ${plural(n, { one: '{n} miasto', few: '{n} miasta', many: '{n} miast', other: '{n} miasta' })}`,
     fullAction: 'Usuń jedno, aby dodać to miasto.',
   },
   errors: {
