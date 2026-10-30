@@ -185,6 +185,7 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
     saved: 'In den Favoriten',
     remove: 'Aus Favoriten entfernen',
     full: (n) => `Du kannst bis zu ${num(n)} Städte zu den Favoriten hinzufügen`,
+    fullAction: 'Entferne eine, um diese Stadt hinzuzufügen.',
   },
   errors: {
     INVALID_REQUEST: 'Die Anfrage ist ungültig. Prüfe die Adresse und versuche es erneut.',

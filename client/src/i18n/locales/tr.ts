@@ -184,7 +184,8 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
     save: 'Favorilere ekle',
     saved: 'Favorilerde',
     remove: 'Favorilerden çıkar',
-    full: (n) => `Favorilere en fazla ${num(n)} şehir ekleyebilirsin`,
+    full: (n) => `Favorilere en fazla ${num(n)} şehir ekleyebilirsiniz`,
+    fullAction: 'Bu şehri eklemek için birini çıkarın.',
   },
   errors: {
     INVALID_REQUEST: 'İstek geçersiz. Adresi kontrol edip tekrar dene.',

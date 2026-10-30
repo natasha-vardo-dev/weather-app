@@ -206,6 +206,7 @@ export const ar: MessagesFactory = ({ num, deg, plural }) => ({
     saved: 'في المفضلة',
     remove: 'إزالة من المفضلة',
     full: (n) => `يمكنك إضافة ما يصل إلى ${num(n)} مدن إلى المفضلة`,
+    fullAction: 'أزل مدينة لإضافة هذه المدينة.',
   },
   errors: {
     INVALID_REQUEST: 'الطلب غير صالح. تحقق من العنوان وحاول مرة أخرى.',

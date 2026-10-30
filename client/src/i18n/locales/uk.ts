@@ -198,6 +198,7 @@ export const uk: MessagesFactory = ({ deg, plural }) => ({
     saved: 'В обраному',
     remove: 'Видалити з обраного',
     full: (n) => `В обране можна додати до ${plural(n, { one: '{n} міста', other: '{n} міст' })}`,
+    fullAction: 'Видаліть одне, щоб додати це місто.',
   },
   errors: {
     INVALID_REQUEST: 'Некоректний запит. Перевірте адресу й спробуйте ще раз.',

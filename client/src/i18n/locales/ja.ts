@@ -185,6 +185,7 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
     saved: 'お気に入り登録済み',
     remove: 'お気に入りから削除',
     full: (n) => `お気に入りに追加できるのは${num(n)}都市までです`,
+    fullAction: 'この都市を追加するには、1つ削除してください。',
   },
   errors: {
     INVALID_REQUEST: 'リクエストが正しくありません。アドレスを確認して、もう一度お試しください。',

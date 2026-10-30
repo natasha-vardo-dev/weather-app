@@ -192,6 +192,7 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     saved: 'W ulubionych',
     remove: 'Usuń z ulubionych',
     full: (n) => `Do ulubionych możesz dodać maksymalnie ${plural(n, { one: '{n} miasto', few: '{n} miasta', many: '{n} miast', other: '{n} miasta' })}`,
+    fullAction: 'Usuń jedno, aby dodać to miasto.',
   },
   errors: {
     INVALID_REQUEST: 'Nieprawidłowe zapytanie. Sprawdź adres i spróbuj ponownie.',

@@ -198,6 +198,7 @@ export const ru: MessagesFactory = ({ deg, plural }) => ({
     saved: 'В избранном',
     remove: 'Убрать из избранного',
     full: (n) => `В избранное можно добавить до ${plural(n, { one: '{n} города', other: '{n} городов' })}`,
+    fullAction: 'Уберите один, чтобы добавить этот город.',
   },
   errors: {
     INVALID_REQUEST: 'Некорректный запрос. Проверьте адрес и попробуйте снова.',

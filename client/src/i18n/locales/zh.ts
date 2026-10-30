@@ -185,6 +185,7 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
     saved: '已收藏',
     remove: '从收藏中移除',
     full: (n) => `最多可收藏${num(n)}个城市`,
+    fullAction: '请先移除一个城市，才能添加这个。',
   },
   errors: {
     INVALID_REQUEST: '请求无效。请检查地址后重试。',

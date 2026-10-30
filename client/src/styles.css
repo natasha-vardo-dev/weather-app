@@ -245,6 +245,8 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
 .settings__intro p + p { margin-top: 0.3rem; }
 .settings__intro .bell__icon { vertical-align: -0.15em; }
 .settings__intro .settings__star { margin-inline-end: 0; }
+/* Why there are no switches, set apart from the rules below it. */
+.settings__status { padding-bottom: 0.4rem; margin-bottom: 0.4rem; border-bottom: 1px solid var(--field-line); }
 /* The bell's explanations (install, allow, use the build) in the settings panel's colours. */
 .settings__intro .bell__title { color: var(--field-ink); }
 .settings__intro .bell__text { color: var(--field-ink-soft); font-size: inherit; }
@@ -931,8 +933,6 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   cursor: pointer;
 }
 .save:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
-/* Unavailable (list full): dashed outline and dimmed, so it reads differently from a normal state */
-.save[aria-disabled='true'] { cursor: not-allowed; border-style: dashed; opacity: 0.6; }
 
 .save-wrap {
   display: inline-flex;
@@ -941,7 +941,32 @@ button.settings__row:hover, .settings__back:hover { background: var(--field-acti
   justify-content: flex-end;
   gap: 0.25rem 0.75rem;
 }
-.save__hint { font-size: 0.85rem; color: var(--ink-soft); }
+/* The star's message when the list is full: under the buttons, from the end side. */
+.save-wrap--star { position: relative; }
+.save__notice {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  inset-inline-end: 0;
+  z-index: 12;
+  width: max-content;
+  /* Anchored at the star, which has the bell after it: leave room for that too on a narrow phone. */
+  max-width: min(17rem, calc(100vw - 5.5rem));
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--field-line);
+  border-radius: 0.75rem;
+  background: var(--field-list);
+  color: var(--field-ink);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  text-align: start;
+}
+.save__notice-line { display: block; font-weight: 600; margin-bottom: 0.2rem; }
+/* No tooltip over the open message. */
+.save[data-open]::after { display: none; }
+/* The live region takes no place in the row of buttons (even empty it was a flex item and
+   doubled the gap before the bell); the message in it is positioned against the star. */
+.save__live { position: absolute; inset: 0; pointer-events: none; }
+.save__notice { pointer-events: auto; }
 /* Save and warnings: round icon buttons, at least 36 px for a finger. */
 .save--icon { justify-content: center; width: 2.25rem; height: 2.25rem; padding: 0; }
 /* The name as a tooltip under the icon, on hover and on keyboard focus (title would show

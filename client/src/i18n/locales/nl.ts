@@ -185,6 +185,7 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     saved: 'In favorieten',
     remove: 'Verwijderen uit favorieten',
     full: (n) => `Je kunt tot ${num(n)} steden aan je favorieten toevoegen`,
+    fullAction: 'Verwijder er een om deze stad toe te voegen.',
   },
   errors: {
     INVALID_REQUEST: 'Het verzoek is ongeldig. Controleer het adres en probeer het opnieuw.',

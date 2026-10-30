@@ -184,6 +184,7 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
     saved: 'En favoritos',
     remove: 'Quitar de favoritos',
     full: (n) => `Puedes añadir hasta ${num(n)} ciudades a favoritos`,
+    fullAction: 'Quita una para añadir esta.',
   },
   errors: {
     INVALID_REQUEST: 'La solicitud no es válida. Revisa la dirección e inténtalo de nuevo.',

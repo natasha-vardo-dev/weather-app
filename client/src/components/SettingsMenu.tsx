@@ -455,16 +455,17 @@ function AlertsList({
       ) : (
         <>
           <div className="settings__intro">
-            {usable ? (
-              <>
-                <p>{withIcon(t.notify.listRule, '{star}', <StarIcon className="settings__star" size={13} />)}</p>
-                <p>{withIcon(t.notify.howToConfigure, '{icon}', <BellIcon on={false} size={13} />)}</p>
-                {listed.some((row) => uncovered.has(`${row.latitude},${row.longitude}`)) && (
-                  <p>{t.notify.meteoAlarmOnly}</p>
-                )}
-              </>
-            ) : (
-              <PushStatusNote status={status} onCityPage={false} />
+            {/* Where switches can't work (install on iPhone, allowed nowhere, the dev server), why
+                first; the list's own rules still apply and follow. */}
+            {!usable && (
+              <div className="settings__status">
+                <PushStatusNote status={status} onCityPage={false} />
+              </div>
+            )}
+            <p>{withIcon(t.notify.listRule, '{star}', <StarIcon className="settings__star" size={13} />)}</p>
+            <p>{withIcon(t.notify.howToConfigure, '{icon}', <BellIcon on={false} size={13} />)}</p>
+            {listed.some((row) => uncovered.has(`${row.latitude},${row.longitude}`)) && (
+              <p>{t.notify.meteoAlarmOnly}</p>
             )}
           </div>
           <ul className="settings__alerts">
