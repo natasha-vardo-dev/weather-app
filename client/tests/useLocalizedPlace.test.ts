@@ -111,6 +111,7 @@ describe('withVerifiedId', () => {
     expect(await withVerifiedId(real, 'pl')).toEqual(real);
     const paris = await withVerifiedId({ ...real, latitude: 48.85, longitude: 2.35, name: 'Paris' }, 'pl');
     expect(paris).not.toHaveProperty('id');
-    expect(getLocation).toHaveBeenCalledTimes(2);
+    // The lookup by id is shared (one request), but the check against the coordinates runs again.
+    expect(getLocation).toHaveBeenCalledTimes(1);
   });
 });

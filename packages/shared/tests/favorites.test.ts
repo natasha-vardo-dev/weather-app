@@ -4,9 +4,7 @@ import {
   isFavorite,
   MAX_FAVORITES,
   parseFavorites,
-  resolveHomeCity,
   toggleFavorite,
-  withHomeFirst,
   type Favorite,
 } from '../src/favorites.js';
 
@@ -31,26 +29,6 @@ describe('toggleFavorite', () => {
   it('does not add to a full list', () => {
     const full = Array.from({ length: MAX_FAVORITES }, (_, i) => ({ ...london, latitude: i }));
     expect(toggleFavorite(full, warsaw)).toEqual(full);
-  });
-});
-
-describe('home city', () => {
-  const paris: Favorite = { latitude: 48.85, longitude: 2.35, name: 'Paris' };
-  const saved = [paris, london, warsaw];
-
-  it('is one of the saved cities, matched by rounded coordinates', () => {
-    expect(resolveHomeCity({ ...warsaw, latitude: 52.2297, name: 'Варшава' }, saved)).toEqual(warsaw);
-  });
-
-  it('is cleared when the city is not saved or the value is broken', () => {
-    expect(resolveHomeCity({ latitude: 1, longitude: 1, name: 'Elsewhere' }, saved)).toBeNull();
-    expect(resolveHomeCity('Warsaw', saved)).toBeNull();
-    expect(resolveHomeCity(null, saved)).toBeNull();
-  });
-
-  it('comes first, the rest keep their order', () => {
-    expect(withHomeFirst(saved, warsaw).map((f) => f.name)).toEqual(['Warsaw', 'Paris', 'London']);
-    expect(withHomeFirst(saved, null)).toEqual(saved);
   });
 });
 

@@ -14,9 +14,16 @@
   --field-query: #1d4f86;
   --field-ink-soft: #5a6b82;
   --field-line: rgba(15, 29, 51, 0.16);
-  --field-active: #e3edf8;
+  /* One step darker than the panels, so a hovered or chosen row shows on them. */
+  --field-active: #d9e5f2;
   --field-danger: #8f2219;
-  --field-list: #ffffff;
+  /* Pop-up panels (settings, search suggestions): pale blue, not white, which glared on
+     the blue page. Soft text #5a6b82 on it is 4.7:1. */
+  --field-list: #e8eff7;
+  /* The logo's tile: darker than the blue page. */
+  --brand-tile: #1d4f86;
+  /* The logo's name at rest, a step below white so hover can light it up. */
+  --brand-ink: var(--ink-soft);
   color-scheme: dark;
   font-family: 'Bricolage Grotesque', system-ui, sans-serif;
   font-optical-sizing: auto;
@@ -44,6 +51,10 @@
     --field-active: var(--line);
     --field-danger: var(--danger);
     --field-list: var(--sky);
+    /* The app icon's own blue, lighter than the dark page. */
+    --brand-tile: #3468a0;
+    /* Brighter than the dark theme's soft text, which left the name dull. */
+    --brand-ink: #d6dfeb;
     color-scheme: dark;
   }
 }
@@ -103,80 +114,187 @@ body {
 
 .page__footer a { color: inherit; }
 
-/* Header: search and language */
-.page__header { display: flex; gap: 0.75rem; align-items: stretch; }
-.page__header > .search { flex: 1; min-width: 0; }
+/* Header: search and settings */
+/* Header: the app's name on top, then search and settings. */
+.page__bar { display: flex; gap: 0.75rem; align-items: stretch; }
+.page__bar > .search { flex: 1; min-width: 0; }
+/* The logo: the app icon on its blue tile, as on the Home Screen, and the short name.
+   Links to the start page. */
+.page__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+  padding: 0.15rem 0.3rem 0.15rem 0;
+  border-radius: 0.5rem;
+  color: var(--brand-ink);
+  font-size: 1.25rem;
+  font-weight: 700;
+  transition: color 0.15s;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+/* Hover lights it up instead of underlining: a step softer at rest, full white on hover, and
+   the tile a little brighter. */
+.page__brand:hover { color: #fff; }
+.page__brand:hover .page__badge { filter: brightness(1.15); }
+.page__badge { transition: filter 0.15s; }
+@media (prefers-reduced-motion: reduce) { .page__brand, .page__badge { transition: none; } }
+.page__brand:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+.page__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 0.5rem;
+  background: var(--brand-tile);
+}
 
-.dropdown__button {
+/* Settings: a gear button next to the search holds language and °C/°F, so the header is
+   one line on a phone too. The panel opens below it, from the end side. */
+/* Square: as wide as the search field is tall (its 1.1rem text at line-height 1.5, 0.8rem
+   padding above and below, 1px borders). aspect-ratio would not size a stretched flex item. */
+.settings { position: relative; flex: none; width: calc(1.1rem * 1.5 + 1.6rem + 2px); }
+
+.settings__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   height: 100%;
-  font: inherit;
-  padding: 0 0.75rem;
+  padding: 0;
   border: 1px solid var(--field-line);
   border-radius: 0.75rem;
   background: var(--field);
   color: var(--field-ink);
   cursor: pointer;
 }
+.settings__button[aria-expanded='true'] { background: var(--field-active); }
+.settings__gear { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
-/* Header switches (°C/°F, language): custom lists, so they always open below the button */
-.dropdown { position: relative; }
-
-/* Fixed widths: labels differ ("°F" is wider than "°C", "Nederlands" than "Dansk"),
-   and the search field next to them must not jump when the choice changes. */
-.dropdown__button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.4rem;
-}
-
-.dropdown--unit .dropdown__button { width: 4.25rem; }
-.dropdown--language .dropdown__button { width: 8.75rem; }
-
-.dropdown__value {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dropdown__chevron { flex: none; opacity: 0.7; }
-
-.dropdown__list {
+.settings__panel {
   position: absolute;
   z-index: 10;
   top: calc(100% + 0.35rem);
-  inset-inline-start: 0;
-  min-width: 100%;
-  margin: 0;
+  inset-inline-end: 0;
+  /* Room for a place, its settings and a switch on one line each. */
+  width: min(19rem, calc(100vw - 2.5rem));
   padding: 0.35rem;
-  list-style: none;
   background: var(--field-list);
   color: var(--field-ink);
   border: 1px solid var(--field-line);
   border-radius: 0.75rem;
 }
 
-/* 19 languages: scroll within the window instead of running past its bottom. */
-.dropdown--language .dropdown__list {
-  inset-inline-start: auto;
-  inset-inline-end: 0;
-  max-height: min(22rem, 70vh);
+.settings__row, .settings__back {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.6rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+button.settings__row, .settings__back { cursor: pointer; }
+button.settings__row:hover, .settings__back:hover { background: var(--field-active); }
+.settings__row + .settings__row { border-top: 1px solid var(--field-line); border-radius: 0; }
+
+.settings__value { display: flex; align-items: center; gap: 0.35rem; color: var(--field-ink-soft); }
+/* The down arrow turned to point onwards (right, or left in right-to-left) and back. */
+.settings__forward { transform: rotate(-90deg); }
+.settings__backward { transform: rotate(90deg); }
+[dir='rtl'] .settings__forward { transform: rotate(90deg); }
+[dir='rtl'] .settings__backward { transform: rotate(-90deg); }
+
+.settings__units { display: inline-flex; border: 1px solid var(--field-line); border-radius: 0.5rem; overflow: hidden; }
+.settings__unit {
+  min-width: 2.75rem;
+  min-height: 2rem;
+  padding: 0 0.6rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.settings__unit[aria-pressed='true'] { background: var(--field-active); font-weight: 600; }
+
+.settings__back { justify-content: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--field-line); border-radius: 0.5rem 0.5rem 0 0; font-weight: 600; }
+
+/* Warnings: places with notifications on, each with a switch. */
+.settings__alerts { margin: 0.25rem 0 0; padding: 0; list-style: none; max-height: min(20rem, 60vh); overflow-y: auto; }
+.settings__alerts > .settings__row + .settings__row { border-top: 1px solid var(--field-line); border-radius: 0; }
+.settings__place { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.settings__place--off { color: var(--field-ink-soft); }
+.settings__summary { font-size: 0.8rem; color: var(--field-ink-soft); }
+/* The name opens the city's page (its bell sets which warnings come): underlined as a link. */
+.settings__link { color: inherit; text-decoration: underline; text-decoration-color: var(--field-line); text-underline-offset: 0.2em; }
+.settings__link:hover { text-decoration-color: currentColor; }
+/* Yellow fill, outlined: plain yellow is too faint on the white panel of the light theme. */
+.settings__star { fill: var(--sun); stroke: var(--field-ink-soft); stroke-width: 1.5; stroke-linejoin: round; margin-inline-end: 0.3rem; vertical-align: -0.1em; }
+/* Above the list: which cities it shows, and where a city's warnings are set. */
+.settings__intro { margin: 0.35rem 0.6rem 0.25rem; font-size: 0.8rem; line-height: 1.45; color: var(--field-ink-soft); }
+.settings__intro p { margin: 0; }
+.settings__intro p + p { margin-top: 0.3rem; }
+.settings__intro .bell__icon { vertical-align: -0.15em; }
+.settings__intro .settings__star { margin-inline-end: 0; }
+/* The bell's explanations (install, allow, use the build) in the settings panel's colours. */
+.settings__intro .bell__title { color: var(--field-ink); }
+.settings__intro .bell__text { color: var(--field-ink-soft); font-size: inherit; }
+/* A switch, 44 × 26: the knob moves to the end side when on. */
+.settings__switch {
+  position: relative;
+  flex: none;
+  width: 2.75rem;
+  height: 1.625rem;
+  padding: 0;
+  border: 1px solid var(--field-line);
+  border-radius: 999px;
+  background: var(--field-active);
+  cursor: pointer;
+}
+.settings__switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  inset-inline-start: 2px;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--field-ink-soft);
+  transition: inset-inline-start 0.15s;
+}
+.settings__switch[aria-checked='true'] { background: var(--field-query); border-color: var(--field-query); }
+/* The knob takes the panel's own colour: white on dark blue, dark on light in the dark theme. */
+.settings__switch[aria-checked='true']::after { inset-inline-start: calc(100% - 1.25rem - 2px); background: var(--field-list); }
+.settings__switch[aria-disabled='true'] { cursor: progress; opacity: 0.6; }
+.settings__switch[aria-busy='true'] { opacity: 1; }
+.settings__switch:focus-visible { outline: 2px solid var(--field-query); outline-offset: 2px; }
+.settings__note { margin: 0.35rem 0.6rem 0.25rem; font-size: 0.8rem; line-height: 1.4; color: var(--field-ink-soft); }
+.settings__note:empty { margin: 0; }
+@media (prefers-reduced-motion: reduce) { .settings__switch::after { transition: none; } }
+
+/* 19 languages: the list scrolls within the window, not the page. */
+.settings__list {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: min(20rem, 60vh);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-
-.dropdown__list:focus { outline: none; }
-.dropdown__list:focus-visible .dropdown__option--active { outline: 2px solid var(--field-query); outline-offset: -2px; }
-
-.dropdown__option {
-  padding: 0.5rem 0.6rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.dropdown__option--active { background: var(--field-active); }
-.dropdown__option[aria-selected='true'] { font-weight: 600; }
+.settings__list:focus { outline: none; }
+.settings__list:focus-visible .settings__option--active { outline: 2px solid var(--field-query); outline-offset: -2px; }
+.settings__option { padding: 0.5rem 0.6rem; border-radius: 0.5rem; cursor: pointer; white-space: nowrap; }
+.settings__option--active { background: var(--field-active); }
+.settings__option[aria-selected='true'] { font-weight: 600; }
 
 /* Search */
 .search { position: relative; }
@@ -335,24 +453,49 @@ body {
   display: flex;
   align-items: baseline;
   gap: 0.6rem;
+  /* A name longer than the screen (Llanfairpwllgwyngyll…, one word) breaks inside the word
+     instead of widening the page into a sideways scroll. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+  /* Takes the room the buttons leave, so they stay on the name's line: basis 0, or a long
+     name would ask for its whole width and push the buttons onto the next line. */
+  flex: 1 1 0;
 }
 
-.now__country { font-size: 1rem; font-weight: 400; color: var(--ink-soft); }
-
-.now__here {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  align-self: center;
-  padding: 0.1rem 0.5rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 400;
-  color: var(--ink-soft);
+/* The country keeps to one line beside the name; the name wraps instead. */
+.now__sub { font-size: 1rem; font-weight: 400; color: var(--ink-soft); white-space: nowrap; }
+/* District and region: a line of their own under the name and the buttons, smaller. Each
+   part stays whole, so a long line breaks at the dot. */
+.now__area { margin: 0.15rem 0 0; font-size: 0.85rem; color: var(--ink-soft); }
+/* An inline block moves to the next line whole, and wraps inside only if longer than a line. */
+.now__part { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
+/* The phone's copy of "You are here", under the area line; hidden on wider screens. */
+.now__below { display: none; margin: 0.15rem 0 0; font-size: 1rem; color: var(--ink-soft); }
+/* On a phone the country goes under the name, so the name and the buttons share one line. */
+@media (max-width: 480px) {
+  /* A block, not a flex row: its width is then its longest line, not the whole row. */
+  .now__place { display: block; }
+  .now__sub { display: block; font-size: 0.9rem; white-space: normal; }
+  /* The mark leaves the heading for its own line under the district and region (by the
+     name it made the column beside the buttons four lines tall). Scoped by .now: the
+     general rules come later in the file. */
+  /* Visually hidden, not display: none: screen readers still hear it with the name. */
+  .now .now__place .now__here { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .now .now__sep { display: none; }
+  .now .now__below { display: block; }
+  .now .now__below .now__here { white-space: normal; text-wrap: balance; }
+  /* Buttons level with the name, not centred on name and country together (that put them
+     ~11 px low). The name's line is 36 px, as tall as the buttons. */
+  .now .now__head { column-gap: 0.5rem; align-items: flex-start; }
+  .now__head .save-wrap { column-gap: 0.4rem; }
 }
-/* Guessed from the IP: dashed, like an estimate; text keeps its colour for contrast (yellow on blue is below 4.5:1). */
-.now__here--approximate { border-style: dashed; border-color: var(--sun); }
+
+/* "You are here" after the country, a step smaller, same colour, on the same baseline. */
+.now__here { font-size: 0.85em; white-space: nowrap; }
+.now__here .location-icon { margin-inline-end: 0.2rem; vertical-align: -0.1em; }
+/* Guessed from the IP: a yellow pin and its own words ("Approximate, by IP"); the text keeps
+   the soft colour for contrast (yellow text on blue is below 4.5:1). */
+.now__here--approximate .location-icon { color: var(--sun); }
 
 .now__temp {
   margin: 0;
@@ -363,85 +506,83 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Two groups under the number: "feels like" is a small caption tight to it (it qualifies
-   the number); after a clear gap, the day: condition, high/low, change since yesterday. */
-/* The number's box has empty room under the glyph (the font's descent): pull the caption
-   up by about that much, in proportion to the number's size, so it sits right under it. */
-.now__feels {
-  margin: calc(clamp(6rem, 26vw, 11rem) * -0.07) 0 0;
-  font-size: 0.95rem;
-  color: var(--ink-soft);
-}
-.now__label { margin: 1.1rem 0 0; font-size: 1.25rem; }
-.now__hilo { color: var(--ink-soft); font-size: 1rem; }
-.now__trend { margin: 0.25rem 0 0; }
+/* Under the number: the condition a little larger, then the details (feels like, high and
+   low, change since yesterday) in one size and the soft colour, one step apart. */
+.now__label { margin: 0.9rem 0 0; font-size: 1.1rem; font-weight: 500; }
+.now__line, .now__trend { margin: 0.25rem 0 0; font-size: 0.9rem; color: var(--ink-soft); }
 
-.now__details {
+/* The details as tiles below the 10-day forecast: four in a row, two on a phone. Outline
+   only, no fill: a fill on the blue background drops the soft text below 4.5:1. */
+.tiles { margin: 2rem 0 0; }
+.tiles__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+@media (max-width: 640px) {
+  .tiles__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.tiles__grid > li { display: flex; }
+.tile {
+  position: relative;
+  box-sizing: border-box;
   display: flex;
-  flex-wrap: wrap;
-  /* Rows a little apart, so the items' enlarged hit areas never touch. */
-  gap: 0.75rem 2rem;
-  margin: 1.25rem 0 0;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+  min-height: 6.5rem;
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
 }
-
-.now__details dt { font-size: 0.85rem; color: var(--ink-soft); }
-.now__details dd { margin: 0; font-size: 1.1rem; font-weight: 500; }
-
-/* Air quality: the value is a button that shows the pollutants below */
-.aqi {
-  all: unset;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border-radius: 0.4rem;
+.tile__label { font-size: 0.85rem; color: var(--ink-soft); padding-inline-end: 1.25rem; }
+.tile__value { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 1.4rem; font-weight: 500; }
+.tile__note { margin-top: auto; font-size: 0.82rem; color: var(--ink-soft); }
+/* A word or unit after the number ("5 Moderate", "1009 hPa"): smaller and soft. */
+.tile__unit { font-size: 0.85rem; font-weight: 400; color: var(--ink-soft); }
+/* UV on the WHO scale: a dot on a bar in the scale's colours, filling from the inline start. */
+.uvbar {
+  position: relative;
+  display: block;
+  height: 5px;
+  margin: 0.2rem 0 0.45rem;
+  border-radius: 3px;
+  background: linear-gradient(to right, #4eb400 0%, #f7e400 30%, #f85900 55%, #d8001d 80%, #8f6ae0 100%);
 }
-button.aqi { cursor: pointer; }
-.aqi:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
-
-/* Every detail value is a button that opens what is behind it below the list: a 24-hour
-   chart, or the pollutants. One arrow for all, turned up on the open one. */
-.detail {
-  all: unset;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border-radius: 0.4rem;
-  cursor: pointer;
-}
-/* The hit area is the whole item (label and value), stretched over it from the button:
-   ~54 px tall, at least the 44 px touch guidelines ask for. The focus ring and hover
-   follow that area, so what reacts is what is highlighted. */
-.detail-item { position: relative; isolation: isolate; }
-/* On top and transparent: takes the clicks on the label too. */
-.detail::after {
-  content: '';
+[dir='rtl'] .uvbar { background: linear-gradient(to left, #4eb400 0%, #f7e400 30%, #f85900 55%, #d8001d 80%, #8f6ae0 100%); }
+.uvbar__dot {
   position: absolute;
-  inset: -0.25rem -0.5rem;
-  border-radius: 0.6rem;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--sky);
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%);
 }
-/* Behind the text: the hover tint (a tint on top would wash the text out). Faint, so white
-   text keeps 4.5:1 on the blue background (--surface would drop it just below). */
-.detail-item::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: -0.25rem -0.5rem;
-  border-radius: 0.6rem;
-}
-.detail-item:hover::before { background: rgba(255, 255, 255, 0.05); }
-/* The open item: a lighter fill and outline, so it is clear which detail the panel shows.
-   Its label turns from soft to full white: on the lighter fill the soft colour would fall
-   below 4.5:1, white stays above (4.7:1 on the blue background). */
-.detail-item--open::before {
+[dir='rtl'] .uvbar__dot { transform: translate(50%, -50%); }
+.tile__arrow { flex: none; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.tile__chevron { position: absolute; top: 0.8rem; inset-inline-end: 0.75rem; color: var(--ink-soft); transition: transform 0.15s; }
+.tile--button { cursor: pointer; }
+.tile--button:hover { background: rgba(255, 255, 255, 0.05); }
+.tile--button:hover .tile__chevron { color: var(--ink); }
+.tile--button:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+/* The open tile: lighter fill and outline, so it is clear which one the panel shows. Its
+   soft texts turn white: on the lighter fill the soft colour would fall below 4.5:1. */
+.tile--button[aria-expanded='true'] {
   background: rgba(255, 255, 255, 0.1);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
 }
-.detail-item--open dt { color: var(--ink); }
-.detail:focus-visible { outline: none; }
-.detail:focus-visible::after { outline: 2px solid var(--cool); }
-.detail__chevron { flex: none; color: var(--ink-soft); transition: transform 0.15s; }
-.detail:hover .detail__chevron { color: var(--ink); }
-.detail[aria-expanded='true'] .detail__chevron { color: var(--ink); transform: rotate(180deg); }
+.tile--button[aria-expanded='true'] :is(.tile__label, .tile__note, .tile__unit, .tile__chevron) { color: var(--ink); }
+.tile--button[aria-expanded='true'] .tile__chevron { transform: rotate(180deg); }
 
 .detail-panel {
   margin: 1rem 0 0;
@@ -462,6 +603,8 @@ button.aqi { cursor: pointer; }
 .hchart__line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .hchart__svg--wind .hchart__line { stroke: var(--ink); }
 .hchart__svg--humidity .hchart__line { stroke: var(--cool); }
+.hchart__svg--uv .hchart__line { stroke: var(--sun); }
+.hchart__svg--pressure .hchart__line { stroke: var(--ink-soft); }
 .hchart__bar { fill: var(--cool); }
 .hchart__focus line { stroke: var(--ink-soft); stroke-width: 1; }
 .hchart__focus circle { fill: var(--sky); stroke: var(--ink); stroke-width: 2; }
@@ -577,6 +720,24 @@ button.aqi { cursor: pointer; }
 
 .hour__time { font-size: 0.85rem; color: var(--ink-soft); }
 .hour__temp { font-size: 1.1rem; font-weight: 500; }
+/* Icon and chance of rain in one slot of fixed height (icon, gap, one line of the chance):
+   the strip keeps one height and the temperatures one line; without a chance the icon is
+   centred in the slot rather than sitting over an empty row (like Apple Weather). */
+.hour__sky {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  height: calc(24px + 0.15rem + 0.6875rem * 1.1);
+}
+/* 11 px, smaller than the time and the temperature: a caption to the icon, not a value of
+   its own. Medium weight and the 10-day list's colour keep it legible on the blue. */
+.hour__rain { font-size: 0.6875rem; font-weight: 500; line-height: 1.1; color: var(--rain); }
+/* Sunrise and sunset between the hours: same grid, the word in place of a temperature. */
+.hour__sun { fill: var(--sun); }
+.hour__sun .hour__sun-line { fill: none; stroke: var(--sun); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.hour__event { font-size: 0.8rem; color: var(--ink-soft); align-self: center; }
 
 /* Icons are graphics, so they need 3:1 contrast, not 4.5:1. */
 .weather-icon { flex: none; }
@@ -595,6 +756,13 @@ button.aqi { cursor: pointer; }
 }
 
 .week__list { list-style: none; margin: 0; padding: 0; }
+/* The day names share one column as wide as the longest of them ("Сегодня", "Aujourd'hui"):
+   the rows are subgrids of the list. A fixed 3.5rem left "Сегодня" touching the icon and
+   put "Aujourd'hui" over it; a wider fixed one would leave "Thu" far from its icon. */
+@supports (grid-template-columns: subgrid) {
+  .week__list { display: grid; grid-template-columns: max-content 1.5rem 1fr auto; column-gap: 0.75rem; }
+  .week__list > .day { grid-column: 1 / -1; grid-template-columns: subgrid; }
+}
 
 .day {
   display: grid;
@@ -607,8 +775,31 @@ button.aqi { cursor: pointer; }
 }
 
 .day__name { font-weight: 500; }
+/* Today, a little lighter, with a dot for the temperature now on its bar. */
+/* The lighter background is drawn outside the row (a pseudo-element), not with padding: in a
+   subgrid, padding would shift this row's columns against the others. */
+.day--today { position: relative; isolation: isolate; }
+.day--today::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0 -0.5rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+.day__now {
+  position: absolute;
+  top: 50%;
+  width: 0.65rem;
+  height: 0.65rem;
+  border: 2px solid var(--sky);
+  border-radius: 50%;
+  background: var(--ink);
+  transform: translate(-50%, -50%);
+}
 .day__label { color: var(--ink-soft); }
-.day__rain { color: var(--rain); font-weight: 500; }
+/* Kept whole: it moves to the next line as one piece rather than splitting "rain | 31%". */
+.day__rain { color: var(--rain); font-weight: 500; white-space: nowrap; }
 .day__min { text-align: end; color: var(--ink-soft); }
 
 /*
@@ -643,18 +834,14 @@ button.aqi { cursor: pointer; }
     grid-template-columns: 3rem 1.5rem 1fr auto;
     row-gap: 0.25rem;
   }
+  .week__list > .day { grid-template-columns: subgrid; }
   .day__temps { grid-template-columns: 2rem 2rem; }
   .day__bar { display: none; }
-  /* Search gets the full width; the unit and language switches go to the line below. */
-  .page__header { flex-wrap: wrap; }
-  .page__header > .search { flex-basis: 100%; }
-  .page__header > .dropdown--unit { margin-inline-start: auto; }
-  .dropdown__button { padding-block: 0.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root, .content { transition: none; }
-  .detail__chevron, .alert__chevron, .bell__chevron, .bell__switch::after { transition: none; }
+  .tile__chevron, .alerts__more-chevron, .alert__chevron, .bell__switch::after { transition: none; }
   /* Slower, not stopped: a frozen spinner would look broken. */
   .spinner { animation-duration: 2.5s; }
   .skeleton__block { animation: none; }
@@ -730,6 +917,7 @@ button.aqi { cursor: pointer; }
 }
 
 .save {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -754,29 +942,35 @@ button.aqi { cursor: pointer; }
   gap: 0.25rem 0.75rem;
 }
 .save__hint { font-size: 0.85rem; color: var(--ink-soft); }
+/* Save and warnings: round icon buttons, at least 36 px for a finger. */
+.save--icon { justify-content: center; width: 2.25rem; height: 2.25rem; padding: 0; }
+/* The name as a tooltip under the icon, on hover and on keyboard focus (title would show
+   only on hover, late, and screen readers would read it twice). Decorative: the name is
+   already hidden text in the button. */
+.save[data-tip]:is(:hover, :focus-visible)::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  inset-inline-end: 0;
+  z-index: 11;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: var(--sky);
+  color: var(--ink);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* No tooltip over the open warnings panel. */
+.save[aria-expanded='true']::after { display: none; }
 .save__star { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
 .save[data-saved] .save__star { fill: var(--sun); stroke: var(--sun); }
 
-/* Home city: house outline on the button, filled yellow when this is the home city */
-.home__icon { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
-.save[data-home] .home__icon { fill: var(--sun); stroke: var(--sun); }
-/* Small filled house before the home city's name in the strip and on cards */
-.home-mark {
-  display: inline-block;
-  margin-inline-end: 0.25rem;
-  vertical-align: -0.1em;
-  fill: var(--sun);
-  stroke: var(--sun);
-  stroke-width: 1.8;
-  stroke-linejoin: round;
-}
-
-/* Warning notifications: a bell next to Saved and Home city, its settings in a panel below. */
+/* Warning notifications: a bell next to the star, its settings in a panel below. */
 .bell { position: relative; display: inline-flex; }
 .bell__icon { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
 .save[data-on] .bell__icon { fill: var(--sun); stroke: var(--sun); }
-.bell__chevron { color: var(--ink-soft); transition: transform 0.15s; }
-.save[aria-expanded='true'] .bell__chevron { transform: rotate(180deg); }
 .bell__panel {
   position: absolute;
   top: calc(100% + 0.5rem);
@@ -847,6 +1041,23 @@ button.aqi { cursor: pointer; }
 /* Official weather warnings on a city page. The level is always written out; its colour
    (MeteoAlarm's yellow, orange, red) is a second signal, so a dark mark on it reads well. */
 .alerts { display: grid; gap: 0.5rem; margin: 0 0 1.75rem; }
+/* "2 more warnings": a quiet text button under the most severe one. */
+.alerts__more {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.alerts__more:hover { text-decoration: underline; }
+.alerts__more-chevron { color: var(--ink-soft); transition: transform 0.15s; }
+.alerts__more[aria-expanded='true'] .alerts__more-chevron { transform: rotate(180deg); }
 .alerts__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
 .alert {
   --alert: #ffd84d;

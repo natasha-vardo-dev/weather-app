@@ -1,5 +1,5 @@
-import { useMemo, type ReactNode } from 'react';
-import { useParams, useSearchParams } from 'react-router';
+import { useEffect, useMemo, type ReactNode } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { AlertBell } from '../components/AlertBell';
 import { CurrentWeather } from '../components/CurrentWeather';
 import { FavoriteButton } from '../components/FavoriteButton';
@@ -7,22 +7,35 @@ import { FavoritesStrip } from '../components/FavoritesStrip';
 import { ForecastList } from '../components/ForecastList';
 import { HourlyForecast } from '../components/HourlyForecast';
 import { WeatherAlerts } from '../components/WeatherAlerts';
+import { WeatherTiles } from '../components/WeatherTiles';
 import { WeatherSkeleton } from '../components/WeatherSkeleton';
 import { useAirQuality } from '../hooks/useAirQuality';
 import { useAlerts } from '../hooks/useAlerts';
 import { useForecast } from '../hooks/useForecast';
 import { usePageMeta } from '../hooks/usePageMeta';
-import { placeTitle, useLocalizedPlace } from '../hooks/useLocalizedPlace';
+import { placeSubtitle, placeTitle, useLocalizedPlace } from '../hooks/useLocalizedPlace';
+import { placeArea } from '../placeLabels';
 import { useI18n } from '../i18n/I18nProvider';
 import { rememberedPosition } from '../geolocation';
-import { parsePlace, placePath } from '../locationUrl';
+import { parsePlaceRoute, placePath } from '../locationUrl';
+import { usePlaceRoute } from '../hooks/usePlaceRoute';
 import { NotFoundPage } from './NotFoundPage';
 
 export function WeatherPage() {
-  const { t } = useI18n();
-  const { coords } = useParams();
+  const { t, language } = useI18n();
+  const { where } = useParams();
   const [searchParams] = useSearchParams();
-  const place = useMemo(() => parsePlace(coords, searchParams), [coords, searchParams]);
+  const route = useMemo(() => parsePlaceRoute(where, searchParams), [where, searchParams]);
+  const { state, canonical, retry: retryRoute } = usePlaceRoute(route);
+  const place = state.status === 'ready' ? state.place : null;
+
+  // One address per city: an old link (?id=) or a slug in another language or edited by
+  // hand becomes /weather/756135-warsaw, replacing the entry rather than adding one.
+  const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => {
+    if (canonical && canonical !== location.pathname) navigate(canonical, { replace: true });
+  }, [canonical, location.pathname]);
 
   const { forecast, loading, error, retry } = useForecast(
     place?.latitude ?? null,
@@ -42,10 +55,30 @@ export function WeatherPage() {
   const title = names ? placeTitle(names, t.place.island) : null;
   // An invalid link renders NotFoundPage inside this page; parent effects run after the
   // child's, so this page must set the same title or it would overwrite "Not found".
-  usePageMeta(place ? title : t.notFound.pageTitle);
+  const missing = state.status === 'invalid' || state.status === 'not-found';
+  usePageMeta(missing ? t.notFound.pageTitle : title);
 
-  if (!place) {
+  if (missing) {
     return <NotFoundPage message={t.notFound.badLink} />;
+  }
+  if (!place) {
+    // The place behind an id is still being looked up (or the lookup failed).
+    return (
+      <>
+        <FavoritesStrip place={null} />
+        {state.status === 'error' ? (
+          <div className="message" role="alert">
+            <p>{t.errors[state.code]}</p>
+            <button type="button" onClick={retryRoute}>
+              {t.weather.tryAgain}
+            </button>
+          </div>
+        ) : (
+          // The slug is all there is to name it for screen readers meanwhile ("warsaw").
+          <WeatherSkeleton place={route?.kind === 'id' ? route.slug.replace(/-/g, ' ') : ''} />
+        )}
+      </>
+    );
   }
 
   let body: ReactNode;
@@ -75,10 +108,13 @@ export function WeatherPage() {
           // A new place gets a fresh component (focus, folded details), even when the
           // forecast comes straight from the cache and nothing else would remount it.
           key={`${place.latitude},${place.longitude}`}
-          name={title ?? place.name}
-          country={names ? names.country : place.country}
+          // The name, with "island" and the country beside it ("island · Greece"); district
+          // and region on a line below, so a town is placed even when another has its name.
+          // The tab title and the notification keep "Rhodes · island".
+          name={names ? names.name : place.name}
+          country={names ? placeSubtitle(names, t.place.island) : place.country}
+          area={names ? placeArea(names, language) : []}
           forecast={current}
-          airQuality={airQuality}
           actions={
             <span className="save-wrap">
               <FavoriteButton place={place} />
@@ -94,8 +130,10 @@ export function WeatherPage() {
           }
           here={rememberedPosition(place.latitude, place.longitude)}
         />
-        <HourlyForecast hours={current.hourly} />
-        <ForecastList days={current.daily} />
+        <HourlyForecast hours={current.hourly} days={current.daily} now={current.current.time} />
+        <ForecastList days={current.daily} now={current.current.temperature} />
+        {/* Remounted per place too: a new city starts with every tile folded. */}
+        <WeatherTiles key={`tiles:${place.latitude},${place.longitude}`} forecast={current} airQuality={airQuality} />
       </div>
     );
   }
@@ -107,7 +145,8 @@ export function WeatherPage() {
   return (
     <>
       <FavoritesStrip place={place} />
-      <WeatherAlerts data={alerts} timeZone={forecast?.timezone} />
+      {/* Keyed by place, so the next city starts with its warnings folded again. */}
+      <WeatherAlerts key={`alerts:${place.latitude},${place.longitude}`} data={alerts} timeZone={forecast?.timezone} />
       {body}
     </>
   );

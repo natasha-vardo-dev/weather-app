@@ -1,4 +1,15 @@
-import type { AirQualityLevel, AirQualitySummary, AlertLevel, AlertType, ErrorCode, WeatherCondition } from '@weather/shared';
+import type {
+  AirQualityLevel,
+  AirQualitySummary,
+  AlertLevel,
+  AlertType,
+  DewPointComfort,
+  ErrorCode,
+  PressureTrend,
+  UvLevel,
+  VisibilityLevel,
+  WeatherCondition,
+} from '@weather/shared';
 import type { LocationError } from '../geolocation';
 import type { Plural } from './plural';
 
@@ -9,9 +20,15 @@ import type { Plural } from './plural';
  */
 export interface Messages {
   appName: string;
+  /** The short name in the header logo, a product name rather than a description ("Weather"). */
+  brandName: string;
   language: string;
-  /** Label of the °C / °F switch, for screen readers. */
-  temperatureUnit: string;
+  /** Accessible name of the gear button that holds language and temperature unit. */
+  settings: string;
+  /** Row of the °C / °F switch in the settings. */
+  temperature: string;
+  /** Back from the language list to the settings, for screen readers. */
+  back: string;
   /** Footer: who the place names come from, before "© OpenStreetMap". */
   placesBy: string;
   dataBy: string;
@@ -35,6 +52,10 @@ export interface Messages {
     issuedBy: string;
     /** Before "EUMETNET – MeteoAlarm". */
     source: string;
+    /** Under the most severe warning when there are more: "2 more warnings". */
+    more: (n: number) => string;
+    /** The same button once they are shown. */
+    fewer: string;
   };
   /** The bell on a city page: push notifications about official warnings. */
   notify: {
@@ -60,6 +81,25 @@ export interface Messages {
     failed: string;
     /** Only in a development build, where there is no service worker. */
     unavailable: string;
+    /** Settings: how many cities have notifications on ("2 cities"). */
+    cities: (n: number) => string;
+    /** Settings: no city has notifications on. */
+    off: string;
+    /** Settings, empty list: where notifications are turned on. */
+    noneOn: string;
+    /** Settings: cities switched off stay in the list until the menu closes. */
+    leavesOnClose: string;
+    /** Settings: the same for one city ("Kraków will leave the list…"). */
+    placeLeavesOnClose: (place: string) => string;
+    /** Settings, above the list: which cities it shows. `{star}` marks where the star goes. */
+    listRule: string;
+    /** Settings, above the list: where a city's warnings are set. `{icon}` is the bell. */
+    howToConfigure: string;
+    /** Settings list: a place MeteoAlarm does not cover, so no switch ("No data from MeteoAlarm", not
+        "No warnings", which read as "all calm right now"). */
+    uncovered: string;
+    /** Settings, above the list, only when it has such a place: why some have no warnings. */
+    meteoAlarmOnly: string;
   };
   /** "Add to Home Screen" steps on iOS. `steps` contains `{icon}` where the Share icon goes;
    *  the button names must match iOS's own menu in that language. */
@@ -88,6 +128,29 @@ export interface Messages {
     precipitation: string;
     wind: string;
     airQuality: string;
+    /** Hidden heading of the tiles below the 10-day forecast. */
+    details: string;
+    /** Under the wind speed in its tile: the current gust speed. */
+    gusts: (speed: string) => string;
+  };
+  /** The tiles below the 10-day forecast: names, bands and their short explanations. */
+  tiles: {
+    uvIndex: string;
+    uvLevels: Record<UvLevel, string>;
+    /** When sun protection is needed (UV 3 and above), as two local times. */
+    uvProtect: (from: string, until: string) => string;
+    uvNone: string;
+    sunrise: string;
+    sunset: string;
+    pressure: string;
+    /** Hectopascal, as written in the language. */
+    hPa: string;
+    pressureTrends: Record<PressureTrend, string>;
+    visibility: string;
+    visibilityLevels: Record<VisibilityLevel, string>;
+    dewPoint: (degrees: string) => string;
+    /** How the air feels by its dew point. */
+    comfort: Record<DewPointComfort, string>;
   };
   hourly: { title: (n: number) => string; now: string; rainChance: (percent: string) => string };
   daily: {
@@ -128,15 +191,8 @@ export interface Messages {
     save: string;
     /** Button label for a saved city; pressing it removes the city. */
     saved: string;
-    add: string;
     remove: string;
     full: (max: number) => string;
-    /** Button label for a city that is not the home city. */
-    setHome: string;
-    /** Button label for the home city; also marks it in lists for screen readers. */
-    homeCity: string;
-    /** Hidden text: what pressing "Home city" does. */
-    unsetHome: string;
   };
   errors: Record<ErrorCode, string>;
 }

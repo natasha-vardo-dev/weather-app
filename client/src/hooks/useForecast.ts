@@ -28,6 +28,16 @@ const forecastCache = createQueryCache<Forecast>({
   keep: (forecast) => !isSavedValue(forecast),
 });
 
+/**
+ * The place's time zone, from the shared forecast cache (usually loaded already: a tile or
+ * card showed it), or undefined if the forecast can't be loaded.
+ */
+export function loadTimeZone(latitude: number, longitude: number): Promise<string | undefined> {
+  return forecastCache
+    .load(`${latitude},${longitude}`, () => api.getForecast(latitude, longitude))
+    .then((forecast) => forecast.timezone, () => undefined);
+}
+
 function toError(err: unknown): ForecastError {
   return err instanceof ApiError
     ? { code: err.code, canRetry: isRetryable(err.code) }

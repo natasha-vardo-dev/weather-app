@@ -10,4 +10,5 @@ export * from './push.js';
 export * from './schemas.js';
 export * from './types.js';
 export * from './weather.js';
+export * from './details.js';
 export * from './temperature.js';

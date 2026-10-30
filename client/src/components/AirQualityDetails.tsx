@@ -1,61 +1,10 @@
 import { guidelineBar, WHO_GUIDELINES } from '@weather/shared';
 import type { AirQualityView } from '../hooks/useAirQuality';
 import { useI18n } from '../i18n/I18nProvider';
-import { ChevronIcon } from './ChevronIcon';
 
 /** True when at least one concentration is known; otherwise there is nothing to expand. */
 export function hasPollutants(airQuality: AirQualityView): boolean {
   return Object.values(airQuality.pollutants).some((value) => value !== null);
-}
-
-interface ItemProps {
-  airQuality: AirQualityView;
-  open: boolean;
-  onToggle: () => void;
-  panelId: string;
-}
-
-/**
- * One entry of the details list: coloured dot, index and level. With pollutant data it is a
- * button that toggles the panel, with the same arrow as the other details; without it,
- * plain text, so it never opens an empty box.
- */
-export function AirQualityItem({ airQuality, open, onToggle, panelId }: ItemProps) {
-  const { t, num } = useI18n();
-  const { summary } = airQuality;
-  const value = (
-    <>
-      <span className="aqi__dot" data-scale={summary.scale} data-level={summary.level} aria-hidden="true" />
-      {num(summary.value)} · {t.airQualityLevels[summary.level]}
-    </>
-  );
-  const scale = t.airQualityScales[summary.scale];
-
-  return (
-    <div className={hasPollutants(airQuality) ? (open ? 'detail-item detail-item--open' : 'detail-item') : undefined}>
-      <dt>{t.current.airQuality}</dt>
-      <dd>
-        {hasPollutants(airQuality) ? (
-          <button
-            type="button"
-            className="aqi detail"
-            aria-expanded={open}
-            aria-controls={panelId}
-            title={scale}
-            onClick={onToggle}
-          >
-            {value}
-            <span className="visually-hidden">, {t.pollutants.title}</span>
-            <ChevronIcon className="detail__chevron" />
-          </button>
-        ) : (
-          <span className="aqi" title={scale}>
-            {value}
-          </span>
-        )}
-      </dd>
-    </div>
-  );
 }
 
 interface PanelProps {
@@ -65,7 +14,7 @@ interface PanelProps {
 }
 
 /**
- * Pollutant concentrations, shown under the details when the item is expanded: a bar per
+ * Pollutant concentrations, shown under the tiles when air quality is expanded: a bar per
  * pollutant with a mark at the WHO daily guideline, so "13.9 µg/m³" becomes "just under
  * the guideline" without knowing the numbers. Same height as the 24-hour charts, so
  * switching between details doesn't move the page below. Screen readers get each row as

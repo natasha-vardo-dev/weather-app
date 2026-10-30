@@ -89,19 +89,3 @@ export function findSavedCity(favorites: readonly Favorite[], place: Favorite): 
   }
   return best?.favorite ?? null;
 }
-
-/**
- * The home city is one of the saved cities. Anything else (unparsable, not saved any
- * more) means "no home city", so a stale value never shows up.
- */
-export function resolveHomeCity(raw: unknown, favorites: readonly Favorite[]): Favorite | null {
-  const [candidate] = parseFavorites([raw]);
-  if (!candidate) return null;
-  return favorites.find((f) => isSamePlace(f, candidate)) ?? null;
-}
-
-/** Display order: the home city first, the rest in stored order (newest saved first). */
-export function withHomeFirst(favorites: readonly Favorite[], home: Favorite | null): Favorite[] {
-  if (!home) return [...favorites];
-  return [...favorites.filter((f) => isSamePlace(f, home)), ...favorites.filter((f) => !isSamePlace(f, home))];
-}

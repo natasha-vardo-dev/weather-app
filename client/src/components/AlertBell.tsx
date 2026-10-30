@@ -2,16 +2,58 @@ import { ALERT_GROUPS, ALERT_LEVELS, type AlertNotificationSettings } from '@wea
 import { useEffect, useId, useRef, useState } from 'react';
 import { useAlertNotifications } from '../hooks/useAlertNotifications';
 import { useI18n } from '../i18n/I18nProvider';
-import { ChevronIcon } from './ChevronIcon';
+import type { PushAvailability } from '../push/availability';
 import { SpinnerIcon } from './LocationIcons';
 import { ShareIcon } from './InstallHint';
 
-function BellIcon({ on }: { on: boolean }) {
+export function BellIcon({ on, size = 16 }: { on: boolean; size?: number }) {
   return (
-    <svg className={on ? 'bell__icon bell__icon--on' : 'bell__icon'} width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg className={on ? 'bell__icon bell__icon--on' : 'bell__icon'} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0" />
     </svg>
   );
+}
+
+/**
+ * Why notifications can't be switched on here, and what to do: install on iPhone, allow them
+ * in the browser, or use the build. Nothing when they are available. Shared by the bell and
+ * the warnings list in the settings.
+ */
+export function PushStatusNote({ status, onCityPage = true }: { status: PushAvailability; onCityPage?: boolean }) {
+  const { t } = useI18n();
+  if (status === 'ios-install') {
+    const [before, after] = t.notify.iosSteps.split('{icon}');
+    return (
+      <>
+        <p className="bell__title">{t.notify.iosTitle}</p>
+        <p className="bell__text">
+          {before}
+          <ShareIcon />
+          {after}
+        </p>
+      </>
+    );
+  }
+  if (status === 'blocked') {
+    return (
+      <>
+        <p className="bell__title">{t.notify.blockedTitle}</p>
+        <p className="bell__text">{t.notify.blockedText}</p>
+        {/* "The warnings banner on this page…": only by a city's page. */}
+        {onCityPage && <p className="bell__text">{t.notify.bannerWorks}</p>}
+      </>
+    );
+  }
+  if (status === 'dev-server') {
+    return (
+      // For developers only, so not translated.
+      <p className="bell__text">
+        The development server has no service worker, so notifications can't arrive here. Use the build:{' '}
+        <code>npm run build &amp;&amp; npm run preview -w client</code> (port 4173).
+      </p>
+    );
+  }
+  return null;
 }
 
 interface Props {
@@ -26,7 +68,7 @@ interface Props {
 }
 
 /**
- * Warning notifications for this place, behind a bell next to "Saved" and "Home city". The
+ * Warning notifications for this place, behind a bell next to the star. The
  * browser asks for permission only when the switch is turned on, never on page load. The panel
  * explains what can't be done here instead of hiding the bell: on an iPhone in the browser
  * (install first) and when notifications are blocked. Where no warnings are issued (Minsk,
@@ -47,6 +89,10 @@ export function AlertBell(props: Props) {
   // stays above the early returns below: the bell renders nothing until coverage is known,
   // and a hook added after them crashed the page once it did.
   const [pending, setPending] = useState<'switch' | keyof AlertNotificationSettings>('switch');
+  // Once shown on this page, the bell stays while coverage is unknown: turning notifications
+  // off must not make it vanish when /api/alerts did not answer (offline, where warnings are
+  // deliberately not served from the cache). The page remounts it for each place.
+  const shown = useRef(false);
 
   // A disabled control loses focus to <body>; when the lock ends, give it back to the
   // control the user last used, so keyboard users stay in the panel.
@@ -79,7 +125,9 @@ export function AlertBell(props: Props) {
   }, [open]);
 
   if (status === 'off' || status === 'unsupported') return null;
-  if (!on && props.covered !== true) return null;
+  // Known not covered (Minsk, New York) and off: nothing to offer.
+  if (!on && props.covered !== true && !(shown.current && props.covered === undefined)) return null;
+  shown.current = true;
 
   const settings = draft;
   // While a change is being applied (a second or two: token, then leaving and joining
@@ -94,21 +142,22 @@ export function AlertBell(props: Props) {
   };
   const spinner = (control: typeof pending, selected: boolean) =>
     busy && pending === control && selected ? <SpinnerIcon size={12} /> : null;
-  const [before, after] = t.notify.iosSteps.split('{icon}');
 
   return (
     <span className="bell" ref={wrapRef}>
+      {/* An icon button, like the star, so the row fits on one line in every language. The
+          name is in hidden text, the tooltip shows it. */}
       <button
         type="button"
-        className="save"
+        className="save save--icon"
         aria-expanded={open}
         aria-controls={panelId}
         data-on={on || undefined}
+        data-tip={t.notify.button}
         onClick={() => setOpen((o) => !o)}
       >
         <BellIcon on={on} />
-        {t.notify.button}
-        <ChevronIcon className="bell__chevron" />
+        <span className="visually-hidden">{t.notify.button}</span>
       </button>
       <div
         id={panelId}
@@ -118,30 +167,7 @@ export function AlertBell(props: Props) {
         aria-busy={busy || undefined}
         onFocus={(e) => (lastUsed.current = e.target)}
       >
-        {status === 'ios-install' && (
-          <>
-            <p className="bell__title">{t.notify.iosTitle}</p>
-            <p className="bell__text">
-              {before}
-              <ShareIcon />
-              {after}
-            </p>
-          </>
-        )}
-        {status === 'blocked' && (
-          <>
-            <p className="bell__title">{t.notify.blockedTitle}</p>
-            <p className="bell__text">{t.notify.blockedText}</p>
-            <p className="bell__text">{t.notify.bannerWorks}</p>
-          </>
-        )}
-        {status === 'dev-server' && (
-          // For developers only, so not translated.
-          <p className="bell__text">
-            The development server has no service worker, so notifications can't arrive here. Use the build:{' '}
-            <code>npm run build &amp;&amp; npm run preview -w client</code> (port 4173).
-          </p>
-        )}
+        <PushStatusNote status={status} />
         {status === 'available' && (
           <>
             <div className="bell__row">

@@ -101,3 +101,26 @@ export function usePushMaintenance(): void {
     if (active) void writeServiceWorkerState(pushStrings(t), language, locale);
   }, [active, t, language, locale]);
 }
+
+/**
+ * Every place with notifications on, for the list in the settings, with a switch for each.
+ */
+export function useAlertOverview() {
+  const { t, language, locale } = useI18n();
+  const { places } = useSyncExternalStore(subscribeAlertSubscriptions, getAlertSubscriptions);
+  const after = async (action: () => Promise<void>) => {
+    await action();
+    await writeServiceWorkerState(pushStrings(t), language, locale);
+  };
+  return {
+    // Read on every render: the permission can change while the page is open.
+    status: availability(),
+    places,
+    enable: (
+      place: Omit<AlertSubscription, 'areas' | keyof AlertNotificationSettings>,
+      settings: AlertNotificationSettings,
+      timeZone?: Promise<string | undefined>,
+    ) => after(() => enableAlerts(place, settings, timeZone)),
+    disable: (place: AlertSubscription) => after(() => disableAlerts(place)),
+  };
+}

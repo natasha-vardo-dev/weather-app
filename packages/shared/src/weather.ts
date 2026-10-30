@@ -135,3 +135,6 @@ export function formatDay(date: string, today: string, options: FormatDayOptions
   // Some languages abbreviate in lower case ("сб", "sam."); a list label starts with a capital.
   return weekday.charAt(0).toLocaleUpperCase(locale) + weekday.slice(1);
 }
+
+/** At or below this chance, no chance of rain is shown: the hourly strip and the 10-day list alike. */
+export const PRECIPITATION_LIKELY = 30;

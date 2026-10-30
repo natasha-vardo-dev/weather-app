@@ -1,4 +1,5 @@
 import { isAlertActive, type AlertLevel, type AlertsResponse, type WeatherAlert } from '@weather/shared';
+import { useId, useState } from 'react';
 import { formatAlertTime } from '../alertTime';
 import { useI18n } from '../i18n/I18nProvider';
 import { ChevronIcon } from './ChevronIcon';
@@ -81,21 +82,41 @@ function AlertItem({ alert, timeZone }: { alert: WeatherAlert; timeZone?: string
  * Official warnings for the place (Europe: MeteoAlarm), most severe first. Nothing while
  * loading, without warnings or on error: the absence of a banner is not a promise of calm
  * weather, which the README states.
+ *
+ * Only the most severe one shows at first, the rest behind "2 more warnings": four cards
+ * (red rain and storms today, yellow ones tomorrow) took half a phone screen above the
+ * weather. The first is always the most severe and soonest, so nothing urgent is folded.
  */
 export function WeatherAlerts({ data, timeZone }: { data: AlertsResponse | undefined; timeZone?: string }) {
   const { t } = useI18n();
+  const [all, setAll] = useState(false);
+  const listId = useId();
   if (!data?.alerts.length) return null;
+  const hidden = data.alerts.length - 1;
+  const shown = all ? data.alerts : data.alerts.slice(0, 1);
 
   return (
     <section className="alerts" aria-labelledby="alerts-title">
       <h2 id="alerts-title" className="visually-hidden">
         {t.alerts.title}
       </h2>
-      <ul className="alerts__list">
-        {data.alerts.map((alert) => (
+      <ul className="alerts__list" id={listId}>
+        {shown.map((alert) => (
           <AlertItem key={alert.id} alert={alert} timeZone={timeZone} />
         ))}
       </ul>
+      {hidden > 0 && (
+        <button
+          type="button"
+          className="alerts__more"
+          aria-expanded={all}
+          aria-controls={listId}
+          onClick={() => setAll((open) => !open)}
+        >
+          {all ? t.alerts.fewer : t.alerts.more(hidden)}
+          <ChevronIcon className="alerts__more-chevron" />
+        </button>
+      )}
       {data.attribution && (
         <p className="alerts__credit">
           {t.alerts.source}{' '}

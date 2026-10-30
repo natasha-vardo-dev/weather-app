@@ -31,6 +31,12 @@ export interface CurrentWeather {
   apparentTemperature: number;
   humidity: number;
   windSpeed: number;
+  /**
+   * Gust speed (in `units.windSpeed`) and the direction the wind blows from, degrees (0 = north).
+   * Optional, like the hourly fields: forecasts cached before they existed lack them.
+   */
+  windGusts?: number | null;
+  windDirection?: number | null;
   weatherCode: number;
   isDay: boolean;
 }
@@ -41,6 +47,9 @@ export interface DailyForecast {
   tempMax: number;
   tempMin: number;
   precipitationProbability: number | null;
+  /** Local time at the place, "YYYY-MM-DDTHH:mm"; null in polar day or night, absent in older answers. */
+  sunrise?: string | null;
+  sunset?: string | null;
 }
 
 export interface HourlyForecast {
@@ -51,8 +60,19 @@ export interface HourlyForecast {
   humidity: number;
   /** In `units.windSpeed`, like the current wind. */
   windSpeed: number;
+  windGusts?: number | null;
   weatherCode: number;
   precipitationProbability: number | null;
+  /** Expected amount in the hour, in `units.precipitation` (mm). */
+  precipitation?: number | null;
+  /** UV index (WHO scale, 0–11+). */
+  uvIndex?: number | null;
+  /** Sea-level pressure, hPa. */
+  pressure?: number | null;
+  /** Metres. */
+  visibility?: number | null;
+  /** Dew point, °C like the temperature. */
+  dewPoint?: number | null;
   isDay: boolean;
 }
 
@@ -60,7 +80,7 @@ export interface Forecast {
   latitude: number;
   longitude: number;
   timezone: string;
-  units: { temperature: string; windSpeed: string };
+  units: { temperature: string; windSpeed: string; precipitation?: string };
   current: CurrentWeather;
   /** Yesterday's weather at the place, for comparison. Null if the provider has no data. */
   yesterday: DailyForecast | null;
