@@ -184,6 +184,7 @@ export const hi: MessagesFactory = ({ num, deg, plural }) => ({
     saved: 'पसंदीदा में',
     remove: 'पसंदीदा से हटाएँ',
     full: (n) => `आप अधिकतम ${num(n)} शहर पसंदीदा में जोड़ सकते हैं`,
+    fullAction: 'इस शहर को जोड़ने के लिए एक हटाएँ।',
   },
   errors: {
     INVALID_REQUEST: 'अनुरोध मान्य नहीं है। पता जाँचें और फिर से कोशिश करें।',

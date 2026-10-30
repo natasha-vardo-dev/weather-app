@@ -1,5 +1,5 @@
 import { MAX_FAVORITES, type Favorite } from '@weather/shared';
-import { useId, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFavorites } from '../hooks/useFavorites';
 import { withVerifiedId } from '../hooks/useLocalizedPlace';
 import { useI18n } from '../i18n/I18nProvider';
@@ -16,9 +16,11 @@ export function StarIcon({ className = 'save__star', size = 16 }: { className?: 
 /**
  * Save, next to the place name: the star alone.
  *
- * When the list is full the button is aria-disabled, not disabled: it stays focusable,
- * and the visible hint is linked with aria-describedby, so keyboard and screen-reader
- * users learn why saving does nothing (a native disabled button is skipped by Tab).
+ * A full list does not change how the star looks: it is no concern until someone tries to add
+ * a city. Then a short message opens under the buttons, saying why and what to do
+ * (variant A on the mockups: the hint used to sit in the
+ * row of buttons, dashed star and all, on every page while the list was full). The message
+ * is in a live region, so screen readers announce it; Escape or a click elsewhere closes it.
  *
  * Saving keeps the place's id only once it is confirmed (`withVerifiedId`). The button
  * stays enabled meanwhile: a click waits for the check, which has almost always finished.
@@ -31,9 +33,33 @@ export function FavoriteButton({ place }: { place: Favorite }) {
   // for earlier clicks. Repeats are harmless (saving a saved city or removing a removed one
   // does nothing).
   const queue = useRef<Promise<void>>(Promise.resolve());
-  const hintId = useId();
+  const wrapRef = useRef<HTMLSpanElement>(null);
   const saved = isFavorite(place);
   const blocked = !saved && isFull;
+  const [notice, setNotice] = useState(false);
+  const showNotice = notice && blocked;
+
+  // Closed for good once the list has room: otherwise, filled up again (in another tab), it
+  // would reappear and be announced with nobody pressing the star.
+  useEffect(() => {
+    if (!blocked) setNotice(false);
+  }, [blocked]);
+
+  useEffect(() => {
+    if (!showNotice) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setNotice(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setNotice(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [showNotice]);
 
   function enqueue(step: () => unknown) {
     // A failure must not stop later clicks from running.
@@ -49,7 +75,7 @@ export function FavoriteButton({ place }: { place: Favorite }) {
   }
 
   return (
-    <span className="save-wrap">
+    <span className="save-wrap save-wrap--star" ref={wrapRef}>
       {/* The star alone: the sign of favourites everywhere. Its name says what pressing does
           ("Add to favourites" / "Remove from favourites"), which also tells the state, so no
           aria-pressed; the tooltip shows the state ("In favourites"). One word for it all,
@@ -58,13 +84,17 @@ export function FavoriteButton({ place }: { place: Favorite }) {
       <button
         type="button"
         className="save save--icon"
-        aria-disabled={blocked || undefined}
-        aria-describedby={blocked ? hintId : undefined}
+        // Not aria-expanded: read as "collapsed" it suggested the star opens something instead
+        // of saving. The message announces itself (live region); this only hides the tooltip.
+        data-open={showNotice || undefined}
         data-saved={saved || undefined}
         data-tip={saved ? t.favorites.saved : t.favorites.save}
         onClick={() => {
-          // A full list blocks saving rather than silently dropping another city.
-          if (blocked) return;
+          // A full list blocks saving rather than silently dropping another city: say so.
+          if (blocked) {
+            setNotice((open) => !open);
+            return;
+          }
           // Removing needs no id check (places match by coordinates), only earlier clicks.
           if (saved) enqueue(() => remove(place));
           else saveAfterCheck();
@@ -75,11 +105,17 @@ export function FavoriteButton({ place }: { place: Favorite }) {
           {saved ? t.favorites.remove : t.favorites.save}
         </span>
       </button>
-      {blocked && (
-        <span id={hintId} className="save__hint">
-          {t.favorites.full(MAX_FAVORITES)}
-        </span>
-      )}
+      {/* Always in the page, so the message is announced when it appears. */}
+      <span role="status" className="save__live">
+        {showNotice && (
+          <span className="save__notice">
+            {/* Two lines rather than one sentence: no full stop to join them, which differs
+                by language ("。" in Japanese and Chinese). */}
+            <span className="save__notice-line">{t.favorites.full(MAX_FAVORITES)}</span>
+            {t.favorites.fullAction}
+          </span>
+        )}
+      </span>
     </span>
   );
 }

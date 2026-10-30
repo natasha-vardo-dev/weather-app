@@ -193,6 +193,7 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     saved: 'V oblíbených',
     remove: 'Odebrat z oblíbených',
     full: (n) => `Do oblíbených můžete přidat až ${plural(n, { one: '{n} město', few: '{n} města', other: '{n} měst' })}`,
+    fullAction: 'Odeberte jedno, abyste mohli přidat toto.',
   },
   errors: {
     INVALID_REQUEST: 'Neplatný požadavek. Zkontrolujte adresu a zkuste to znovu.',

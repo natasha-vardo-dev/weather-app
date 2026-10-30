@@ -184,6 +184,7 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
     saved: 'I favoriter',
     remove: 'Ta bort från favoriter',
     full: (n) => `Du kan lägga till upp till ${num(n)} städer i favoriter`,
+    fullAction: 'Ta bort en för att lägga till den här staden.',
   },
   errors: {
     INVALID_REQUEST: 'Begäran är ogiltig. Kontrollera adressen och försök igen.',

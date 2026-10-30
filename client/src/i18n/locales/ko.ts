@@ -184,6 +184,7 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
     saved: '즐겨찾기에 있음',
     remove: '즐겨찾기에서 삭제',
     full: (n) => `즐겨찾기에는 최대 ${num(n)}개 도시까지 추가할 수 있습니다`,
+    fullAction: '이 도시를 추가하려면 하나를 삭제하세요.',
   },
   errors: {
     INVALID_REQUEST: '요청이 올바르지 않습니다. 주소를 확인하고 다시 시도하세요.',

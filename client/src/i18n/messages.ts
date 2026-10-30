@@ -193,6 +193,8 @@ export interface Messages {
     saved: string;
     remove: string;
     full: (max: number) => string;
+    /** After `full`, when a city is added to a full list: what to do. */
+    fullAction: string;
   };
   errors: Record<ErrorCode, string>;
 }

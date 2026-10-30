@@ -184,6 +184,7 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
     saved: 'במועדפים',
     remove: 'הסרה מהמועדפים',
     full: (n) => `אפשר להוסיף עד ${num(n)} ערים למועדפים`,
+    fullAction: 'הסירו עיר אחת כדי להוסיף את זו.',
   },
   errors: {
     INVALID_REQUEST: 'הבקשה אינה תקינה. בדקו את הכתובת ונסו שוב.',

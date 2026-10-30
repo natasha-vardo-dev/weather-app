@@ -184,6 +184,7 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
     saved: 'In favourites',
     remove: 'Remove from favourites',
     full: (n) => `You can add up to ${num(n)} cities to favourites`,
+    fullAction: 'Remove one to add this city.',
   },
   errors: {
     INVALID_REQUEST: "That request doesn't look right. Check the address and try again.",
