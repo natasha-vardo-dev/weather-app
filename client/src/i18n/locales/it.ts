@@ -199,6 +199,7 @@ export const it: MessagesFactory = ({ num, deg, plural }) => ({
     PROVIDER_ERROR: 'Il servizio meteo non risponde. Riprova tra un momento.',
     NOT_FOUND: 'Nessun risultato.',
     INTERNAL: 'Qualcosa è andato storto. Riprova.',
+    RATE_LIMITED: 'Troppe richieste dalla tua rete. Attendi un minuto e riprova.',
     NETWORK_ERROR: 'Nessuna connessione al server. Controlla la connessione a internet e riprova.',
   },
 });

@@ -1,5 +1,7 @@
 /** Data contract between the API and every client (web, mobile). */
 
+import type { ErrorCode } from './errors.js';
+
 /**
  * What a place is, when it is not a town: shown next to the name, since search can return
  * a town and an island of the same name in the same region (Rhodes). Optional and open to
@@ -105,6 +107,14 @@ export interface AirQuality {
     ozone: number | null;
     nitrogenDioxide: number | null;
   };
+}
+
+/** One place of GET /api/forecasts: its forecast, or why there is none (others still come). */
+export type ForecastResult = { forecast: Forecast } | { error: { code: ErrorCode; message: string } };
+
+/** GET /api/forecasts: in the order the places were asked for. */
+export interface ForecastsResponse {
+  forecasts: ForecastResult[];
 }
 
 export interface LocationsResponse {

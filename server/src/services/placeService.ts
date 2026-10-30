@@ -1,6 +1,6 @@
 import { CITY_MATCH_KM, distanceKm, type Location, type ReversePlace } from '@weather/shared';
 import type { ReverseGeocoder } from '../providers/types.js';
-import { TtlCache } from './cache.js';
+import { TtlCache, type CacheStats } from './cache.js';
 
 /** City search, as the weather service offers it (cached there). */
 export interface CitySearch {
@@ -28,8 +28,8 @@ export interface ReverseResult {
 }
 
 export class PlaceService {
-  /** null caches "no place here" too, so the sea is not asked about again. */
-  private readonly cache: TtlCache<ReversePlace | null>;
+  /** Caches "no place here" too, so the sea is not asked about again. */
+  private readonly cache: TtlCache<ReverseResult>;
 
   constructor(
     private readonly geocoder: ReverseGeocoder,
@@ -50,14 +50,16 @@ export class PlaceService {
     // Same ~1 km rounding as forecasts; the language changes the names.
     const here = { latitude: round(latitude), longitude: round(longitude) };
     const key = `${language}:${here.latitude}:${here.longitude}`;
-    const cached = this.cache.get(key);
-    if (cached !== undefined) return { place: cached, cacheable: true };
+    return this.cache.getOrLoad(
+      key,
+      () => this.lookUp(here, language),
+      (result) => result.cacheable,
+    );
+  }
 
+  private async lookUp(here: { latitude: number; longitude: number }, language: string): Promise<ReverseResult> {
     const named = await this.geocoder.reverse(here.latitude, here.longitude, language);
-    if (!named) {
-      this.cache.set(key, null);
-      return { place: null, cacheable: true };
-    }
+    if (!named) return { place: null, cacheable: true };
     let city: ReversePlace | null;
     try {
       city = await this.matchCity(named.name, here, language);
@@ -65,9 +67,11 @@ export class PlaceService {
       // Matching is an improvement, not a requirement: answer with the position, uncached.
       return { place: { ...named, ...here }, cacheable: false };
     }
-    const place = city ?? { ...named, ...here };
-    this.cache.set(key, place);
-    return { place, cacheable: true };
+    return { place: city ?? { ...named, ...here }, cacheable: true };
+  }
+
+  cacheStats(): CacheStats {
+    return this.cache.stats();
   }
 
   /** The searched city of that name nearest to the position, if close enough; throws if search fails. */

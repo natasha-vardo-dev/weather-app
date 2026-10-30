@@ -40,11 +40,7 @@ export class ApproximateLocationService {
     if (!publicIp && !this.allowSelfLookup) return null;
 
     const key = publicIp ?? 'self';
-    let position = this.cache.get(key);
-    if (position === undefined) {
-      position = await this.locator.locate(publicIp);
-      this.cache.set(key, position);
-    }
+    const position = await this.cache.getOrLoad(key, () => this.locator.locate(publicIp));
     if (!position) return null;
     return (await this.places.reverse(position.latitude, position.longitude, language)).place;
   }

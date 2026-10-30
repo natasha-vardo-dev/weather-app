@@ -198,6 +198,7 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
     PROVIDER_ERROR: 'Vädertjänsten svarar inte. Försök igen om en stund.',
     NOT_FOUND: 'Inget hittades.',
     INTERNAL: 'Något gick fel. Försök igen.',
+    RATE_LIMITED: 'För många förfrågningar från ditt nätverk. Vänta en minut och försök igen.',
     NETWORK_ERROR: 'Ingen anslutning till servern. Kontrollera internetanslutningen och försök igen.',
   },
 });

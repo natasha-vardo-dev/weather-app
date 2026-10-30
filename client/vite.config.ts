@@ -2,6 +2,7 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { splitForecastBatch } from './src/sw/splitForecastBatch';
 
 const proxy = {
   '/api': 'http://localhost:3001',
@@ -44,7 +45,7 @@ export default defineConfig({
             // charge. Error responses (502, 404) are returned but never stored. A saved copy is
             // marked with a header, so the page can say it may be out of date (api/savedResponses.ts).
             urlPattern: ({ url, sameOrigin }) =>
-              sameOrigin && /^\/api\/(forecast|air-quality|locations\/\d+)$/.test(url.pathname),
+              sameOrigin && /^\/api\/(forecasts?|air-quality|locations\/\d+)$/.test(url.pathname),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api',
@@ -55,6 +56,16 @@ export default defineConfig({
               expiration: { maxEntries: 50, maxAgeSeconds: DAY_SECONDS },
               cacheableResponse: { statuses: [200] },
               plugins: [
+                {
+                  // What the API marks no-store is not kept either: a partial batch of forecasts
+                  // (one city failed) would otherwise replace the last complete copy, and that
+                  // city would show an error offline instead of its last forecast. Returned to
+                  // the page as usual. (Found by roborev.)
+                  cacheWillUpdate: async ({ response }) =>
+                    /no-store/.test(response.headers.get('Cache-Control') ?? '') ? null : response,
+                },
+                // Each forecast of a stored batch also under its city's own /forecast URL.
+                { cacheDidUpdate: splitForecastBatch },
                 {
                   // Serialized into sw.js: no outside references, so the header name is a
                   // literal (SAVED_RESPONSE_HEADER).

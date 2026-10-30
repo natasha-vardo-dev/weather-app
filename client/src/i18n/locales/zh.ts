@@ -192,6 +192,7 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
     PROVIDER_ERROR: '天气服务没有响应。请稍后重试。',
     NOT_FOUND: '未找到任何内容。',
     INTERNAL: '出了点问题。请重试。',
+    RATE_LIMITED: '来自你网络的请求过多。请等待一分钟后重试。',
     NETWORK_ERROR: '无法连接服务器。请检查网络后重试。',
   },
 });

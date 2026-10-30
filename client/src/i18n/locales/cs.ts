@@ -209,6 +209,7 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     PROVIDER_ERROR: 'Služba počasí neodpovídá. Zkuste to za chvíli znovu.',
     NOT_FOUND: 'Nic nenalezeno.',
     INTERNAL: 'Něco se pokazilo. Zkuste to znovu.',
+    RATE_LIMITED: 'Příliš mnoho požadavků z vaší sítě. Počkejte minutu a zkuste to znovu.',
     NETWORK_ERROR: 'Žádné připojení k serveru. Zkontrolujte internet a zkuste to znovu.',
   },
 });

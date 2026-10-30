@@ -29,3 +29,9 @@ export class NotFoundError extends AppError {
     super(message, 404, ERROR_CODES.NOT_FOUND);
   }
 }
+
+/** What a client may see of an error: an AppError's code and message, anything else is internal. */
+export function errorDetails(err: unknown): { code: ErrorCode; message: string } {
+  if (err instanceof AppError) return { code: err.code, message: err.message };
+  return { code: ERROR_CODES.INTERNAL, message: 'Something went wrong on our side.' };
+}

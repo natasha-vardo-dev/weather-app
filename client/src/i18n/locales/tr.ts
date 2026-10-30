@@ -199,6 +199,7 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
     PROVIDER_ERROR: 'Hava durumu servisi yanıt vermiyor. Biraz sonra tekrar dene.',
     NOT_FOUND: 'Hiçbir şey bulunamadı.',
     INTERNAL: 'Bir şeyler ters gitti. Tekrar dene.',
+    RATE_LIMITED: 'Ağından çok fazla istek geldi. Bir dakika bekle ve tekrar dene.',
     NETWORK_ERROR: 'Sunucuya bağlantı yok. İnternetini kontrol edip tekrar dene.',
   },
 });

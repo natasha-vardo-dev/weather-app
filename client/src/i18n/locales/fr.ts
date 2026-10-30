@@ -201,6 +201,7 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
     PROVIDER_ERROR: 'Le service météo ne répond pas. Réessayez dans un instant.',
     NOT_FOUND: 'Aucun résultat.',
     INTERNAL: "Une erreur s'est produite. Réessayez.",
+    RATE_LIMITED: 'Trop de requêtes depuis votre réseau. Patientez une minute, puis réessayez.',
     NETWORK_ERROR: 'Pas de connexion au serveur. Vérifiez votre connexion Internet et réessayez.',
   },
 });

@@ -122,7 +122,7 @@ describe('IpWhoIsLocator', () => {
 describe('GET /api/places/approximate', () => {
   function app(locate: IpLocator['locate'], trustProxy: number | boolean = false) {
     const { approximate, places, service } = setup(locate);
-    return createApp(service, [], places, approximate, trustProxy);
+    return createApp(service, { places, approximate, trustProxy });
   }
 
   it('returns the city, never cacheable for anyone else', async () => {

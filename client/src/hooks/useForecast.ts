@@ -1,6 +1,6 @@
 import { ERROR_CODES, isRetryable, type ErrorCode, type Forecast } from '@weather/shared';
 import { useCallback, useEffect, useState } from 'react';
-import { api, ApiError } from '../api/client';
+import { api, ApiError, forecasts } from '../api/client';
 import { createQueryCache } from '../api/queryCache';
 import { isSavedValue } from '../api/savedResponses';
 import { useReportSaved } from './useReportSaved';
@@ -34,7 +34,7 @@ const forecastCache = createQueryCache<Forecast>({
  */
 export function loadTimeZone(latitude: number, longitude: number): Promise<string | undefined> {
   return forecastCache
-    .load(`${latitude},${longitude}`, () => api.getForecast(latitude, longitude))
+    .load(`${latitude},${longitude}`, () => forecasts.getForecast(latitude, longitude))
     .then(
       (forecast) => forecast.timezone,
       () => undefined,
@@ -47,8 +47,12 @@ function toError(err: unknown): ForecastError {
     : { code: ERROR_CODES.INTERNAL, canRetry: true };
 }
 
-/** Takes plain numbers so a new object with the same coordinates doesn't refetch. */
-export function useForecast(latitude: number | null, longitude: number | null) {
+/**
+ * Takes plain numbers so a new object with the same coordinates doesn't refetch.
+ * `batch`: saved cities' tiles and cards, asked for together, go out as one request
+ * (`forecastBatch.ts`); the city page's own forecast goes alone.
+ */
+export function useForecast(latitude: number | null, longitude: number | null, { batch = false } = {}) {
   const key = latitude === null || longitude === null ? null : `${latitude},${longitude}`;
   const [state, setState] = useState<State>({ key: null, forecast: null, error: null });
   const [loading, setLoading] = useState(false);
@@ -61,8 +65,12 @@ export function useForecast(latitude: number | null, longitude: number | null) {
     // a late answer is just ignored.
     let cancelled = false;
     setLoading(true);
+    // Out of a batch its tile may have queued it in this same render.
+    if (!batch) forecasts.sendAlone(latitude, longitude);
     forecastCache
-      .load(requestKey, () => api.getForecast(latitude, longitude))
+      .load(requestKey, () =>
+        batch ? forecasts.getForecast(latitude, longitude) : api.getForecast(latitude, longitude),
+      )
       .then((forecast) => {
         if (!cancelled) setState({ key: requestKey, forecast, error: null });
       })
@@ -75,7 +83,7 @@ export function useForecast(latitude: number | null, longitude: number | null) {
     return () => {
       cancelled = true;
     };
-  }, [latitude, longitude, attempt]);
+  }, [latitude, longitude, attempt, batch]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 

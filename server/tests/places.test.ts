@@ -179,7 +179,7 @@ describe('PlaceService', () => {
 describe('GET /api/places/reverse', () => {
   function setup(reverse: ReverseGeocoder['reverse']) {
     const service = new WeatherService(createFakeProvider());
-    return createApp(service, [], new PlaceService({ reverse }, service));
+    return createApp(service, { places: new PlaceService({ reverse }, service) });
   }
 
   it('returns the matched city with a long cache lifetime', async () => {
@@ -198,7 +198,9 @@ describe('GET /api/places/reverse', () => {
   it('sends the search-failed fallback with no-store, so browsers do not keep it', async () => {
     const service = new WeatherService(createFakeProvider());
     const failingSearch = { searchLocations: async () => Promise.reject(new Error('down')) };
-    const app = createApp(service, [], new PlaceService({ reverse: async () => ({ name: 'Warsaw' }) }, failingSearch));
+    const app = createApp(service, {
+      places: new PlaceService({ reverse: async () => ({ name: 'Warsaw' }) }, failingSearch),
+    });
     const res = await request(app).get('/api/places/reverse?lat=52.25&lon=21.05');
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ name: 'Warsaw', latitude: 52.25, longitude: 21.05 });

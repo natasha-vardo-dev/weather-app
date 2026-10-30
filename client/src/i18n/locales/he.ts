@@ -196,6 +196,7 @@ export const he: MessagesFactory = ({ num, deg, plural }) => ({
     PROVIDER_ERROR: 'שירות מזג האוויר לא מגיב. נסו שוב בעוד רגע.',
     NOT_FOUND: 'לא נמצא דבר.',
     INTERNAL: 'משהו השתבש. נסו שוב.',
+    RATE_LIMITED: 'יותר מדי בקשות מהרשת שלכם. המתינו דקה ונסו שוב.',
     NETWORK_ERROR: 'אין חיבור לשרת. בדקו את החיבור לאינטרנט ונסו שוב.',
   },
 });

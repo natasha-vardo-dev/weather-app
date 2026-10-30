@@ -199,6 +199,7 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
     PROVIDER_ERROR: "The weather service isn't responding. Try again in a moment.",
     NOT_FOUND: 'Nothing found.',
     INTERNAL: 'Something went wrong. Try again.',
+    RATE_LIMITED: 'Too many requests from your network. Wait a minute and try again.',
     NETWORK_ERROR: 'No connection to the server. Check your internet and try again.',
   },
 });

@@ -92,20 +92,25 @@ npm run build      # production build
 | GET    | `/api/locations?q=warsaw&limit=5`                 | Search cities                                                                                                                  |
 | GET    | `/api/locations/756135?lang=ru`                   | One place by id, names in a language                                                                                           |
 | GET    | `/api/forecast?lat=52.23&lon=21.01&days=10`       | Current weather, next 24 hours, yesterday and daily forecast                                                                   |
+| GET    | `/api/forecasts?places=52.23,21.01;50.06,19.94`   | Forecasts for up to 10 places at once (saved cities); each item is a forecast or an error                                      |
 | GET    | `/api/air-quality?lat=52.23&lon=21.01`            | Current air quality (European and US AQI)                                                                                      |
 | GET    | `/api/alerts?lat=54.21&lon=21.74&lang=pl`         | Official weather warnings in force or announced at a place (Europe, MeteoAlarm), texts in the language where the issuer has it |
 | GET    | `/api/places/approximate?lang=ru`                 | The user's city guessed from their IP address (fallback when the browser can't locate them); never cached                      |
 | GET    | `/api/places/reverse?lat=52.25&lon=21.05&lang=ru` | The place at the user's location: the city with its coordinates and id (as from search), named via OpenStreetMap Nominatim     |
 | POST   | `/api/push/topics`                                | Subscribe or unsubscribe a device's push token to warnings for a place (only with Firebase configured)                         |
 | POST   | `/api/internal/alerts/notify`                     | Push new warnings; called every 5 minutes by an external scheduler, needs `Authorization: Bearer <ALERTS_NOTIFY_SECRET>`       |
-| GET    | `/api/health`                                     | Health check                                                                                                                   |
+| GET    | `/api/health`                                     | Health check for Render: the process answers (does not call the weather provider)                                              |
+| GET    | `/api/internal/metrics`                           | Cache hit rates, provider calls against their limits, rate-limited requests; needs `Authorization: Bearer <METRICS_SECRET>`    |
 
 Errors use one format: `{ "error": { "code": "INVALID_REQUEST", "message": "..." } }`.
+
+Requests are limited per IP address (a minute's window): 300 for the API as a whole, 30 batches for `/api/forecasts` (up to 10 places each), 60 for city search, 10 for `/api/places/*`. Over the limit: `429` with code `RATE_LIMITED` and the standard `RateLimit` and `Retry-After` headers.
 
 ## Deployment
 
 - Frontend: Vercel, root directory `client`. `client/vercel.json` rewrites `/api/*` to the backend (replace `YOUR-API` with the real URL) and serves `index.html` for all other paths, so client-side routes survive a refresh.
-- Backend: Render, root directory `server`. Do not set `IP_SELF_LOOKUP` there (it is for local development). Set `TRUST_PROXY=2` (Vercel's rewrite and Render's proxy), so the approximate location sees the user's IP; only that many proxies are trusted with `X-Forwarded-For`, otherwise anyone could fake their address.
+- Backend: Render, root directory `server`, health check path `/api/health`. Do not set `IP_SELF_LOOKUP` there (it is for local development). Set `TRUST_PROXY=2` (Vercel's rewrite and Render's proxy), so rate limits and the approximate location see the user's IP; only that many proxies are trusted with `X-Forwarded-For`, otherwise anyone could fake their address and never be limited. Optional: `METRICS_SECRET` (enables `/api/internal/metrics`), `LOG_LEVEL` (`info` by default; `debug` logs every provider call).
+- Logs are JSON lines on stdout (pino), which Render keeps and searches by field; every 15 minutes a `metrics` line records cache hit rates and provider usage, and a warning is logged when a provider's usage passes 80% of a limit.
 
 Serving the API from the frontend's domain avoids CORS and keeps future auth cookies first-party.
 

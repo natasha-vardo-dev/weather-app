@@ -199,6 +199,7 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     PROVIDER_ERROR: 'De weerdienst reageert niet. Probeer het zo opnieuw.',
     NOT_FOUND: 'Niets gevonden.',
     INTERNAL: 'Er is iets misgegaan. Probeer het opnieuw.',
+    RATE_LIMITED: 'Te veel verzoeken vanaf je netwerk. Wacht een minuut en probeer het opnieuw.',
     NETWORK_ERROR: 'Geen verbinding met de server. Controleer je internetverbinding en probeer het opnieuw.',
   },
 });

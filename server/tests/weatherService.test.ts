@@ -13,6 +13,16 @@ describe('WeatherService', () => {
     expect(provider.getForecast).toHaveBeenCalledTimes(1);
   });
 
+  it('asks the provider once when many people open one city at the same time', async () => {
+    const provider = createFakeProvider();
+    const service = new WeatherService(provider);
+
+    await Promise.all(Array.from({ length: 10 }, () => service.getForecast(52.2297, 21.0122)));
+
+    expect(provider.getForecast).toHaveBeenCalledTimes(1);
+    expect(service.cacheStats().forecast).toMatchObject({ misses: 1, coalesced: 9 });
+  });
+
   it('caches air quality for nearby coordinates', async () => {
     const provider = createFakeProvider();
     const service = new WeatherService(provider);

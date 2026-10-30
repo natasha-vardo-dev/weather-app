@@ -254,11 +254,8 @@ describe('push routes', () => {
     const notifier = new AlertNotifier(source, sender, () => NOW);
     return {
       sender,
-      app: createApp(new WeatherService(createFakeProvider()), [], undefined, undefined, false, undefined, {
-        source,
-        sender,
-        notifier,
-        notifySecret: 'secret-1234567890',
+      app: createApp(new WeatherService(createFakeProvider()), {
+        push: { source, sender, notifier, notifySecret: 'secret-1234567890' },
       }),
     };
   }

@@ -99,3 +99,50 @@ describe('GET /api/locations', () => {
     expect(provider.searchLocations).toHaveBeenCalledWith('war', 5, 'pl');
   });
 });
+
+describe('GET /api/forecasts', () => {
+  it('returns the forecasts in the order asked, each through the shared cache', async () => {
+    const { app, provider } = setup();
+    // The second place rounds to the first (~1 km): one provider call for both.
+    const res = await request(app).get('/api/forecasts?places=52.23,21.01;50.06,19.94;52.2301,21.0099');
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toBe('public, max-age=300');
+    expect(res.body.forecasts).toHaveLength(3);
+    expect(res.body.forecasts[0]).toEqual({ forecast: sampleForecast });
+    expect(provider.getForecast).toHaveBeenCalledTimes(2);
+    expect(provider.getForecast.mock.calls.map(([lat, lon]) => [lat, lon])).toEqual([
+      [52.23, 21.01],
+      [50.06, 19.94],
+    ]);
+  });
+
+  it('answers the places that worked when one fails, and is not cached', async () => {
+    const { app, provider } = setup();
+    provider.getForecast.mockImplementation(async (lat: number) => {
+      if (lat === 50.06) throw new ProviderError('timeout');
+      return sampleForecast;
+    });
+    const res = await request(app).get('/api/forecasts?places=52.23,21.01;50.06,19.94');
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toBe('no-store');
+    expect(res.body.forecasts[0]).toEqual({ forecast: sampleForecast });
+    expect(res.body.forecasts[1]).toEqual({ error: { code: 'PROVIDER_ERROR', message: expect.any(String) } });
+  });
+
+  it('is an error when every place fails', async () => {
+    const { app, provider } = setup();
+    provider.getForecast.mockRejectedValue(new ProviderError());
+    const res = await request(app).get('/api/forecasts?places=52.23,21.01;50.06,19.94');
+    expect(res.status).toBe(502);
+    expect(res.headers['cache-control']).toBe('no-store');
+  });
+
+  it('rejects more than ten places and malformed ones', async () => {
+    const { app } = setup();
+    const eleven = Array.from({ length: 11 }, (_, i) => `${i},${i}`).join(';');
+    expect((await request(app).get(`/api/forecasts?places=${eleven}`)).status).toBe(400);
+    expect((await request(app).get('/api/forecasts?places=52.23')).status).toBe(400);
+    expect((await request(app).get('/api/forecasts?places=200,1')).status).toBe(400);
+    expect((await request(app).get('/api/forecasts')).status).toBe(400);
+  });
+});

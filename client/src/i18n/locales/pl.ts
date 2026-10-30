@@ -219,6 +219,7 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     PROVIDER_ERROR: 'Serwis pogodowy nie odpowiada. Spróbuj ponownie za chwilę.',
     NOT_FOUND: 'Nic nie znaleziono.',
     INTERNAL: 'Coś poszło nie tak. Spróbuj ponownie.',
+    RATE_LIMITED: 'Zbyt wiele zapytań z Twojej sieci. Odczekaj minutę i spróbuj ponownie.',
     NETWORK_ERROR: 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.',
   },
 });

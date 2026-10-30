@@ -52,3 +52,50 @@ test('choose a city with the keyboard', async ({ page }) => {
   // Focus moves to the city's name, so screen readers announce the new page.
   await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
 });
+
+test('the start page loads every saved city in one request', async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      'favorites:v1',
+      JSON.stringify([
+        { id: 756135, name: 'Warsaw', country: 'Poland', latitude: 52.23, longitude: 21.01 },
+        { id: 3094802, name: 'Kraków', country: 'Poland', latitude: 50.06, longitude: 19.94 },
+      ]),
+    ),
+  );
+  const forecastRequests: string[] = [];
+  page.on('request', (request) => {
+    const { pathname } = new URL(request.url());
+    if (pathname.startsWith('/api/forecast')) forecastRequests.push(pathname);
+  });
+
+  await page.goto('/');
+  await expect(page.getByRole('link', { name: /Warsaw/ })).toContainText('12°');
+  await expect(page.getByRole('link', { name: /Kraków/ })).toContainText('12°');
+  expect(forecastRequests).toEqual(['/api/forecasts']);
+});
+
+test('the city page loads its own forecast alone, the strip of saved cities as one batch', async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      'favorites:v1',
+      JSON.stringify([
+        { id: 756135, name: 'Warsaw', country: 'Poland', latitude: 52.23, longitude: 21.01 },
+        { id: 3094802, name: 'Kraków', country: 'Poland', latitude: 50.06, longitude: 19.94 },
+        { id: 3096472, name: 'Warsaw', country: 'United States', latitude: 41.24, longitude: -85.85 },
+      ]),
+    ),
+  );
+  const forecastRequests: string[] = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (url.pathname === '/api/forecast') forecastRequests.push(`forecast ${url.searchParams.get('lat')}`);
+    if (url.pathname === '/api/forecasts') forecastRequests.push(`forecasts ${url.searchParams.get('places')}`);
+  });
+
+  await page.goto('/weather/3094802-krakow');
+  await expect(page.locator('.now__temp')).toContainText('12°');
+  await expect(page.getByRole('link', { name: /Warsaw/ }).first()).toContainText('12°');
+  // Kraków (the page) on its own, not waiting for the others; the other two together.
+  expect(forecastRequests.sort()).toEqual(['forecast 50.06', 'forecasts 52.23,21.01;41.24,-85.85']);
+});

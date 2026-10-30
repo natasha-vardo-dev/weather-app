@@ -200,6 +200,7 @@ export const pt: MessagesFactory = ({ num, deg, plural }) => ({
     PROVIDER_ERROR: 'O serviço meteorológico não está respondendo. Tente novamente em instantes.',
     NOT_FOUND: 'Nada encontrado.',
     INTERNAL: 'Algo deu errado. Tente novamente.',
+    RATE_LIMITED: 'Muitas solicitações da sua rede. Aguarde um minuto e tente novamente.',
     NETWORK_ERROR: 'Sem conexão com o servidor. Verifique sua internet e tente novamente.',
   },
 });
