@@ -20,3 +20,25 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  # The interface in a real browser (Chromium, desktop and phone sizes), with the API mocked
+  # and an axe accessibility check in each state. A job of its own: it needs a browser.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            client/playwright-report
+            client/test-results
+          retention-days: 7

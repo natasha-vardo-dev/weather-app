@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -94,4 +95,11 @@ export default defineConfig({
   // where vercel.json rewrites /api to the backend.
   server: { proxy },
   preview: { proxy },
+  test: {
+    // Logic tests run in Node; component tests (tests/components) in jsdom. Playwright's
+    // end-to-end tests (e2e/) are run by Playwright, not Vitest.
+    include: ['tests/**/*.test.{ts,tsx}'],
+    environmentMatchGlobs: [['tests/components/**', 'jsdom']],
+    setupFiles: ['tests/components/setup.ts'],
+  },
 });
