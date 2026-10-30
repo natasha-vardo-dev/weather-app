@@ -29,6 +29,27 @@ export interface PlaceName {
 const namesCache = createQueryCache<PlaceName | null>({ ttlMs: 24 * 60 * 60 * 1000, maxEntries: 200 });
 
 /**
+ * Places looked up by id, per language: shared by the names here and by the page that opens
+ * a /weather/756135-warsaw link, so one id costs one request per language. Null: no such id
+ * (404), an answer worth keeping; other failures are not cached and are retried.
+ */
+const locationCache = createQueryCache<Location | null>({ ttlMs: 24 * 60 * 60 * 1000, maxEntries: 300 });
+
+export function loadLocation(id: number, language: string): Promise<Location | null> {
+  return locationCache.load(`${language}:${id}`, () =>
+    api.getLocation(id, { language }).catch((err: unknown) => {
+      if (err instanceof ApiError && err.code === ERROR_CODES.NOT_FOUND) return null;
+      throw err;
+    }),
+  );
+}
+
+/** The lookup by id if it is loaded: a Location, null for an unknown id, undefined if not yet. */
+export function cachedLocation(id: number, language: string): Location | null | undefined {
+  return locationCache.get(`${language}:${id}`);
+}
+
+/**
  * Finds the place's names in `language`:
  * - with a provider id (places opened from search): a lookup by id;
  * - without one (cities saved before ids were stored, or hand-made links): a search by the
@@ -55,12 +76,7 @@ function isSearchable(place: Favorite): boolean {
 export async function loadNames(place: Favorite, language: string): Promise<PlaceName | null> {
   let location: Location | undefined;
   if (place.id) {
-    try {
-      location = await api.getLocation(place.id, { language });
-    } catch (err) {
-      if (err instanceof ApiError && err.code === ERROR_CODES.NOT_FOUND) return null;
-      throw err;
-    }
+    location = (await loadLocation(place.id, language)) ?? undefined;
   } else if (isSearchable(place)) {
     const results = await api.searchLocations(place.name, { language });
     location = results.find((r) => isSamePlace(r, place));

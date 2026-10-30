@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 /** Simplified Chinese. Traditional (zh-TW, zh-HK) would be a separate file. */
 export const zh: MessagesFactory = ({ num, deg }) => ({
   appName: '天气预报',
+  brandName: '天气',
   language: '语言',
   settings: '设置',
   temperature: '温度',

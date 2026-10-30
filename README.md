@@ -7,7 +7,7 @@ A web application that shows the current weather and a 10-day forecast for a sel
 ## Features
 
 - City search with autocomplete and keyboard navigation
-- Shareable links for each place, e.g. `/weather/52.23,21.01?name=Warsaw&country=Poland`; back/forward and refresh work
+- Shareable links for each place, the same in every language, e.g. `/weather/756135-warsaw` (a place without a city, found by location: `/weather/52.25,21.05?name=…`); back/forward and refresh work
 - Current conditions: temperature, condition, feels like, high and low; the hourly strip shows the chance of rain in likely hours, and sunrise and sunset
 - Details as tiles below the 10-day forecast, each with a short explanation: precipitation (chance, millimetres in the next 24 hours), wind (direction, gusts), humidity (dew point and how the air feels), air quality (European AQI for places in Europe, US AQI elsewhere), UV index (WHO level, when sun protection is needed), sunrise and sunset (whichever comes next), pressure (rising or falling in the next 3 hours), visibility. Tiles with hourly data open below the grid: a 24-hour chart (precipitation, wind, humidity, UV, pressure) or the pollutants (PM2.5, PM10, ozone, NO₂) as bars against the WHO daily guidelines
 - 10-day forecast with temperature range bars and rain probability

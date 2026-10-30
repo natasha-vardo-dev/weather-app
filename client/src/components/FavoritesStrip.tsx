@@ -78,7 +78,8 @@ function FavoriteTile({
  * The open city stays in the strip, highlighted, so tiles never jump around.
  * Hidden until the first city is saved.
  */
-export function FavoritesStrip({ place }: { place: Favorite }) {
+/** `place` is null while a link's place is still being looked up: no tile is current yet. */
+export function FavoritesStrip({ place }: { place: Favorite | null }) {
   const { t } = useI18n();
   const { favorites } = useFavorites();
   const distinctions = useFavoriteDistinctions(favorites);
@@ -91,7 +92,7 @@ export function FavoritesStrip({ place }: { place: Favorite }) {
           <FavoriteTile
             key={`${favorite.latitude},${favorite.longitude}`}
             favorite={favorite}
-            current={isFavorite([favorite], place)}
+            current={place !== null && isFavorite([favorite], place)}
             distinction={distinctions[i]}
           />
         ))}

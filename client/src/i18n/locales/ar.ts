@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 // Arabic has six plural forms: zero, one, two, few (3–10), many (11–99), other.
 export const ar: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'توقعات الطقس',
+  brandName: 'الطقس',
   language: 'اللغة',
   settings: 'الإعدادات',
   temperature: 'درجة الحرارة',

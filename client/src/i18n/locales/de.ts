@@ -2,6 +2,7 @@ import type { MessagesFactory } from '../messages';
 
 export const de: MessagesFactory = ({ num, deg, plural }) => ({
   appName: 'Wettervorhersage',
+  brandName: 'Wetter',
   language: 'Sprache',
   settings: 'Einstellungen',
   temperature: 'Temperatur',

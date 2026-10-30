@@ -20,6 +20,8 @@ import type { Plural } from './plural';
  */
 export interface Messages {
   appName: string;
+  /** The short name in the header logo, a product name rather than a description ("Weather"). */
+  brandName: string;
   language: string;
   /** Accessible name of the gear button that holds language and temperature unit. */
   settings: string;

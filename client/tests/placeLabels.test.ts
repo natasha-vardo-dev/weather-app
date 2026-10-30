@@ -147,6 +147,18 @@ describe('placeArea', () => {
     expect(placeArea({ name: 'Париж', region: 'Иль-де-Франс', areas: ['Paris', 'Paris', 'Paris'] }, 'ru')).toEqual(['Иль-де-Франс']);
   });
 
+  it('knows the district is the city in another spelling (English names, local districts)', () => {
+    expect(placeArea({ name: 'Warsaw', region: 'Mazovia', areas: ['Warszawa', 'Warsaw'] }, 'en')).toEqual(['Mazovia']);
+    expect(placeArea({ name: 'Poznan', region: 'Greater Poland', areas: ['Poznań', 'Poznań'] }, 'en')).toEqual([
+      'Greater Poland',
+    ]);
+    // A real district stays, even when the town has the same name as the level below.
+    expect(placeArea({ name: 'Józefów', region: 'Masovia', areas: ['Powiat otwocki', 'Józefów'] }, 'en')).toEqual([
+      'Powiat otwocki',
+      'Masovia',
+    ]);
+  });
+
   it('is nothing when there is nothing to add (Berlin is its own region, no districts)', () => {
     expect(placeArea({ name: 'Берлин', region: 'Берлин', areas: ['', 'Berlin, Stadt', 'Berlin'] }, 'ru')).toEqual([]);
     expect(placeArea({ name: 'New York', region: 'New York' }, 'en')).toEqual([]);

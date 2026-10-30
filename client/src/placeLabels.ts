@@ -132,10 +132,42 @@ export function placeArea(
   names: { name: string; region?: string; areas?: string[] },
   language: string,
 ): string[] {
-  const lower = (value: string) => value.toLocaleLowerCase();
   const [district = '', ...below] = names.areas ?? [];
   const region = regionToShow(names.name, names.region, language);
-  const repeats = [names.name, names.region ?? '', ...below].map(lower);
-  const showDistrict = district && !repeats.includes(lower(district));
+  const repeats = [names.name, names.region ?? '', ...below];
+  const showDistrict = district && !repeats.some((other) => sameName(other, district));
   return [showDistrict ? district : undefined, region].filter((part): part is string => Boolean(part));
+}
+
+/** Lower case, without diacritics: "Kraków" and "Krakow" compare equal. */
+function plain(value: string): string {
+  return value.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase();
+}
+
+/**
+ * Whether two names are one place's name in different spellings. The provider gives a
+ * district in the local language next to a translated name: in English Warsaw's district is
+ * "Warszawa" and the level below "Warsaw", so an exact match missed it and the page showed
+ * "Warszawa · Mazovia" under "Warsaw". Two edits apart counts as the same for names of five
+ * letters or more ("warszawa" / "warsaw"); "Powiat otwocki" is nowhere near "Józefów".
+ */
+function sameName(a: string, b: string): boolean {
+  const x = plain(a);
+  const y = plain(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  return Math.min(x.length, y.length) >= 5 && editDistance(x, y) <= 2;
+}
+
+/** Levenshtein distance: insertions, deletions and substitutions to turn one into the other. */
+function editDistance(a: string, b: string): number {
+  let previous = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const current = [i];
+    for (let j = 1; j <= b.length; j++) {
+      current[j] = Math.min(previous[j]! + 1, current[j - 1]! + 1, previous[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    previous = current;
+  }
+  return previous[b.length]!;
 }

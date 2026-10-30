@@ -2,6 +2,7 @@ import type { MessagesFactory } from '../messages';
 
 export const tr: MessagesFactory = ({ num, deg }) => ({
   appName: 'Hava durumu',
+  brandName: 'Hava',
   language: 'Dil',
   settings: 'Ayarlar',
   temperature: 'Sıcaklık',

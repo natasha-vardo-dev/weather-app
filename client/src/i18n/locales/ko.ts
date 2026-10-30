@@ -2,6 +2,7 @@ import type { MessagesFactory } from '../messages';
 
 export const ko: MessagesFactory = ({ num, deg }) => ({
   appName: '날씨 예보',
+  brandName: '날씨',
   language: '언어',
   settings: '설정',
   temperature: '기온',

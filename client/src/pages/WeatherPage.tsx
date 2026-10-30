@@ -1,5 +1,5 @@
-import { useMemo, type ReactNode } from 'react';
-import { useParams, useSearchParams } from 'react-router';
+import { useEffect, useMemo, type ReactNode } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { AlertBell } from '../components/AlertBell';
 import { CurrentWeather } from '../components/CurrentWeather';
 import { FavoriteButton } from '../components/FavoriteButton';
@@ -17,14 +17,25 @@ import { placeSubtitle, placeTitle, useLocalizedPlace } from '../hooks/useLocali
 import { placeArea } from '../placeLabels';
 import { useI18n } from '../i18n/I18nProvider';
 import { rememberedPosition } from '../geolocation';
-import { parsePlace, placePath } from '../locationUrl';
+import { parsePlaceRoute, placePath } from '../locationUrl';
+import { usePlaceRoute } from '../hooks/usePlaceRoute';
 import { NotFoundPage } from './NotFoundPage';
 
 export function WeatherPage() {
   const { t, language } = useI18n();
-  const { coords } = useParams();
+  const { where } = useParams();
   const [searchParams] = useSearchParams();
-  const place = useMemo(() => parsePlace(coords, searchParams), [coords, searchParams]);
+  const route = useMemo(() => parsePlaceRoute(where, searchParams), [where, searchParams]);
+  const { state, canonical, retry: retryRoute } = usePlaceRoute(route);
+  const place = state.status === 'ready' ? state.place : null;
+
+  // One address per city: an old link (?id=) or a slug in another language or edited by
+  // hand becomes /weather/756135-warsaw, replacing the entry rather than adding one.
+  const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => {
+    if (canonical && canonical !== location.pathname) navigate(canonical, { replace: true });
+  }, [canonical, location.pathname]);
 
   const { forecast, loading, error, retry } = useForecast(
     place?.latitude ?? null,
@@ -44,10 +55,30 @@ export function WeatherPage() {
   const title = names ? placeTitle(names, t.place.island) : null;
   // An invalid link renders NotFoundPage inside this page; parent effects run after the
   // child's, so this page must set the same title or it would overwrite "Not found".
-  usePageMeta(place ? title : t.notFound.pageTitle);
+  const missing = state.status === 'invalid' || state.status === 'not-found';
+  usePageMeta(missing ? t.notFound.pageTitle : title);
 
-  if (!place) {
+  if (missing) {
     return <NotFoundPage message={t.notFound.badLink} />;
+  }
+  if (!place) {
+    // The place behind an id is still being looked up (or the lookup failed).
+    return (
+      <>
+        <FavoritesStrip place={null} />
+        {state.status === 'error' ? (
+          <div className="message" role="alert">
+            <p>{t.errors[state.code]}</p>
+            <button type="button" onClick={retryRoute}>
+              {t.weather.tryAgain}
+            </button>
+          </div>
+        ) : (
+          // The slug is all there is to name it for screen readers meanwhile ("warsaw").
+          <WeatherSkeleton place={route?.kind === 'id' ? route.slug.replace(/-/g, ' ') : ''} />
+        )}
+      </>
+    );
   }
 
   let body: ReactNode;

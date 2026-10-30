@@ -3,6 +3,7 @@ import type { MessagesFactory } from '../messages';
 // Japanese has no grammatical plural, so no plural() here.
 export const ja: MessagesFactory = ({ num, deg }) => ({
   appName: '天気予報',
+  brandName: '天気',
   language: '言語',
   settings: '設定',
   temperature: '気温',

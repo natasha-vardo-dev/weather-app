@@ -20,6 +20,10 @@
   /* Pop-up panels (settings, search suggestions): pale blue, not white, which glared on
      the blue page. Soft text #5a6b82 on it is 4.7:1. */
   --field-list: #e8eff7;
+  /* The logo's tile: darker than the blue page. */
+  --brand-tile: #1d4f86;
+  /* The logo's name at rest, a step below white so hover can light it up. */
+  --brand-ink: var(--ink-soft);
   color-scheme: dark;
   font-family: 'Bricolage Grotesque', system-ui, sans-serif;
   font-optical-sizing: auto;
@@ -47,6 +51,10 @@
     --field-active: var(--line);
     --field-danger: var(--danger);
     --field-list: var(--sky);
+    /* The app icon's own blue, lighter than the dark page. */
+    --brand-tile: #3468a0;
+    /* Brighter than the dark theme's soft text, which left the name dull. */
+    --brand-ink: #d6dfeb;
     color-scheme: dark;
   }
 }
@@ -107,8 +115,41 @@ body {
 .page__footer a { color: inherit; }
 
 /* Header: search and settings */
-.page__header { display: flex; gap: 0.75rem; align-items: stretch; }
-.page__header > .search { flex: 1; min-width: 0; }
+/* Header: the app's name on top, then search and settings. */
+.page__bar { display: flex; gap: 0.75rem; align-items: stretch; }
+.page__bar > .search { flex: 1; min-width: 0; }
+/* The logo: the app icon on its blue tile, as on the Home Screen, and the short name.
+   Links to the start page. */
+.page__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+  padding: 0.15rem 0.3rem 0.15rem 0;
+  border-radius: 0.5rem;
+  color: var(--brand-ink);
+  font-size: 1.25rem;
+  font-weight: 700;
+  transition: color 0.15s;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+/* Hover lights it up instead of underlining: a step softer at rest, full white on hover, and
+   the tile a little brighter. */
+.page__brand:hover { color: #fff; }
+.page__brand:hover .page__badge { filter: brightness(1.15); }
+.page__badge { transition: filter 0.15s; }
+@media (prefers-reduced-motion: reduce) { .page__brand, .page__badge { transition: none; } }
+.page__brand:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+.page__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 0.5rem;
+  background: var(--brand-tile);
+}
 
 /* Settings: a gear button next to the search holds language and °C/°F, so the header is
    one line on a phone too. The panel opens below it, from the end side. */
