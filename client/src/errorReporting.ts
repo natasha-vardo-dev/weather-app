@@ -1,5 +1,5 @@
 /**
- * Errors from this browser go to the server's log (POST /api/client-errors): a render that
+ * Errors from this browser go to the server's log (POST /api/v1/client-errors): a render that
  * failed (React, through the ErrorBoundary or with nothing to catch it), and errors and
  * promise rejections nothing caught. Without it nobody would know the page broke for someone.
  * Our own endpoint, not an error-tracking service: nothing leaves our hosts.
@@ -7,6 +7,8 @@
  * Careful with what it sends: the page with places replaced by a placeholder (a link to a
  * place without an id holds its coordinates), no query, nothing from storage.
  */
+
+import { API_PREFIX } from '@weather/shared';
 
 export type ClientErrorKind = 'render' | 'error' | 'rejection';
 
@@ -62,7 +64,7 @@ export function createErrorReporter(options: {
 /** Sends a report; never throws (a report failing must not add an error of its own). */
 function post(report: ClientErrorReport): void {
   try {
-    void fetch('/api/client-errors', {
+    void fetch(`${API_PREFIX}/client-errors`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(report),

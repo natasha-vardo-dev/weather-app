@@ -119,14 +119,14 @@ describe('IpWhoIsLocator', () => {
   });
 });
 
-describe('GET /api/places/approximate', () => {
+describe('GET /api/v1/places/approximate', () => {
   function app(locate: IpLocator['locate'], trustProxy: number | boolean = false) {
     const { approximate, places, service } = setup(locate);
     return createApp(service, { places, approximate, trustProxy });
   }
 
   it('returns the city, never cacheable for anyone else', async () => {
-    const res = await request(app(async () => warsawCentre)).get('/api/places/approximate?lang=en');
+    const res = await request(app(async () => warsawCentre)).get('/api/v1/places/approximate?lang=en');
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ name: 'Warsaw', latitude: 52.23 });
     expect(res.headers['cache-control']).toBe('private, no-store');
@@ -138,14 +138,14 @@ describe('GET /api/places/approximate', () => {
       seen.push(ip);
       return warsawCentre;
     };
-    await request(app(locate, 1)).get('/api/places/approximate').set('X-Forwarded-For', '8.8.8.8');
+    await request(app(locate, 1)).get('/api/v1/places/approximate').set('X-Forwarded-For', '8.8.8.8');
     // Not trusted: the header could be faked, so the connection's own (private) address is used.
-    await request(app(locate, false)).get('/api/places/approximate').set('X-Forwarded-For', '8.8.8.8');
+    await request(app(locate, false)).get('/api/v1/places/approximate').set('X-Forwarded-For', '8.8.8.8');
     expect(seen).toEqual(['8.8.8.8', null]);
   });
 
   it('answers 404 when the address can not be placed', async () => {
-    const res = await request(app(async () => null)).get('/api/places/approximate');
+    const res = await request(app(async () => null)).get('/api/v1/places/approximate');
     expect(res.status).toBe(404);
   });
 });

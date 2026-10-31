@@ -356,13 +356,13 @@ describe('AlertService', () => {
   });
 });
 
-describe('GET /api/alerts', () => {
+describe('GET /api/v1/alerts', () => {
   function app(alerts: AlertsProvider) {
     return createApp(new WeatherService(createFakeProvider()), { alerts: new AlertService(alerts, () => NOW) });
   }
 
   it('returns warnings for a place, cached briefly (delivery deadlines)', async () => {
-    const res = await request(app(provider())).get(`/api/alerts?lat=${WEGORZEWO.lat}&lon=${WEGORZEWO.lon}&lang=pl`);
+    const res = await request(app(provider())).get(`/api/v1/alerts?lat=${WEGORZEWO.lat}&lon=${WEGORZEWO.lon}&lang=pl`);
     expect(res.status).toBe(200);
     expect(res.headers['cache-control']).toBe('public, max-age=60');
     expect(res.body.alerts[0]).toMatchObject({ level: 'yellow', type: 'fog', language: 'pl-PL' });
@@ -371,7 +371,7 @@ describe('GET /api/alerts', () => {
   });
 
   it('validates coordinates', async () => {
-    const res = await request(app(provider())).get('/api/alerts?lat=100&lon=21');
+    const res = await request(app(provider())).get('/api/v1/alerts?lat=100&lon=21');
     expect(res.status).toBe(400);
   });
 
@@ -383,7 +383,7 @@ describe('GET /api/alerts', () => {
       },
       covers: async () => true,
     };
-    const res = await request(app(failing)).get('/api/alerts?lat=54&lon=21');
+    const res = await request(app(failing)).get('/api/v1/alerts?lat=54&lon=21');
     expect(res.status).toBe(502);
     expect(res.headers['cache-control']).toBe('no-store');
   });

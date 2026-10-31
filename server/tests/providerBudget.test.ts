@@ -48,12 +48,12 @@ describe('provider budget', () => {
       if (busy) throw new BusyError();
     });
     const app = createApp(service);
-    await request(app).get('/api/forecast?lat=52.23&lon=21.01');
+    await request(app).get('/api/v1/forecast?lat=52.23&lon=21.01');
 
     busy = true;
-    const cached = await request(app).get('/api/forecast?lat=52.23&lon=21.01');
+    const cached = await request(app).get('/api/v1/forecast?lat=52.23&lon=21.01');
     expect(cached.status).toBe(200);
-    const fresh = await request(app).get('/api/forecast?lat=50.06&lon=19.94');
+    const fresh = await request(app).get('/api/v1/forecast?lat=50.06&lon=19.94');
     expect(fresh.status).toBe(503);
     expect(fresh.body.error.code).toBe('SERVICE_BUSY');
     expect(fresh.headers['cache-control']).toBe('no-store');
@@ -66,7 +66,7 @@ describe('provider budget', () => {
     const service = new WeatherService(createFakeProvider(), undefined, undefined, () => {
       throw new BusyError();
     });
-    const res = await request(createApp(service, { logger })).get('/api/forecasts?places=52.23,21.01;50.06,19.94');
+    const res = await request(createApp(service, { logger })).get('/api/v1/forecasts?places=52.23,21.01;50.06,19.94');
     expect(res.status).toBe(503);
     expect(warn).not.toHaveBeenCalled();
   });
@@ -99,7 +99,7 @@ describe('provider budget', () => {
       if (busy) throw new BusyError();
     });
     const app = createApp(new WeatherService(createFakeProvider()), { places, approximate, trustProxy: true });
-    const from = (ip: string) => request(app).get('/api/places/approximate').set('X-Forwarded-For', ip);
+    const from = (ip: string) => request(app).get('/api/v1/places/approximate').set('X-Forwarded-For', ip);
 
     await from('198.51.100.1');
     busy = true;

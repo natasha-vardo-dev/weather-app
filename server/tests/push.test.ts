@@ -270,7 +270,7 @@ describe('push routes', () => {
 
   it('subscribes a device to its areas, never cached', async () => {
     const { app: server, sender } = app();
-    const res = await request(server).post('/api/push/topics').send(body);
+    const res = await request(server).post('/api/v1/push/topics').send(body);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ areas: ['PL1261'] });
     expect(res.headers['cache-control']).toBe('no-store');
@@ -280,13 +280,13 @@ describe('push routes', () => {
   it('unsubscribes the same topics, and validates the request', async () => {
     const { app: server, sender } = app();
     await request(server)
-      .post('/api/push/topics')
+      .post('/api/v1/push/topics')
       .send({ ...body, subscribe: false });
     expect(sender.unsubscribe).toHaveBeenCalledWith(body.token, ['PL1261.storm.orange']);
     expect(
       (
         await request(server)
-          .post('/api/push/topics')
+          .post('/api/v1/push/topics')
           .send({ ...body, level: 'green' })
       ).status,
     ).toBe(400);
@@ -294,13 +294,13 @@ describe('push routes', () => {
 
   it('answers a broken or oversized body with a client error, not a 500', async () => {
     const { app: server } = app();
-    const broken = await request(server).post('/api/push/topics').set('Content-Type', 'application/json').send('{');
+    const broken = await request(server).post('/api/v1/push/topics').set('Content-Type', 'application/json').send('{');
     expect(broken.status).toBe(400);
     expect(broken.body.error.code).toBe('INVALID_REQUEST');
-    const missing = await request(server).post('/api/push/topics');
+    const missing = await request(server).post('/api/v1/push/topics');
     expect(missing.status).toBe(400);
     const huge = await request(server)
-      .post('/api/push/topics')
+      .post('/api/v1/push/topics')
       .send({ ...body, token: 'x'.repeat(9000) });
     expect(huge.status).toBe(413);
   });

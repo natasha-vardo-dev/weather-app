@@ -47,7 +47,7 @@ See [docs/architecture.md](docs/architecture.md).
 packages/shared/   API contract and shared logic (@weather/shared)
 server/            Express BFF: routes → services → providers
 client/            React web app
-docs/              Architecture notes and open questions
+docs/              Architecture notes
 ```
 
 ## Getting started
@@ -87,34 +87,37 @@ npm run test:e2e   # Playwright in Chromium, with axe accessibility checks (firs
 npm run lint       # ESLint, including React hook rules
 npm run format     # Prettier (CI runs format:check)
 npm run typecheck  # TypeScript checks
+npm run openapi    # regenerate docs/openapi.json after changing the API's schemas
 npm run build      # production build
 ```
 
 ## API
 
-| Method | Endpoint                                          | Description                                                                                                                    |
-| ------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| GET    | `/api/locations?q=warsaw&limit=5`                 | Search cities                                                                                                                  |
-| GET    | `/api/locations/756135?lang=ru`                   | One place by id, names in a language                                                                                           |
-| GET    | `/api/forecast?lat=52.23&lon=21.01&days=10`       | Current weather, next 24 hours, yesterday and daily forecast                                                                   |
-| GET    | `/api/forecasts?places=52.23,21.01;50.06,19.94`   | Forecasts for up to 10 places at once (saved cities); each item is a forecast or an error                                      |
-| GET    | `/api/air-quality?lat=52.23&lon=21.01`            | Current air quality (European and US AQI)                                                                                      |
-| GET    | `/api/alerts?lat=54.21&lon=21.74&lang=pl`         | Official weather warnings in force or announced at a place (Europe, MeteoAlarm), texts in the language where the issuer has it |
-| GET    | `/api/places/approximate?lang=ru`                 | The user's city guessed from their IP address (fallback when the browser can't locate them); never cached                      |
-| GET    | `/api/places/reverse?lat=52.25&lon=21.05&lang=ru` | The place at the user's location: the city with its coordinates and id (as from search), named via OpenStreetMap Nominatim     |
-| POST   | `/api/push/topics`                                | Subscribe or unsubscribe a device's push token to warnings for a place (only with Firebase configured)                         |
-| POST   | `/api/internal/alerts/notify`                     | Push new warnings; called every 5 minutes by an external scheduler, needs `Authorization: Bearer <ALERTS_NOTIFY_SECRET>`       |
-| GET    | `/api/health`                                     | Health check for Render: the process answers (does not call the weather provider)                                              |
-| GET    | `/api/internal/metrics`                           | Cache hit rates, provider calls against their limits, rate-limited requests; needs `Authorization: Bearer <METRICS_SECRET>`    |
+The contract is versioned in the path (`/api/v1`); health and internal endpoints are not part of it and have no version. Within a version only compatible changes are made: an optional field or a new endpoint. Anything that breaks a client (a field removed, renamed or retyped, a required one added) goes into a new version, served next to the old one until nobody calls it. The OpenAPI description, [`docs/openapi.json`](docs/openapi.json), is generated from the zod schemas in `@weather/shared` (`npm run openapi`); CI fails if it is out of date and, on pull requests, if it has a breaking change within the same version. Details: [architecture notes](docs/architecture.md#api-versions).
+
+| Method | Endpoint                                             | Description                                                                                                                    |
+| ------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/api/v1/locations?q=warsaw&limit=5`                 | Search cities                                                                                                                  |
+| GET    | `/api/v1/locations/756135?lang=ru`                   | One place by id, names in a language                                                                                           |
+| GET    | `/api/v1/forecast?lat=52.23&lon=21.01&days=10`       | Current weather, next 24 hours, yesterday and daily forecast                                                                   |
+| GET    | `/api/v1/forecasts?places=52.23,21.01;50.06,19.94`   | Forecasts for up to 10 places at once (saved cities); each item is a forecast or an error                                      |
+| GET    | `/api/v1/air-quality?lat=52.23&lon=21.01`            | Current air quality (European and US AQI)                                                                                      |
+| GET    | `/api/v1/alerts?lat=54.21&lon=21.74&lang=pl`         | Official weather warnings in force or announced at a place (Europe, MeteoAlarm), texts in the language where the issuer has it |
+| GET    | `/api/v1/places/approximate?lang=ru`                 | The user's city guessed from their IP address (fallback when the browser can't locate them); never cached                      |
+| GET    | `/api/v1/places/reverse?lat=52.25&lon=21.05&lang=ru` | The place at the user's location: the city with its coordinates and id (as from search), named via OpenStreetMap Nominatim     |
+| POST   | `/api/v1/push/topics`                                | Subscribe or unsubscribe a device's push token to warnings for a place (only with Firebase configured)                         |
+| POST   | `/api/internal/alerts/notify`                        | Push new warnings; called every 5 minutes by an external scheduler, needs `Authorization: Bearer <ALERTS_NOTIFY_SECRET>`       |
+| GET    | `/api/health`                                        | Health check for Render: the process answers (does not call the weather provider)                                              |
+| GET    | `/api/internal/metrics`                              | Cache hit rates, provider calls against their limits, rate-limited requests; needs `Authorization: Bearer <METRICS_SECRET>`    |
 
 Errors use one format: `{ "error": { "code": "INVALID_REQUEST", "message": "..." } }`.
 
-Requests are limited per IP address (a minute's window): 300 for the API as a whole, 30 batches for `/api/forecasts` (up to 10 places each), 60 for city search, 10 for `/api/places/*`. Over the limit: `429` with code `RATE_LIMITED` and the standard `RateLimit` and `Retry-After` headers.
+Requests are limited per IP address (a minute's window): 300 for the API as a whole, 30 batches for `/api/v1/forecasts` (up to 10 places each), 60 for city search, 10 for `/api/v1/places/*`. Over the limit: `429` with code `RATE_LIMITED` and the standard `RateLimit` and `Retry-After` headers.
 
 ## Deployment
 
 - Frontend: Vercel, root directory `client`. `client/middleware.ts` (Vercel Routing Middleware) forwards `/api/*` to the backend; `client/vercel.json` serves `index.html` for all other paths, so client-side routes survive a refresh. Environment variables on Vercel: `API_ORIGIN` (the backend's URL, e.g. `https://weather-api.onrender.com`), `PROXY_SECRET` (a long random string, the same as on Render), and the `VITE_FIREBASE_*` values for push notifications.
-- Backend: Render, root directory `server`, health check path `/api/health`. Do not set `IP_SELF_LOOKUP` there (it is for local development). Set `PROXY_SECRET` (the same value as on Vercel): the API then answers only requests that came through the frontend's proxy and takes the user's IP from it (`X-Client-IP`), so rate limits and the approximate location cannot be fooled by a forged `X-Forwarded-For` sent straight to Render. After deploying, check: turning notifications on and off works (the Content-Security-Policy allows the Firebase hosts push uses; tests cannot exercise push); the site works; a request straight to `https://<api>.onrender.com/api/forecast?lat=52.23&lon=21.01` gets 404; "Looks like you're in …" (the approximate location) names your own city, so the user's address reaches the API; and a page opened while Render is asleep waits for it instead of failing. Set `TRUST_PROXY=2` as well (used only when a request carries no `X-Client-IP`). Optional: `METRICS_SECRET` (enables `/api/internal/metrics`), `LOG_LEVEL` (`info` by default; `debug` logs every provider call).
+- Backend: Render, root directory `server`, health check path `/api/health`. Do not set `IP_SELF_LOOKUP` there (it is for local development). Set `PROXY_SECRET` (the same value as on Vercel): the API then answers only requests that came through the frontend's proxy and takes the user's IP from it (`X-Client-IP`), so rate limits and the approximate location cannot be fooled by a forged `X-Forwarded-For` sent straight to Render. After deploying, check: turning notifications on and off works (the Content-Security-Policy allows the Firebase hosts push uses; tests cannot exercise push); the site works; a request straight to `https://<api>.onrender.com/api/v1/forecast?lat=52.23&lon=21.01` gets 404; "Looks like you're in …" (the approximate location) names your own city, so the user's address reaches the API; and a page opened while Render is asleep waits for it instead of failing. Set `TRUST_PROXY=2` as well (used only when a request carries no `X-Client-IP`). Optional: `METRICS_SECRET` (enables `/api/internal/metrics`), `LOG_LEVEL` (`info` by default; `debug` logs every provider call).
 - Logs are JSON lines on stdout (pino), which Render keeps and searches by field; every 15 minutes a `metrics` line records cache hit rates and provider usage, and a warning is logged when a provider's usage passes 80% of a limit.
 
 Serving the API from the frontend's domain avoids CORS and keeps future auth cookies first-party.
@@ -127,7 +130,6 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 - [UI translations for 19 languages are machine-quality drafts: they need a review by native speakers before a real release]
 - [Weather warnings cover Europe only (MeteoAlarm's ~38 countries). No banner means no warning was found, not a promise of calm weather; elsewhere there are none yet (the US National Weather Service would be the next source)]
 - [Push notifications: a warning issued while the server was down (deploy, restart) is not pushed; it still shows on the page]
-- [MeteoAlarm's region borders have no licence of their own; assumed to follow MeteoAlarm's data terms (see docs/questions.md)]
 
 ## Trade-offs and decisions
 

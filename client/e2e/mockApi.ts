@@ -29,22 +29,22 @@ export async function mockApi(page: Page): Promise<{ unexpected: string[] }> {
     const params = url.searchParams;
     const path = url.pathname;
 
-    if (path === '/api/locations') {
+    if (path === '/api/v1/locations') {
       const q = (params.get('q') ?? '').toLowerCase();
       const found = PLACES.map((p) => inLanguage(p, params.get('lang'))).filter((p) =>
         p.name.toLowerCase().startsWith(q),
       );
       return json(route, { locations: found });
     }
-    const byId = path.match(/^\/api\/locations\/(\d+)$/);
+    const byId = path.match(/^\/api\/v1\/locations\/(\d+)$/);
     if (byId) {
       const place = PLACES.find((p) => p.id === Number(byId[1]));
       return place ? json(route, inLanguage(place, params.get('lang'))) : notFound(route);
     }
-    if (path === '/api/forecast') {
+    if (path === '/api/v1/forecast') {
       return json(route, forecast({ latitude: Number(params.get('lat')), longitude: Number(params.get('lon')) }));
     }
-    if (path === '/api/forecasts') {
+    if (path === '/api/v1/forecasts') {
       const places = (params.get('places') ?? '').split(';').map((pair) => pair.split(',').map(Number));
       return json(route, {
         forecasts: places.map(([latitude, longitude]) => ({
@@ -52,10 +52,10 @@ export async function mockApi(page: Page): Promise<{ unexpected: string[] }> {
         })),
       });
     }
-    if (path === '/api/air-quality') return json(route, airQuality());
-    if (path === '/api/alerts') return json(route, noAlerts);
+    if (path === '/api/v1/air-quality') return json(route, airQuality());
+    if (path === '/api/v1/alerts') return json(route, noAlerts);
     // Nothing to name by position in these tests.
-    if (path.startsWith('/api/places/')) return notFound(route);
+    if (path.startsWith('/api/v1/places/')) return notFound(route);
 
     unexpected.push(`${route.request().method()} ${path}`);
     return json(route, { error: { code: 'INTERNAL', message: 'Not mocked' } }, 500);

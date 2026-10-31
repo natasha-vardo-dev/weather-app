@@ -1,3 +1,4 @@
+import { airQualitySchema, forecastSchema, locationSchema } from '@weather/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { ProviderError } from '../src/errors.js';
 import { isDaytime, OpenMeteoProvider } from '../src/providers/openMeteo.js';
@@ -54,6 +55,8 @@ describe('OpenMeteoProvider', () => {
 
     const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
     const forecast = await provider.getForecast(52.23, 21.01, 1);
+    // What the adapter builds is what the API contract says (the routes pass it on as is).
+    forecastSchema.parse(forecast);
 
     const url = new URL(String((fetchFn.mock.calls[0] as unknown[])[0]));
     expect(url.searchParams.get('past_days')).toBe('1');
@@ -144,7 +147,9 @@ describe('OpenMeteoProvider', () => {
     );
     const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
 
-    expect(await provider.getAirQuality(52.23, 21.01)).toEqual({
+    const airQuality = await provider.getAirQuality(52.23, 21.01);
+    airQualitySchema.parse(airQuality);
+    expect(airQuality).toEqual({
       time: '2026-10-24T19:00',
       timezone: 'Europe/Warsaw',
       europeanAqi: 54,
@@ -211,6 +216,8 @@ describe('OpenMeteoProvider', () => {
     );
     const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
     const [town, island] = await provider.searchLocations('родос', 5, 'ru');
+    locationSchema.parse(town);
+    locationSchema.parse(island);
     expect(town).toMatchObject({ name: 'Родос', areas: ['Dodecanese'] });
     expect(town).not.toHaveProperty('kind');
     expect(island).toMatchObject({ name: 'Родос', kind: 'island' });

@@ -66,13 +66,13 @@ test('the start page loads every saved city in one request', async ({ page }) =>
   const forecastRequests: string[] = [];
   page.on('request', (request) => {
     const { pathname } = new URL(request.url());
-    if (pathname.startsWith('/api/forecast')) forecastRequests.push(pathname);
+    if (pathname.startsWith('/api/v1/forecast')) forecastRequests.push(pathname);
   });
 
   await page.goto('/');
   await expect(page.getByRole('link', { name: /Warsaw/ })).toContainText('12°');
   await expect(page.getByRole('link', { name: /Kraków/ })).toContainText('12°');
-  expect(forecastRequests).toEqual(['/api/forecasts']);
+  expect(forecastRequests).toEqual(['/api/v1/forecasts']);
 });
 
 test('the city page loads its own forecast alone, the strip of saved cities as one batch', async ({ page }) => {
@@ -89,8 +89,8 @@ test('the city page loads its own forecast alone, the strip of saved cities as o
   const forecastRequests: string[] = [];
   page.on('request', (request) => {
     const url = new URL(request.url());
-    if (url.pathname === '/api/forecast') forecastRequests.push(`forecast ${url.searchParams.get('lat')}`);
-    if (url.pathname === '/api/forecasts') forecastRequests.push(`forecasts ${url.searchParams.get('places')}`);
+    if (url.pathname === '/api/v1/forecast') forecastRequests.push(`forecast ${url.searchParams.get('lat')}`);
+    if (url.pathname === '/api/v1/forecasts') forecastRequests.push(`forecasts ${url.searchParams.get('places')}`);
   });
 
   await page.goto('/weather/3094802-krakow');

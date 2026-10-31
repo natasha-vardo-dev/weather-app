@@ -179,6 +179,12 @@ class ProviderCounter {
 export interface MetricsSnapshot {
   uptimeSeconds: number;
   requests: Record<'2xx' | '3xx' | '4xx' | '5xx', number>;
+  /**
+   * Requests per API version ("v1"; "none" for /api paths without one, "other" for versions not
+   * served; requests refused for not coming through the proxy are left out), since the start: an old
+   * version can go once next to nobody asks it any more (docs/architecture.md, "API versions").
+   */
+  apiVersions: Record<string, number>;
   rateLimited: number;
   /** Error reports from browsers (/api/client-errors), since the start. */
   clientErrors: number;
@@ -195,6 +201,7 @@ export class Metrics {
   private readonly providers = new Map<string, ProviderCounter>();
   private readonly caches = new Map<string, () => CacheStats>();
   private readonly requests = { '2xx': 0, '3xx': 0, '4xx': 0, '5xx': 0 };
+  private readonly apiVersions: Record<string, number> = {};
   private rateLimitedCount = 0;
   private clientErrorCount = 0;
   private readonly startedAt: number;
@@ -230,9 +237,11 @@ export class Metrics {
     this.caches.set(name, stats);
   }
 
-  request(status: number): void {
+  /** An answer sent; `apiVersion` for requests to the API's contract (not health or internal). */
+  request(status: number, apiVersion?: string): void {
     const group = `${Math.min(5, Math.max(2, Math.floor(status / 100)))}xx` as keyof typeof this.requests;
     this.requests[group] += 1;
+    if (apiVersion) this.apiVersions[apiVersion] = (this.apiVersions[apiVersion] ?? 0) + 1;
   }
 
   rateLimited(): void {
@@ -260,6 +269,7 @@ export class Metrics {
     return {
       uptimeSeconds: Math.round((now - this.startedAt) / 1000),
       requests: { ...this.requests },
+      apiVersions: { ...this.apiVersions },
       rateLimited: this.rateLimitedCount,
       clientErrors: this.clientErrorCount,
       providers,

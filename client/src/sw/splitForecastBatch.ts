@@ -1,7 +1,7 @@
 /**
- * Workbox `cacheDidUpdate` for the API route: when a batch of forecasts (/api/forecasts) is
+ * Workbox `cacheDidUpdate` for the API route: when a batch of forecasts (/api/v1/forecasts) is
  * stored, each forecast in it is stored too under the URL its city page asks for alone
- * (/api/forecast?lat=…&lon=…&days=…). Saved cities are loaded in batches on the start page and
+ * (/api/v1/forecast?lat=…&lon=…&days=…, the same version as the batch). Saved cities are loaded in batches on the start page and
  * in the strip, while a city page loads its own /forecast; without this, a saved city seen
  * only as a card could not be opened offline, although the card showed its forecast. (Found
  * by roborev.)
@@ -28,7 +28,9 @@ export async function splitForecastBatch({
   newResponse: Response;
 }): Promise<void> {
   const url = new URL(request.url);
-  if (url.pathname !== '/api/forecasts') return;
+  // Any API version: a page still on the old code may ask the old one; its copies keep its path.
+  if (!/^\/api\/v\d+\/forecasts$/.test(url.pathname)) return;
+  const singlePath = url.pathname.slice(0, -1);
   const places = (url.searchParams.get('places') ?? '').split(';');
   const days = url.searchParams.get('days');
   let body: { forecasts?: Array<{ forecast?: unknown }> };
@@ -44,7 +46,7 @@ export async function splitForecastBatch({
     body.forecasts.map((item, i) => {
       const [lat, lon] = places[i]!.split(',');
       if (!item || !('forecast' in item) || !lat || !lon) return undefined;
-      const single = new URL('/api/forecast', url.origin);
+      const single = new URL(singlePath, url.origin);
       single.searchParams.set('lat', lat);
       single.searchParams.set('lon', lon);
       if (days) single.searchParams.set('days', days);
@@ -57,7 +59,7 @@ export async function splitForecastBatch({
   // A day, as the route's maxAgeSeconds (a literal: this function is serialized on its own).
   const maxAgeMs = 24 * 60 * 60 * 1000;
   const now = Date.now();
-  const copies = (await cache.keys()).filter((key) => new URL(key.url).pathname === '/api/forecast');
+  const copies = (await cache.keys()).filter((key) => new URL(key.url).pathname === singlePath);
   await Promise.all(
     copies.map(async (key) => {
       const copy = await cache.match(key);

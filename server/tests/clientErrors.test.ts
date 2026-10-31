@@ -27,10 +27,10 @@ const report = {
   release: 'abc1234',
 };
 
-describe('POST /api/client-errors', () => {
+describe('POST /api/v1/client-errors', () => {
   it('logs a report from the browser as a warning, with the browser, and answers 204', async () => {
     const { app, warn, metrics } = setup();
-    const res = await request(app).post('/api/client-errors').set('User-Agent', 'Firefox/140').send(report);
+    const res = await request(app).post('/api/v1/client-errors').set('User-Agent', 'Firefox/140').send(report);
     expect(res.status).toBe(204);
     expect(warn).toHaveBeenCalledWith({ ...report, userAgent: 'Firefox/140' }, 'client error');
     expect(metrics.snapshot().clientErrors).toBe(1);
@@ -38,12 +38,12 @@ describe('POST /api/client-errors', () => {
 
   it('refuses what does not look like a report', async () => {
     const { app, warn } = setup();
-    const bad = await request(app).post('/api/client-errors').send({ kind: 'other', message: 'x', path: '/' });
+    const bad = await request(app).post('/api/v1/client-errors').send({ kind: 'other', message: 'x', path: '/' });
     expect(bad.status).toBe(400);
     expect(
       (
         await request(app)
-          .post('/api/client-errors')
+          .post('/api/v1/client-errors')
           .send({ ...report, message: 'x'.repeat(501) })
       ).status,
     ).toBe(400);
@@ -52,9 +52,9 @@ describe('POST /api/client-errors', () => {
 
   it('takes a few reports a minute from one address, not a flood', async () => {
     const { app, warn } = setup();
-    expect((await request(app).post('/api/client-errors').send(report)).status).toBe(204);
-    expect((await request(app).post('/api/client-errors').send(report)).status).toBe(204);
-    expect((await request(app).post('/api/client-errors').send(report)).status).toBe(429);
+    expect((await request(app).post('/api/v1/client-errors').send(report)).status).toBe(204);
+    expect((await request(app).post('/api/v1/client-errors').send(report)).status).toBe(204);
+    expect((await request(app).post('/api/v1/client-errors').send(report)).status).toBe(429);
     expect(warn.mock.calls.filter(([, message]) => message === 'client error')).toHaveLength(2);
   });
 });
