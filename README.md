@@ -52,7 +52,7 @@ docs/              Architecture notes and open questions
 
 ## Getting started
 
-Requires Node.js 20.19+ (the PWA build plugin needs it).
+Requires Node.js 24 (24.15 or later; `.nvmrc` pins the major version, so `nvm use` picks it). CI and Render read the same `.nvmrc`, so all three run one version.
 
 ```bash
 npm install
