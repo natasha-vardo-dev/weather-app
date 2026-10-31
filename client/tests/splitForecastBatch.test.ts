@@ -45,17 +45,17 @@ async function split(body: unknown, headers: Record<string, string> = {}) {
 
 describe('splitForecastBatch', () => {
   it('stores each forecast of a batch under the URL its city page asks for', async () => {
-    await split(
-      { forecasts: [{ forecast: { at: 'warsaw' } }, { forecast: { at: 'indiana' } }] },
-      { Date: 'Fri, 30 Oct 2026 12:00:00 GMT' },
-    );
+    // Now, not a fixed date: copies older than a day are cleaned up, so a fixed date made this
+    // test fail a day after it was written.
+    const date = new Date().toUTCString();
+    await split({ forecasts: [{ forecast: { at: 'warsaw' } }, { forecast: { at: 'indiana' } }] }, { Date: date });
     const single = await urlsOf((client) =>
       Promise.all(places.map((p) => client.getForecast(p.latitude, p.longitude))),
     );
 
     expect([...stored.keys()]).toEqual(single);
     expect(await stored.get(single[0]!)!.json()).toEqual({ at: 'warsaw' });
-    expect(stored.get(single[1]!)!.headers.get('Date')).toBe('Fri, 30 Oct 2026 12:00:00 GMT');
+    expect(stored.get(single[1]!)!.headers.get('Date')).toBe(date);
   });
 
   it('skips places that failed', async () => {
