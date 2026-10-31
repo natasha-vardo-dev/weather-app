@@ -1,5 +1,6 @@
 import { ERROR_CODES, ZodError, type ApiErrorBody, type ErrorCode } from '@weather/shared';
 import cors from 'cors';
+import { isIP } from 'node:net';
 import express, { type ErrorRequestHandler } from 'express';
 import { AppError, ProviderError } from './errors.js';
 import { requestLogger, silentLogger, type Logger } from './observability/logger.js';
@@ -48,6 +49,16 @@ export interface AppOptions {
   metrics?: Metrics;
   /** Guards GET /api/internal/metrics (bearer token); without it the endpoint does not exist. */
   metricsSecret?: string;
+  /**
+   * Shared with the frontend's proxy (Vercel middleware), which sends it in the
+   * X-Proxy-Secret header: requests without it are refused, so the API answers only what
+   * came through the proxy. Otherwise anyone could call the API host directly with a forged
+   * X-Forwarded-For, which the trusted proxies pass on, and get a new "IP" (and a fresh
+   * per-IP allowance) with every request. Without it (local development, tests) every
+   * request is served. Health and /internal/* stay open: Render and the scheduler call them
+   * directly, and /internal/* has its own secret.
+   */
+  proxySecret?: string;
   /** Shown by /api/health, to tell which build is running (Render sets RENDER_GIT_COMMIT). */
   version?: string;
 }
@@ -64,6 +75,7 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
     logger = silentLogger,
     metrics,
     metricsSecret,
+    proxySecret,
     version,
   } = options;
   const app = express();
@@ -99,6 +111,34 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
       }
       res.set('Cache-Control', 'no-store');
       res.json(metrics.snapshot());
+    });
+  }
+
+  if (proxySecret) {
+    let lastLogged = -Infinity;
+    app.use('/api', (req, res, next) => {
+      if (req.path.startsWith('/internal/')) {
+        next();
+        return;
+      }
+      if (sameSecret(req.get('x-proxy-secret') ?? '', proxySecret)) {
+        // The proxy's word for the user's address (it saw the connection), trusted only with
+        // the secret: rate limits and the approximate location key on req.ip, and counting
+        // proxies in X-Forwarded-For depends on how the host forwards it.
+        const clientIp = req.get('x-client-ip')?.trim();
+        if (clientIp && isIP(clientIp)) Object.defineProperty(req, 'ip', { value: clientIp, configurable: true });
+        next();
+        return;
+      }
+      // Logged at most once a minute: a misconfigured proxy (secret missing or different)
+      // would otherwise log every request, and it is the first thing to look at then.
+      if (Date.now() - lastLogged >= 60_000) {
+        lastLogged = Date.now();
+        logger.warn({ path: req.path }, 'request without the proxy secret refused');
+      }
+      res.set('Cache-Control', 'no-store');
+      // As an unknown endpoint, like the internal ones without their secret.
+      res.status(404).json(errorBody(ERROR_CODES.NOT_FOUND, 'Endpoint not found.'));
     });
   }
 

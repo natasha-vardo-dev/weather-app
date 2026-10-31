@@ -124,6 +124,7 @@ const app = createApp(service, {
   metrics,
   // Guards GET /api/internal/metrics; a SECRET. Without it the endpoint does not exist.
   metricsSecret: process.env.METRICS_SECRET?.trim() || undefined,
+  proxySecret: process.env.PROXY_SECRET?.trim() || undefined,
   version: process.env.RENDER_GIT_COMMIT?.slice(0, 7),
 });
 
