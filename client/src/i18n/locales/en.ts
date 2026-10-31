@@ -9,6 +9,7 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
   back: 'Back',
   placesBy: 'Place names',
   dataBy: 'Weather data by',
+  privacy: 'Privacy',
   offline: "You're offline. Showing the last loaded forecast, which may be out of date.",
   outdated: (time) => `Forecast last updated: ${time}.`,
   crash: {

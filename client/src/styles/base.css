@@ -1,6 +1,9 @@
 :root {
   --ink: #ffffff;
   --ink-soft: #dae7f5;
+  /* Between soft and white: details under the current weather (feels like, high and low,
+     change since yesterday), easier to read than soft text. 5.4:1 on the page (soft: 4.6). */
+  --ink-detail: #f2f7fc;
   --surface: rgba(255, 255, 255, 0.15);
   --line: rgba(255, 255, 255, 0.26);
   --cool: #cfe9ff;
@@ -30,7 +33,7 @@
   /* The logo's name at rest, a step below white so hover can light it up. */
   --brand-ink: var(--ink-soft);
   color-scheme: dark;
-  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-family: 'Bricolage Grotesque Variable', system-ui, sans-serif;
   font-optical-sizing: auto;
   color: var(--ink);
   background: var(--sky);
@@ -40,6 +43,8 @@
   :root {
     --ink: #e8eef6;
     --ink-soft: #9fb0c6;
+    /* 9.5:1 on the page (soft: 6.5). */
+    --ink-detail: #c6d3e3;
     --surface: rgba(255, 255, 255, 0.06);
     --line: rgba(232, 238, 246, 0.14);
     --cool: #4f86c6;

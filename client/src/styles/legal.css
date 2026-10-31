@@ -1,0 +1,42 @@
+/* Text pages (the privacy policy): a readable column, headings a step down from the page title. */
+.legal {
+  max-width: 65ch;
+  padding-block: 1rem 2rem;
+}
+
+.legal__title {
+  margin: 0 0 0.25rem;
+  font-size: clamp(2rem, 6vw, 2.5rem);
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.legal__updated {
+  margin: 0 0 1.5rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.legal h2 {
+  margin: 1.75rem 0 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.legal p,
+.legal li {
+  line-height: 1.55;
+}
+
+.legal ul {
+  padding-inline-start: 1.25rem;
+}
+
+.legal li + li {
+  margin-top: 0.4rem;
+}
+
+.legal a {
+  color: inherit;
+}

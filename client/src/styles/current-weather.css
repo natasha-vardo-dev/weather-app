@@ -110,7 +110,9 @@
 }
 
 /* Under the number: the condition a little larger, then the details (feels like, high and
-   low, change since yesterday) in one size and the soft colour, one step apart. */
+   low, change since yesterday) in one size, one step apart, a little larger than before and
+   in a colour between the soft one and white: at 0.9rem in the soft colour they were hard to
+   read (variant E of five). */
 .now__label {
   margin: 0.9rem 0 0;
   font-size: 1.1rem;
@@ -119,8 +121,8 @@
 .now__line,
 .now__trend {
   margin: 0.25rem 0 0;
-  font-size: 0.9rem;
-  color: var(--ink-soft);
+  font-size: 0.95rem;
+  color: var(--ink-detail);
 }
 
 .now__place:focus {

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SearchBar } from './components/SearchBar';
@@ -11,6 +12,9 @@ import { placePath } from './locationUrl';
 import { HomePage } from './pages/HomePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { WeatherPage } from './pages/WeatherPage';
+
+// Rarely opened, so loaded on demand rather than with every visit.
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })));
 
 export function App() {
   const navigate = useNavigate();
@@ -60,6 +64,14 @@ export function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/weather/:where" element={<WeatherPage />} />
+            <Route
+              path="/privacy"
+              element={
+                <Suspense fallback={null}>
+                  <PrivacyPage />
+                </Suspense>
+              }
+            />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </ErrorBoundary>
@@ -76,6 +88,12 @@ export function App() {
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
           © OpenStreetMap
         </a>
+        {' · '}
+        {/* A full page load, not an in-app link: the page is a chunk loaded on demand, and a tab
+            opened before a deploy would ask for the old chunk, gone by then (found by roborev).
+            Loading the page anew brings the current build; for a page this rare, one reload is
+            no cost. */}
+        <a href="/privacy">{t.privacy}</a>
       </footer>
     </div>
   );

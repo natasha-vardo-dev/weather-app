@@ -59,8 +59,9 @@ export default defineConfig({
         // API version it calls) for good. A page already open keeps its old code until reloaded.
         skipWaiting: true,
         clientsClaim: true,
-        // The app shell is precached; any page URL opens it, as vercel.json does online.
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // The app shell is precached; any page URL opens it, as vercel.json does online. The
+        // font files are part of the build (served from the site, not Google Fonts), so offline too.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Push notifications about weather warnings (public/push-sw.js).
         importScripts: ['push-sw.js'],
         navigateFallback: '/index.html',
@@ -113,21 +114,6 @@ export default defineConfig({
                   },
                 },
               ],
-            },
-          },
-          {
-            urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com',
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'google-fonts-css' },
-          },
-          {
-            // Font files are immutable (the URL changes with the version).
-            urlPattern: ({ url }) => url.origin === 'https://fonts.gstatic.com',
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts',
-              expiration: { maxEntries: 10, maxAgeSeconds: 365 * DAY_SECONDS },
-              cacheableResponse: { statuses: [0, 200] },
             },
           },
         ],

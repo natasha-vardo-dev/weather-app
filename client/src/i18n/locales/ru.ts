@@ -9,6 +9,7 @@ export const ru: MessagesFactory = ({ deg, plural }) => ({
   back: 'Назад',
   placesBy: 'Названия мест',
   dataBy: 'Данные о погоде:',
+  privacy: 'Конфиденциальность',
   offline: 'Вы офлайн. Показан последний загруженный прогноз, он может быть устаревшим.',
   outdated: (time) => `Последнее обновление прогноза: ${time}.`,
   crash: {

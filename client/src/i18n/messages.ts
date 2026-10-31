@@ -32,6 +32,8 @@ export interface Messages {
   /** Footer: who the place names come from, before "© OpenStreetMap". */
   placesBy: string;
   dataBy: string;
+  /** Footer link to the privacy policy (the policy itself is in English). */
+  privacy: string;
   /** Banner while the browser has no network; the app shows what it saved earlier. */
   offline: string;
   /**

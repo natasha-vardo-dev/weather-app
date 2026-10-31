@@ -50,8 +50,8 @@ export function openMeteoWeight(url: URL): number {
  */
 export const IPWHOIS_LIMITS: ProviderLimits = { perMinute: 30, perDay: 1000 };
 
-/** Share of a limit after which a warning is logged, once per window. */
-const WARN_AT = 0.8;
+/** Share of a limit after which a warning is logged (once per window) and /api/health/quota alerts. */
+export const WARN_AT = 0.8;
 
 /**
  * Share of a limit after which new calls are refused (BusyError) until the window moves on.
@@ -78,6 +78,13 @@ export interface ProviderUsage {
   share: Partial<Record<keyof ProviderLimits, number>>;
   /** Calls refused because a limit was near (BUDGET_SHARE), since the start. */
   refused: number;
+}
+
+/** A provider's limit in one window, used to WARN_AT or more. */
+export interface NearLimit {
+  provider: string;
+  window: keyof ProviderLimits;
+  share: number;
 }
 
 /**
@@ -250,6 +257,20 @@ export class Metrics {
 
   clientError(): void {
     this.clientErrorCount += 1;
+  }
+
+  /** Limits used to WARN_AT or more right now, for /api/health/quota (what an uptime monitor watches). */
+  nearLimits(): NearLimit[] {
+    const now = this.now();
+    const near: NearLimit[] = [];
+    for (const [provider, counter] of this.providers) {
+      const { share } = counter.usage(now);
+      for (const { name } of WINDOWS) {
+        const used = share[name];
+        if (used !== undefined && used >= WARN_AT) near.push({ provider, window: name, share: used });
+      }
+    }
+    return near;
   }
 
   snapshot(): MetricsSnapshot {
