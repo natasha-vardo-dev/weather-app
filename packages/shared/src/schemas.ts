@@ -59,8 +59,10 @@ export const forecastsQuerySchema = z.object({
       z
         .array(
           z.object({
-            lat: z.coerce.number().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
-            lon: z.coerce.number().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
+            // The input type is the split string's: zod 4 types a coerced number's input as unknown,
+            // which a pipe from strings does not accept.
+            lat: z.coerce.number<string>().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
+            lon: z.coerce.number<string>().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
           }),
         )
         .min(1)
