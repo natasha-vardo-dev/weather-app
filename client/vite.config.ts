@@ -2,7 +2,7 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
-import { splitForecastBatch } from './src/sw/splitForecastBatch';
+import { splitForecastBatch } from './src/sw/splitForecastBatch.ts';
 
 const proxy = {
   '/api': 'http://localhost:3001',
@@ -106,11 +106,29 @@ export default defineConfig({
   // where vercel.json rewrites /api to the backend.
   server: { proxy },
   preview: { proxy },
+  // Logic tests run in Node; component tests (tests/components) in jsdom, as two Vitest
+  // projects (environmentMatchGlobs, which did this by path, is gone since Vitest 3).
+  // Playwright's end-to-end tests (e2e/) are run by Playwright, not Vitest.
   test: {
-    // Logic tests run in Node; component tests (tests/components) in jsdom. Playwright's
-    // end-to-end tests (e2e/) are run by Playwright, not Vitest.
-    include: ['tests/**/*.test.{ts,tsx}'],
-    environmentMatchGlobs: [['tests/components/**', 'jsdom']],
-    setupFiles: ['tests/components/setup.ts'],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'logic',
+          include: ['tests/**/*.test.{ts,tsx}'],
+          exclude: ['tests/components/**'],
+          environment: 'node',
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'components',
+          include: ['tests/components/**/*.test.{ts,tsx}'],
+          environment: 'jsdom',
+          setupFiles: ['tests/components/setup.ts'],
+        },
+      },
+    ],
   },
 });
