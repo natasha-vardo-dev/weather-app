@@ -31,5 +31,8 @@
   },
   "engines": {
     "node": ">=24.15"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.7"
   }
 }
