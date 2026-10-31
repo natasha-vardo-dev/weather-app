@@ -1,0 +1,90 @@
+/* Saved cities on the start page */
+.favorites {
+  margin-top: 2.5rem;
+}
+.favorites__title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+.fav-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Contains the screen-reader text, which is absolutely positioned */
+.fav-grid > li {
+  position: relative;
+  min-width: 0;
+}
+
+.fav-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  color: inherit;
+  text-decoration: none;
+}
+.fav-card:hover {
+  border-color: var(--ink-soft);
+}
+.fav-card:focus-visible {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
+
+.fav-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.fav-card__place {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.fav-card__name,
+.fav-card__country {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fav-card__name {
+  font-weight: 500;
+}
+.fav-card__country {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.fav-card__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 4.6rem;
+  margin-top: 0.5rem;
+}
+.fav-card__temp {
+  display: flex;
+  align-items: center;
+  /* The warning mark sits right after the degrees. */
+  gap: 0.4rem;
+  font-size: 1.9rem;
+  font-weight: 500;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.fav-card__meta {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

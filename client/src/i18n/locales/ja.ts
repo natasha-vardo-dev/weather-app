@@ -12,6 +12,11 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
   dataBy: '気象データ提供:',
   offline: 'オフラインです。最後に読み込んだ予報を表示しています。古い可能性があります。',
   outdated: (time) => `予報の最終更新：${time}`,
+  crash: {
+    title: '問題が発生しました',
+    text: 'このページを表示できませんでした。再読み込みするか、上で別の場所を検索してください。',
+    reload: 'ページを再読み込み',
+  },
   home: {
     title: '行き先の天気は？',
     text: (days) => `都市を検索すると、現在の天気と${num(days)}日間の予報を確認できます。`,

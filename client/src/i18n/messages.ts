@@ -40,6 +40,8 @@ export interface Messages {
    * Intl does not decline ("since yesterday" has no right form in many languages).
    */
   outdated: (time: string) => string;
+  /** Instead of a page that failed to render (ErrorBoundary): the header and search still work. */
+  crash: { title: string; text: string; reload: string };
   home: { title: string; text: (days: number) => string };
   /** Official weather warnings on a city page. The issuer's own texts are shown as they are. */
   alerts: {

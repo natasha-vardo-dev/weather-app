@@ -11,6 +11,11 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
   dataBy: 'Weergegevens van',
   offline: 'Je bent offline. De laatst geladen verwachting wordt getoond, die mogelijk verouderd is.',
   outdated: (time) => `Verwachting laatst bijgewerkt: ${time}.`,
+  crash: {
+    title: 'Er ging iets mis',
+    text: 'Deze pagina kon niet worden weergegeven. Laad hem opnieuw of zoek hierboven een andere plaats.',
+    reload: 'Pagina opnieuw laden',
+  },
   home: {
     title: 'Wat voor weer is het waar je heen gaat?',
     text: (days) => `Zoek een stad om het huidige weer en de verwachting voor ${num(days)} dagen te zien.`,

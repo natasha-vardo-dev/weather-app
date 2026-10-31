@@ -1,0 +1,64 @@
+/* 24-hour chart: time runs left to right in every language, like the hourly strip's bar. */
+.hchart {
+  position: relative;
+  direction: ltr;
+}
+/* Reserves the chart's height before its width is measured, so the panel doesn't grow
+   a moment after opening (and scrolling to it lands in the right place). */
+.hchart {
+  min-height: 120px;
+}
+.hchart__svg {
+  display: block;
+  overflow: visible;
+}
+.hchart__grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.hchart__tick {
+  fill: var(--ink-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.hchart__line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.hchart__svg--wind .hchart__line {
+  stroke: var(--ink);
+}
+.hchart__svg--humidity .hchart__line {
+  stroke: var(--cool);
+}
+.hchart__svg--uv .hchart__line {
+  stroke: var(--sun);
+}
+.hchart__svg--pressure .hchart__line {
+  stroke: var(--ink-soft);
+}
+.hchart__bar {
+  fill: var(--cool);
+}
+.hchart__focus line {
+  stroke: var(--ink-soft);
+  stroke-width: 1;
+}
+.hchart__focus circle {
+  fill: var(--sky);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.hchart__tip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 10px));
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.4rem;
+  background: var(--field);
+  color: var(--field-ink);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+}

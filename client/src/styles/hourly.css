@@ -1,0 +1,111 @@
+/* Hourly strip */
+/* Grid items default to min-width: auto, so without this the strip widens the page instead of scrolling. */
+.hours {
+  min-width: 0;
+}
+
+.hours__title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.hours__list {
+  /* Contains the absolutely positioned screen-reader text, so the scroller clips it. */
+  position: relative;
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0 0 0.5rem;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-color: var(--line) transparent;
+}
+
+.hour {
+  flex: 0 0 auto;
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  min-width: 3.5rem;
+  /* No border or fill: spacing alone separates the hours (a translucent fill would also
+     drop text contrast below 4.5:1 on the blue background). */
+  padding: 0.6rem 0.5rem;
+  font-variant-numeric: tabular-nums;
+  scroll-snap-align: start;
+}
+
+.hour__time {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.hour__temp {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+/* Icon and chance of rain in one slot of fixed height (icon, gap, one line of the chance):
+   the strip keeps one height and the temperatures one line; without a chance the icon is
+   centred in the slot rather than sitting over an empty row (like Apple Weather). */
+.hour__sky {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  height: calc(24px + 0.15rem + 0.6875rem * 1.1);
+}
+/* 11 px, smaller than the time and the temperature: a caption to the icon, not a value of
+   its own. Medium weight and the 10-day list's colour keep it legible on the blue. */
+.hour__rain {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--rain);
+}
+/* Sunrise and sunset between the hours: same grid, the word in place of a temperature. */
+.hour__sun {
+  fill: var(--sun);
+}
+.hour__sun .hour__sun-line {
+  fill: none;
+  stroke: var(--sun);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hour__event {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  align-self: center;
+}
+
+/* Icons are graphics, so they need 3:1 contrast, not 4.5:1. */
+.weather-icon {
+  flex: none;
+}
+.wi-cloud,
+.wi-moon,
+.wi-flake {
+  fill: var(--ink);
+}
+.wi-sun circle,
+.wi-bolt {
+  fill: var(--sun);
+}
+.wi-sun path {
+  stroke: var(--sun);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.wi-line {
+  stroke: var(--ink);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.wi-drop {
+  stroke: var(--cool);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}

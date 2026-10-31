@@ -1,0 +1,78 @@
+/* Empty and messages */
+.empty {
+  padding-top: 12vh;
+}
+
+.empty__title {
+  margin: 0 0 0.5rem;
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  max-width: 18ch;
+}
+
+.empty__text {
+  margin: 0;
+  color: var(--ink-soft);
+  max-width: 40ch;
+}
+
+.message {
+  color: var(--ink-soft);
+}
+.message[role='alert'] p {
+  color: var(--danger);
+  margin: 0 0 0.75rem;
+}
+
+.message button {
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.content {
+  display: grid;
+  gap: 2.5rem;
+  transition: opacity 0.2s;
+}
+
+/* Loading placeholder shaped like the city page */
+.skeleton__block {
+  border-radius: 0.5rem;
+  background: var(--line);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+/* Text-height placeholder inside a line, e.g. a value that is still loading */
+.skeleton__inline {
+  display: inline-block;
+  width: 6.5rem;
+  height: 1.1em;
+  vertical-align: middle;
+}
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+.content--stale {
+  opacity: 0.55;
+}
+
+.empty__text a {
+  color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content {
+    transition: none;
+  }
+  .skeleton__block {
+    animation: none;
+  }
+}

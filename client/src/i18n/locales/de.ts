@@ -11,6 +11,11 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
   dataBy: 'Wetterdaten von',
   offline: 'Sie sind offline. Angezeigt wird die zuletzt geladene Vorhersage, sie ist möglicherweise veraltet.',
   outdated: (time) => `Vorhersage zuletzt aktualisiert: ${time}.`,
+  crash: {
+    title: 'Etwas ist schiefgelaufen',
+    text: 'Diese Seite konnte nicht angezeigt werden. Lade sie neu oder suche oben nach einem anderen Ort.',
+    reload: 'Seite neu laden',
+  },
   home: {
     title: 'Wie wird das Wetter dort, wo du hinwillst?',
     text: (days) => `Suche nach einer Stadt, um das aktuelle Wetter und die Vorhersage für ${num(days)} Tage zu sehen.`,

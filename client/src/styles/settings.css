@@ -1,0 +1,289 @@
+/* Settings: a gear button next to the search holds language and °C/°F, so the header is
+   one line on a phone too. The panel opens below it, from the end side. */
+/* Square: as wide as the search field is tall (its 1.1rem text at line-height 1.5, 0.8rem
+   padding above and below, 1px borders). aspect-ratio would not size a stretched flex item. */
+.settings {
+  position: relative;
+  flex: none;
+  width: calc(1.1rem * 1.5 + 1.6rem + 2px);
+}
+
+.settings__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 1px solid var(--field-line);
+  border-radius: 0.75rem;
+  background: var(--field);
+  color: var(--field-ink);
+  cursor: pointer;
+}
+.settings__button[aria-expanded='true'] {
+  background: var(--field-active);
+}
+.settings__gear {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.settings__panel {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 0.35rem);
+  inset-inline-end: 0;
+  /* Room for a place, its settings and a switch on one line each. */
+  width: min(19rem, calc(100vw - 2.5rem));
+  padding: 0.35rem;
+  background: var(--field-list);
+  color: var(--field-ink);
+  border: 1px solid var(--field-line);
+  border-radius: 0.75rem;
+}
+
+.settings__row,
+.settings__back {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.6rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+button.settings__row,
+.settings__back {
+  cursor: pointer;
+}
+button.settings__row:hover,
+.settings__back:hover {
+  background: var(--field-active);
+}
+.settings__row + .settings__row {
+  border-top: 1px solid var(--field-line);
+  border-radius: 0;
+}
+
+.settings__value {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--field-ink-soft);
+}
+/* The down arrow turned to point onwards (right, or left in right-to-left) and back. */
+.settings__forward {
+  transform: rotate(-90deg);
+}
+.settings__backward {
+  transform: rotate(90deg);
+}
+[dir='rtl'] .settings__forward {
+  transform: rotate(90deg);
+}
+[dir='rtl'] .settings__backward {
+  transform: rotate(-90deg);
+}
+
+.settings__units {
+  display: inline-flex;
+  border: 1px solid var(--field-line);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.settings__unit {
+  min-width: 2.75rem;
+  min-height: 2rem;
+  padding: 0 0.6rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.settings__unit[aria-pressed='true'] {
+  background: var(--field-active);
+  font-weight: 600;
+}
+
+.settings__back {
+  justify-content: flex-start;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--field-line);
+  border-radius: 0.5rem 0.5rem 0 0;
+  font-weight: 600;
+}
+
+/* Warnings: places with notifications on, each with a switch. */
+.settings__alerts {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: min(20rem, 60vh);
+  overflow-y: auto;
+}
+.settings__alerts > .settings__row + .settings__row {
+  border-top: 1px solid var(--field-line);
+  border-radius: 0;
+}
+.settings__place {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.settings__place--off {
+  color: var(--field-ink-soft);
+}
+.settings__summary {
+  font-size: 0.8rem;
+  color: var(--field-ink-soft);
+}
+/* The name opens the city's page (its bell sets which warnings come): underlined as a link. */
+.settings__link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--field-line);
+  text-underline-offset: 0.2em;
+}
+.settings__link:hover {
+  text-decoration-color: currentColor;
+}
+/* Yellow fill, outlined: plain yellow is too faint on the white panel of the light theme. */
+.settings__star {
+  fill: var(--sun);
+  stroke: var(--field-ink-soft);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  margin-inline-end: 0.3rem;
+  vertical-align: -0.1em;
+}
+/* Above the list: which cities it shows, and where a city's warnings are set. */
+.settings__intro {
+  margin: 0.35rem 0.6rem 0.25rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--field-ink-soft);
+}
+.settings__intro p {
+  margin: 0;
+}
+.settings__intro p + p {
+  margin-top: 0.3rem;
+}
+.settings__intro .bell__icon {
+  vertical-align: -0.15em;
+}
+.settings__intro .settings__star {
+  margin-inline-end: 0;
+}
+/* Why there are no switches, set apart from the rules below it. */
+.settings__status {
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.4rem;
+  border-bottom: 1px solid var(--field-line);
+}
+/* The bell's explanations (install, allow, use the build) in the settings panel's colours. */
+.settings__intro .bell__title {
+  color: var(--field-ink);
+}
+.settings__intro .bell__text {
+  color: var(--field-ink-soft);
+  font-size: inherit;
+}
+/* A switch, 44 × 26: the knob moves to the end side when on. */
+.settings__switch {
+  position: relative;
+  flex: none;
+  width: 2.75rem;
+  height: 1.625rem;
+  padding: 0;
+  border: 1px solid var(--field-line);
+  border-radius: 999px;
+  background: var(--field-active);
+  cursor: pointer;
+}
+.settings__switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  inset-inline-start: 2px;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--field-ink-soft);
+  transition: inset-inline-start 0.15s;
+}
+.settings__switch[aria-checked='true'] {
+  background: var(--field-query);
+  border-color: var(--field-query);
+}
+/* The knob takes the panel's own colour: white on dark blue, dark on light in the dark theme. */
+.settings__switch[aria-checked='true']::after {
+  inset-inline-start: calc(100% - 1.25rem - 2px);
+  background: var(--field-list);
+}
+.settings__switch[aria-disabled='true'] {
+  cursor: progress;
+  opacity: 0.6;
+}
+.settings__switch[aria-busy='true'] {
+  opacity: 1;
+}
+.settings__switch:focus-visible {
+  outline: 2px solid var(--field-query);
+  outline-offset: 2px;
+}
+.settings__note {
+  margin: 0.35rem 0.6rem 0.25rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--field-ink-soft);
+}
+.settings__note:empty {
+  margin: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings__switch::after {
+    transition: none;
+  }
+}
+
+/* 19 languages: the list scrolls within the window, not the page. */
+.settings__list {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: min(20rem, 60vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.settings__list:focus {
+  outline: none;
+}
+.settings__list:focus-visible .settings__option--active {
+  outline: 2px solid var(--field-query);
+  outline-offset: -2px;
+}
+.settings__option {
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.settings__option--active {
+  background: var(--field-active);
+}
+.settings__option[aria-selected='true'] {
+  font-weight: 600;
+}

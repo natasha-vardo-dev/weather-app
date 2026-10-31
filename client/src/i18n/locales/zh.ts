@@ -12,6 +12,7 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
   dataBy: '天气数据来源：',
   offline: '您已离线。显示的是上次加载的预报，可能已过时。',
   outdated: (time) => `预报最后更新：${time}`,
+  crash: { title: '出了点问题', text: '无法显示此页面。请刷新页面，或在上方搜索其他地点。', reload: '刷新页面' },
   home: {
     title: '你要去的地方天气如何？',
     text: (days) => `搜索城市，查看当前天气和未来${num(days)}天的预报。`,

@@ -1,0 +1,144 @@
+:root {
+  --ink: #ffffff;
+  --ink-soft: #dae7f5;
+  --surface: rgba(255, 255, 255, 0.15);
+  --line: rgba(255, 255, 255, 0.26);
+  --cool: #cfe9ff;
+  --rain: #ffffff;
+  --sun: #ffd36b;
+  --warm: #f0b25a;
+  --danger: #ffdcd8;
+  --sky: #3468a0;
+  --field: #ffffff;
+  /* Notices above a page (old forecast, offline): darker than the page, not lighter. White
+     text on 15% white over the blue was 4.2:1, below AA; on this it is 6.9:1. */
+  --notice: rgba(0, 0, 0, 0.12);
+  --field-ink: #0f1d33;
+  --field-query: #1d4f86;
+  /* 4.85:1 on a highlighted row (--field-active), the darkest place it sits; #5a6b82 was
+     4.26 there (found by axe: the country of the highlighted search suggestion). */
+  --field-ink-soft: #52627a;
+  --field-line: rgba(15, 29, 51, 0.16);
+  /* One step darker than the panels, so a hovered or chosen row shows on them. */
+  --field-active: #d9e5f2;
+  --field-danger: #8f2219;
+  /* Pop-up panels (settings, search suggestions): pale blue, not white, which glared on
+     the blue page. Soft text on it is 5.3:1. */
+  --field-list: #e8eff7;
+  /* The logo's tile: darker than the blue page. */
+  --brand-tile: #1d4f86;
+  /* The logo's name at rest, a step below white so hover can light it up. */
+  --brand-ink: var(--ink-soft);
+  color-scheme: dark;
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-optical-sizing: auto;
+  color: var(--ink);
+  background: var(--sky);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e8eef6;
+    --ink-soft: #9fb0c6;
+    --surface: rgba(255, 255, 255, 0.06);
+    --line: rgba(232, 238, 246, 0.14);
+    --cool: #4f86c6;
+    --rain: #7fb0e6;
+    --sun: #f5c451;
+    --warm: #e39a35;
+    --sky: #1e2a40;
+    /* Lighter than the dark page; at the page's 6% surface it hardly stood out. */
+    --notice: rgba(255, 255, 255, 0.1);
+    --danger: #f08a80;
+    --field: var(--surface);
+    --field-ink: var(--ink);
+    --field-query: var(--ink);
+    /* Lighter than the page's soft text: on a highlighted row that was 4.37:1, this is 4.78. */
+    --field-ink-soft: #a8b8cc;
+    --field-line: var(--line);
+    --field-active: var(--line);
+    --field-danger: var(--danger);
+    --field-list: var(--sky);
+    /* The app icon's own blue, lighter than the dark page. */
+    --brand-tile: #3468a0;
+    /* Brighter than the dark theme's soft text, which left the name dull. */
+    --brand-ink: #d6dfeb;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Always reserve the scrollbar's space, so content width does not jump when a page
+   briefly gets shorter or longer than the window. */
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+:focus-visible {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
+
+.page {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 2rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.page__main {
+  flex: 1;
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0 1.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--notice);
+  font-size: 0.9rem;
+}
+
+.notice__icon {
+  flex: none;
+  /* Centred on the first line of text. */
+  margin-top: 0.15em;
+  fill: none;
+  stroke: var(--sun);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.page__footer {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.page__footer a {
+  color: inherit;
+}

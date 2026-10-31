@@ -11,6 +11,11 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
   dataBy: 'Dane pogodowe:',
   offline: 'Jesteś offline. Pokazujemy ostatnio pobraną prognozę, może być nieaktualna.',
   outdated: (time) => `Ostatnia aktualizacja prognozy: ${time}.`,
+  crash: {
+    title: 'Coś poszło nie tak',
+    text: 'Nie udało się wyświetlić tej strony. Odśwież ją albo wyszukaj inne miejsce powyżej.',
+    reload: 'Odśwież stronę',
+  },
   home: {
     title: 'Jaka pogoda czeka cię u celu?',
     text: (days) =>

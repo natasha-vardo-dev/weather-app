@@ -51,7 +51,9 @@ describe('GET /api/forecast', () => {
     try {
       const { app } = setup();
       const fresh = await request(app).get('/api/air-quality?lat=52.23&lon=21.01');
-      vi.setSystemTime(Date.now() + 65 * 60 * 1000); // past the hour's TTL, within the 10 minutes after it
+      // Past the TTL (an hour, up to 10% less at random: 54–60 minutes) and within the
+      // 10 minutes after it, whichever TTL came up: 65 failed when it came up under 55.
+      vi.setSystemTime(Date.now() + 62 * 60 * 1000);
       const stale = await request(app).get('/api/air-quality?lat=52.23&lon=21.01');
       expect(fresh.headers['cache-control']).toBe('public, max-age=900');
       expect(stale.headers['cache-control']).toBe('public, max-age=60');

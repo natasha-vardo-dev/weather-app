@@ -22,6 +22,12 @@ updates:
     labels: [dependencies]
     commit-message:
       prefix: deps
+    ignore:
+      # Types of the Node version we run (.nvmrc, 24): a major is a Node upgrade, done with
+      # .nvmrc once a year. Newer types would describe APIs Node 24 does not have, and
+      # TypeScript would not warn when we used them.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
       # Firebase on its own: its tests use a fake, so CI cannot tell whether push still
       # works. Check it live (turn notifications on and off) before merging; firebase-admin

@@ -2,6 +2,7 @@ import { ERROR_CODES, ZodError, type ApiErrorBody, type ErrorCode } from '@weath
 import cors from 'cors';
 import { isIP } from 'node:net';
 import express, { type ErrorRequestHandler } from 'express';
+import helmet from 'helmet';
 import { AppError, ProviderError } from './errors.js';
 import { requestLogger, silentLogger, type Logger } from './observability/logger.js';
 import type { Metrics } from './observability/metrics.js';
@@ -12,6 +13,7 @@ import { placesRouter } from './routes/places.js';
 import { notifyRouter, pushRouter } from './routes/push.js';
 import type { AlertBroadcastSource, PushSender } from './providers/types.js';
 import type { AlertNotifier } from './services/alertNotifier.js';
+import { clientErrorsRouter } from './routes/clientErrors.js';
 import { weatherRouter } from './routes/weather.js';
 import type { AlertService } from './services/alertService.js';
 import type { ApproximateLocationService } from './services/approximateService.js';
@@ -61,6 +63,11 @@ export interface AppOptions {
   proxySecret?: string;
   /** Shown by /api/health, to tell which build is running (Render sets RENDER_GIT_COMMIT). */
   version?: string;
+  /**
+   * True once the server is shutting down (shutdown.ts): health answers 503, so the host stops
+   * routing here, and every answer closes its connection instead of keeping it alive.
+   */
+  draining?: () => boolean;
 }
 
 export function createApp(service: WeatherService, options: AppOptions = {}) {
@@ -77,13 +84,21 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
     metricsSecret,
     proxySecret,
     version,
+    draining = () => false,
   } = options;
   const app = express();
   const startedAt = Date.now();
 
   app.disable('x-powered-by');
+  // Security headers for the API's own answers (nosniff, no framing, HSTS, a CSP that allows
+  // nothing: they are JSON, never pages). The site's headers are in client/vercel.json.
+  app.use(helmet());
   app.set('trust proxy', trustProxy);
   app.use(requestLogger(logger));
+  app.use((_req, res, next) => {
+    if (draining()) res.set('Connection', 'close');
+    next();
+  });
   if (metrics) {
     app.use((_req, res, next) => {
       res.on('finish', () => metrics.request(res.statusCode));
@@ -98,6 +113,10 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
   // Before the rate limits, so checks never use up anyone's allowance.
   app.get('/api/health', (_req, res) => {
     res.set('Cache-Control', 'no-store');
+    if (draining()) {
+      res.status(503).json({ status: 'draining', version });
+      return;
+    }
     res.json({ status: 'ok', uptimeSeconds: Math.round((Date.now() - startedAt) / 1000), version });
   });
 
@@ -150,9 +169,11 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
     app.get('/api/locations', limit.search);
     app.get('/api/forecasts', limit.forecasts);
     app.use('/api/places', limit.places);
+    app.use('/api/client-errors', limit.clientErrors);
   }
 
   app.use('/api', weatherRouter(service, logger));
+  app.use('/api', clientErrorsRouter(logger, metrics));
   if (places) app.use('/api', placesRouter(places, approximate));
   if (alerts) app.use('/api', alertsRouter(alerts));
   if (push) {

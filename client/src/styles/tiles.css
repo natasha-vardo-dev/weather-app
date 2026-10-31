@@ -1,0 +1,149 @@
+/* The details as tiles below the 10-day forecast: four in a row, two on a phone. Outline
+   only, no fill: a fill on the blue background drops the soft text below 4.5:1. */
+.tiles {
+  margin: 2rem 0 0;
+}
+.tiles__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+@media (max-width: 640px) {
+  .tiles__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.tiles__grid > li {
+  display: flex;
+}
+.tile {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+  min-height: 6.5rem;
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+.tile__label {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  padding-inline-end: 1.25rem;
+}
+.tile__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+.tile__note {
+  margin-top: auto;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+/* A word or unit after the number ("5 Moderate", "1009 hPa"): smaller and soft. */
+.tile__unit {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+/* UV on the WHO scale: a dot on a bar in the scale's colours, filling from the inline start. */
+.uvbar {
+  position: relative;
+  display: block;
+  height: 5px;
+  margin: 0.2rem 0 0.45rem;
+  border-radius: 3px;
+  background: linear-gradient(to right, #4eb400 0%, #f7e400 30%, #f85900 55%, #d8001d 80%, #8f6ae0 100%);
+}
+[dir='rtl'] .uvbar {
+  background: linear-gradient(to left, #4eb400 0%, #f7e400 30%, #f85900 55%, #d8001d 80%, #8f6ae0 100%);
+}
+.uvbar__dot {
+  position: absolute;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--sky);
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%);
+}
+[dir='rtl'] .uvbar__dot {
+  transform: translate(50%, -50%);
+}
+.tile__arrow {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tile__chevron {
+  position: absolute;
+  top: 0.8rem;
+  inset-inline-end: 0.75rem;
+  color: var(--ink-soft);
+  transition: transform 0.15s;
+}
+.tile--button {
+  cursor: pointer;
+}
+/* Hover lightens the tile, so its soft texts turn white as on the open tile: on the lighter
+   fill the soft colour was 4.1:1, below 4.5 (found by axe in CI). Only where there is a real
+   pointer: on a touch screen the hover state sticks to the tile last under the finger. */
+@media (hover: hover) {
+  .tile--button:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .tile--button:hover :is(.tile__label, .tile__note, .tile__unit, .tile__chevron) {
+    color: var(--ink);
+  }
+}
+.tile--button:focus-visible {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
+/* The open tile: lighter fill and outline, so it is clear which one the panel shows. Its
+   soft texts turn white: on the lighter fill the soft colour would fall below 4.5:1. */
+.tile--button[aria-expanded='true'] {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+.tile--button[aria-expanded='true'] :is(.tile__label, .tile__note, .tile__unit, .tile__chevron) {
+  color: var(--ink);
+}
+.tile--button[aria-expanded='true'] .tile__chevron {
+  transform: rotate(180deg);
+}
+
+.detail-panel {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
+.detail-panel__title {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile__chevron {
+    transition: none;
+  }
+}

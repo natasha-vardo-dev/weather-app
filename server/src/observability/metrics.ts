@@ -180,6 +180,8 @@ export interface MetricsSnapshot {
   uptimeSeconds: number;
   requests: Record<'2xx' | '3xx' | '4xx' | '5xx', number>;
   rateLimited: number;
+  /** Error reports from browsers (/api/client-errors), since the start. */
+  clientErrors: number;
   providers: Record<string, ProviderUsage>;
   caches: Record<string, CacheStats & { hitRate: number | null }>;
 }
@@ -194,6 +196,7 @@ export class Metrics {
   private readonly caches = new Map<string, () => CacheStats>();
   private readonly requests = { '2xx': 0, '3xx': 0, '4xx': 0, '5xx': 0 };
   private rateLimitedCount = 0;
+  private clientErrorCount = 0;
   private readonly startedAt: number;
 
   constructor(
@@ -236,6 +239,10 @@ export class Metrics {
     this.rateLimitedCount += 1;
   }
 
+  clientError(): void {
+    this.clientErrorCount += 1;
+  }
+
   snapshot(): MetricsSnapshot {
     const now = this.now();
     const caches: MetricsSnapshot['caches'] = {};
@@ -254,6 +261,7 @@ export class Metrics {
       uptimeSeconds: Math.round((now - this.startedAt) / 1000),
       requests: { ...this.requests },
       rateLimited: this.rateLimitedCount,
+      clientErrors: this.clientErrorCount,
       providers,
       caches,
     };
