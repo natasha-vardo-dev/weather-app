@@ -11,6 +11,11 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
   dataBy: 'Data o počasí:',
   offline: 'Jste offline. Zobrazuje se naposledy načtená předpověď, může být zastaralá.',
   outdated: (time) => `Poslední aktualizace předpovědi: ${time}.`,
+  crash: {
+    title: 'Něco se pokazilo',
+    text: 'Tuto stránku se nepodařilo zobrazit. Načtěte ji znovu nebo nahoře vyhledejte jiné místo.',
+    reload: 'Načíst stránku znovu',
+  },
   home: {
     title: 'Jaké bude počasí tam, kam jedete?',
     text: (days) =>

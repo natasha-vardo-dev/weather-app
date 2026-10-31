@@ -12,6 +12,7 @@ import { placesRouter } from './routes/places.js';
 import { notifyRouter, pushRouter } from './routes/push.js';
 import type { AlertBroadcastSource, PushSender } from './providers/types.js';
 import type { AlertNotifier } from './services/alertNotifier.js';
+import { clientErrorsRouter } from './routes/clientErrors.js';
 import { weatherRouter } from './routes/weather.js';
 import type { AlertService } from './services/alertService.js';
 import type { ApproximateLocationService } from './services/approximateService.js';
@@ -164,9 +165,11 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
     app.get('/api/locations', limit.search);
     app.get('/api/forecasts', limit.forecasts);
     app.use('/api/places', limit.places);
+    app.use('/api/client-errors', limit.clientErrors);
   }
 
   app.use('/api', weatherRouter(service, logger));
+  app.use('/api', clientErrorsRouter(logger, metrics));
   if (places) app.use('/api', placesRouter(places, approximate));
   if (alerts) app.use('/api', alertsRouter(alerts));
   if (push) {

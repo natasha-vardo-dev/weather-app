@@ -104,6 +104,25 @@ export const alertTopicsSchema = z.object({
   subscribe: z.boolean(),
 });
 
+/** What happened in the browser: a render that failed, or an error nothing caught. */
+export const CLIENT_ERROR_KINDS = ['render', 'error', 'rejection'] as const;
+
+/**
+ * POST /api/client-errors — an error from a user's browser, for the server log (there is no
+ * error-tracking service). Bounded: anyone can send it, and it ends up in the logs.
+ */
+export const clientErrorSchema = z.object({
+  kind: z.enum(CLIENT_ERROR_KINDS),
+  message: z.string().max(500),
+  stack: z.string().max(4000).optional(),
+  /** Which components a render error happened in (React gives it). */
+  componentStack: z.string().max(2000).optional(),
+  /** The page, with places replaced by a placeholder: no coordinates in the logs. */
+  path: z.string().max(200),
+  /** The build that failed: the service worker may keep an old one in use for a while. */
+  release: z.string().max(40).optional(),
+});
+
 /** Parsed (output) types, used by the server after validation. */
 export type LocationsQuery = z.infer<typeof locationsQuerySchema>;
 export type ForecastQuery = z.infer<typeof forecastQuerySchema>;

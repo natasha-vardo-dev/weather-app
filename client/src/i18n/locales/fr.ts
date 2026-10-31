@@ -11,6 +11,11 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
   dataBy: 'Données météo fournies par',
   offline: 'Vous êtes hors ligne. Dernières prévisions chargées affichées, elles peuvent être dépassées.',
   outdated: (time) => `Dernière mise à jour de la prévision : ${time}.`,
+  crash: {
+    title: "Une erreur s'est produite",
+    text: "Impossible d'afficher cette page. Rechargez-la ou cherchez un autre lieu ci-dessus.",
+    reload: 'Recharger la page',
+  },
   home: {
     title: 'Quel temps fera-t-il là où vous allez ?',
     text: (days) => `Recherchez une ville pour voir la météo actuelle et les prévisions sur ${num(days)} jours.`,

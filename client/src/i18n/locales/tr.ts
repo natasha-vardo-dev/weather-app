@@ -11,6 +11,11 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
   dataBy: 'Hava durumu verileri:',
   offline: 'Çevrimdışısınız. Son yüklenen tahmin gösteriliyor, güncel olmayabilir.',
   outdated: (time) => `Tahminin son güncellenmesi: ${time}.`,
+  crash: {
+    title: 'Bir şeyler ters gitti',
+    text: 'Bu sayfa gösterilemedi. Sayfayı yenile veya yukarıdan başka bir yer ara.',
+    reload: 'Sayfayı yenile',
+  },
   home: {
     title: 'Gideceğin yerde hava nasıl?',
     text: (days) => `Güncel hava durumunu ve ${num(days)} günlük tahmini görmek için bir şehir ara.`,

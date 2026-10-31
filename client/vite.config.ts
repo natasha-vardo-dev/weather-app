@@ -11,6 +11,10 @@ const proxy = {
 const DAY_SECONDS = 24 * 60 * 60;
 
 export default defineConfig({
+  define: {
+    // Which build sent an error report (errorReporting.ts): Vercel builds from a commit.
+    __RELEASE__: JSON.stringify(process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'dev'),
+  },
   plugins: [
     react(),
     VitePWA({

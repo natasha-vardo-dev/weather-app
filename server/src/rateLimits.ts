@@ -19,9 +19,14 @@ export interface RateLimits {
   search: number;
   /** /places/*: Nominatim allows one request per second for the whole server, ipwho.is a low volume. */
   places: number;
+  /**
+   * Error reports from browsers: a page in trouble may fail again and again, and each report
+   * is a log line. Ten a minute tells what broke; more only floods the logs.
+   */
+  clientErrors: number;
 }
 
-export const DEFAULT_RATE_LIMITS: RateLimits = { api: 300, forecasts: 30, search: 60, places: 10 };
+export const DEFAULT_RATE_LIMITS: RateLimits = { api: 300, forecasts: 30, search: 60, places: 10, clientErrors: 10 };
 
 /**
  * Per-IP limits, in memory (one instance; with several, a Redis store shares the counts).
@@ -56,5 +61,6 @@ export function rateLimiters(limits: RateLimits, logger: Logger, metrics?: Metri
     forecasts: make(limits.forecasts, 'forecasts'),
     search: make(limits.search, 'search'),
     places: make(limits.places, 'places'),
+    clientErrors: make(limits.clientErrors, 'clientErrors'),
   };
 }

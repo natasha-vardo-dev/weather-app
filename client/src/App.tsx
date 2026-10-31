@@ -1,4 +1,5 @@
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { SearchBar } from './components/SearchBar';
 import { SettingsMenu } from './components/SettingsMenu';
 import { NoSignalIcon } from './components/NoticeIcons';
@@ -53,11 +54,15 @@ export function App() {
             </p>
           )}
         </div>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/weather/:where" element={<WeatherPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
+        {/* A page that fails to render shows a message, not a blank screen; the header (logo,
+            search, settings) stays usable, and the next page renders again. */}
+        <ErrorBoundary resetKey={pathname} fallback={<CrashMessage />}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/weather/:where" element={<WeatherPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </ErrorBoundary>
       </main>
 
       <footer className="page__footer">
@@ -72,6 +77,21 @@ export function App() {
           © OpenStreetMap
         </a>
       </footer>
+    </div>
+  );
+}
+
+function CrashMessage() {
+  const { t } = useI18n();
+  return (
+    <div className="message" role="alert">
+      <p>
+        <strong>{t.crash.title}</strong>
+      </p>
+      <p>{t.crash.text}</p>
+      <button type="button" onClick={() => window.location.reload()}>
+        {t.crash.reload}
+      </button>
     </div>
   );
 }

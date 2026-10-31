@@ -11,6 +11,11 @@ export const pt: MessagesFactory = ({ num, deg, plural }) => ({
   dataBy: 'Dados meteorológicos de',
   offline: 'Você está offline. Mostrando a última previsão carregada, que pode estar desatualizada.',
   outdated: (time) => `Última atualização da previsão: ${time}.`,
+  crash: {
+    title: 'Algo deu errado',
+    text: 'Não foi possível mostrar esta página. Recarregue-a ou pesquise outro lugar acima.',
+    reload: 'Recarregar a página',
+  },
   home: {
     title: 'Como está o tempo para onde você vai?',
     text: (days) => `Pesquise uma cidade para ver o tempo atual e a previsão de ${num(days)} dias.`,
