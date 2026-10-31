@@ -21,13 +21,16 @@ export function renderWithApp(
   localStorage.setItem('language', language);
   localStorage.setItem('temperature-unit', unit);
   const user = userEvent.setup();
-  const result = render(
-    <I18nProvider>
-      <UnitProvider>
-        <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
-      </UnitProvider>
-    </I18nProvider>,
-    options,
-  );
+  // As a wrapper, so `rerender` (new props from a test) keeps the providers.
+  const result = render(ui, {
+    wrapper: ({ children }) => (
+      <I18nProvider>
+        <UnitProvider>
+          <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+        </UnitProvider>
+      </I18nProvider>
+    ),
+    ...options,
+  });
   return { user, ...result };
 }

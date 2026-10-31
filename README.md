@@ -135,5 +135,5 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 ## What I would do next
 
 - [Wind unit setting; accounts so favourites sync between devices]
-- [More e2e scenarios (geolocation, offline, notifications); the React Compiler and its lint rules]
+- [More e2e scenarios (geolocation, offline, notifications); the React Compiler itself (its lint rules are on)]
 - [Redis cache and rate limiting, monitoring]

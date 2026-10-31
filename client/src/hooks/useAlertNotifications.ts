@@ -44,8 +44,12 @@ export function useAlertNotifications(place: Omit<AlertSubscription, 'areas' | k
   const [status, setStatus] = useState<PushAvailability>(availability);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<PushFailure | null>(null);
+  // Read after a change has applied, which may be after a language switch: the latest texts.
+  // Kept up to date in an effect, not written during render.
   const strings = useRef({ t, language, locale });
-  strings.current = { t, language, locale };
+  useEffect(() => {
+    strings.current = { t, language, locale };
+  });
   // Quick clicks through the options must end on the last one chosen.
   const [run] = useState(() =>
     latestOnly({

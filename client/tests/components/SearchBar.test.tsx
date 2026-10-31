@@ -37,6 +37,25 @@ describe('SearchBar', () => {
     expect(searchLocations).toHaveBeenCalledWith('warsaw', expect.objectContaining({ language: 'en' }));
   });
 
+  it("doesn't show the last search's cities while the next one loads", async () => {
+    searchLocations.mockResolvedValueOnce([warsaw, warsawSuburb]);
+    const { user, input, onSelect } = setup();
+    await user.type(input, 'warsaw');
+    await screen.findAllByRole('option');
+    await user.keyboard('{ArrowDown}{Enter}');
+    expect(onSelect).toHaveBeenCalledWith(warsawSuburb);
+
+    // The cleared field settles (the debounce), then the next search hangs (a slow server):
+    // no old list, no old highlight to press Enter on.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    searchLocations.mockReturnValueOnce(new Promise(() => {}));
+    await user.type(input, 'krak');
+    expect(await screen.findByText('Searching…')).toBeInTheDocument();
+    expect(screen.queryAllByRole('option')).toHaveLength(0);
+    await user.keyboard('{Enter}');
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
   it('chooses with the arrow keys and Enter, then clears the field', async () => {
     searchLocations.mockResolvedValue([warsaw, krakow]);
     const { user, input, onSelect } = setup();

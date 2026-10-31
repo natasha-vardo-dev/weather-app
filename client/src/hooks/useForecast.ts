@@ -14,6 +14,8 @@ export interface ForecastError {
 interface State {
   /** Which coordinates the forecast and error belong to. */
   key: string | null;
+  /** Which request (coordinates and attempt) settled last: loading until it is the current one. */
+  settled: string | null;
   forecast: Forecast | null;
   error: ForecastError | null;
 }
@@ -54,9 +56,9 @@ function toError(err: unknown): ForecastError {
  */
 export function useForecast(latitude: number | null, longitude: number | null, { batch = false } = {}) {
   const key = latitude === null || longitude === null ? null : `${latitude},${longitude}`;
-  const [state, setState] = useState<State>({ key: null, forecast: null, error: null });
-  const [loading, setLoading] = useState(false);
+  const [state, setState] = useState<State>({ key: null, settled: null, forecast: null, error: null });
   const [attempt, setAttempt] = useState(0);
+  const request = key === null ? null : `${key}#${attempt}`;
 
   useEffect(() => {
     if (latitude === null || longitude === null) return;
@@ -64,7 +66,7 @@ export function useForecast(latitude: number | null, longitude: number | null, {
     // The request is shared with other components, so it is not aborted on unmount;
     // a late answer is just ignored.
     let cancelled = false;
-    setLoading(true);
+    const settled = `${requestKey}#${attempt}`;
     // Out of a batch its tile may have queued it in this same render.
     if (!batch) forecasts.sendAlone(latitude, longitude);
     forecastCache
@@ -72,13 +74,10 @@ export function useForecast(latitude: number | null, longitude: number | null, {
         batch ? forecasts.getForecast(latitude, longitude) : api.getForecast(latitude, longitude),
       )
       .then((forecast) => {
-        if (!cancelled) setState({ key: requestKey, forecast, error: null });
+        if (!cancelled) setState({ key: requestKey, settled, forecast, error: null });
       })
       .catch((err: unknown) => {
-        if (!cancelled) setState({ key: requestKey, forecast: null, error: toError(err) });
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setState({ key: requestKey, settled, forecast: null, error: toError(err) });
       });
     return () => {
       cancelled = true;
@@ -91,6 +90,8 @@ export function useForecast(latitude: number | null, longitude: number | null, {
   // A forecast already in the cache is returned on the very first render, so switching
   // to a loaded place shows it at once instead of a loading state.
   const isCurrent = state.key === key;
+  // Worked out, not flagged in the effect (that rendered every request twice).
+  const loading = request !== null && state.settled !== request;
   const cached = key ? (forecastCache.get(key) ?? null) : null;
   const forecast = isCurrent ? (state.forecast ?? cached) : cached;
   useReportSaved(isSavedValue(forecast));

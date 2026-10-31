@@ -1,19 +1,9 @@
 import { FORECAST_OUTDATED_MINUTES, forecastAgeMinutes, placeTimeToInstant, type Forecast } from '@weather/shared';
 import { formatAlertTime } from '../alertTime';
-import { useEffect, useState } from 'react';
+import { useNow } from '../hooks/useNow';
 import { useOffline } from '../hooks/useOffline';
 import { useI18n } from '../i18n/I18nProvider';
 import { ClockIcon } from './NoticeIcons';
-
-/** Now, updated every minute: a page left open grows old without any new render. */
-function useMinuteClock(): Date {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(timer);
-  }, []);
-  return now;
-}
 
 /**
  * Says the city's forecast is old, with the time of its data: the server answers with the
@@ -26,7 +16,8 @@ function useMinuteClock(): Date {
 export function OutdatedNotice({ forecast }: { forecast: Forecast | null }) {
   const { t, locale } = useI18n();
   const offline = useOffline();
-  const now = useMinuteClock();
+  // Every minute: a page left open grows old without any new render.
+  const now = useNow();
   const age = forecast ? forecastAgeMinutes(forecast.current.time, forecast.timezone, now) : 0;
   // The data's own instant, not one rebuilt from the age: that is rounded to the minute, and
   // with the seconds of now it showed 14:14 for 14:15 half the time. (Found by roborev.)
