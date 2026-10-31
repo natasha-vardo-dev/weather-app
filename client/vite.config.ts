@@ -3,12 +3,23 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { splitForecastBatch } from './src/sw/splitForecastBatch.ts';
+import vercel from './vercel.json' with { type: 'json' };
 
 const proxy = {
   '/api': 'http://localhost:3001',
 };
 
 const DAY_SECONDS = 24 * 60 * 60;
+
+/**
+ * The security headers Vercel sends (vercel.json, the one place they are written), sent by
+ * `vite preview` too: the end-to-end tests run on it and fail on any console error, which a
+ * Content-Security-Policy violation is, so every scenario checks the policy. Not in
+ * `npm run dev`: its hot reloading needs inline scripts and a websocket the policy forbids.
+ */
+const securityHeaders = Object.fromEntries(
+  vercel.headers.find((rule) => rule.source === '/(.*)')!.headers.map(({ key, value }) => [key, value]),
+);
 
 export default defineConfig({
   define: {
@@ -109,7 +120,7 @@ export default defineConfig({
   // In development the API runs separately; the proxy keeps URLs identical to production,
   // where vercel.json rewrites /api to the backend.
   server: { proxy },
-  preview: { proxy },
+  preview: { proxy, headers: securityHeaders },
   // Logic tests run in Node; component tests (tests/components) in jsdom, as two Vitest
   // projects (environmentMatchGlobs, which did this by path, is gone since Vitest 3).
   // Playwright's end-to-end tests (e2e/) are run by Playwright, not Vitest.

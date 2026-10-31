@@ -2,6 +2,7 @@ import { ERROR_CODES, ZodError, type ApiErrorBody, type ErrorCode } from '@weath
 import cors from 'cors';
 import { isIP } from 'node:net';
 import express, { type ErrorRequestHandler } from 'express';
+import helmet from 'helmet';
 import { AppError, ProviderError } from './errors.js';
 import { requestLogger, silentLogger, type Logger } from './observability/logger.js';
 import type { Metrics } from './observability/metrics.js';
@@ -89,6 +90,9 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
   const startedAt = Date.now();
 
   app.disable('x-powered-by');
+  // Security headers for the API's own answers (nosniff, no framing, HSTS, a CSP that allows
+  // nothing: they are JSON, never pages). The site's headers are in client/vercel.json.
+  app.use(helmet());
   app.set('trust proxy', trustProxy);
   app.use(requestLogger(logger));
   app.use((_req, res, next) => {
