@@ -1,7 +1,9 @@
 /// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react';
+import { API_PREFIX } from '@weather/shared';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { deleteOldApiCaches } from './src/sw/deleteOldApiCaches.ts';
 import { splitForecastBatch } from './src/sw/splitForecastBatch.ts';
 import vercel from './vercel.json' with { type: 'json' };
 
@@ -10,6 +12,9 @@ const proxy = {
 };
 
 const DAY_SECONDS = 24 * 60 * 60;
+
+/** The service worker's cache of API answers, one per API version: "api-v1". */
+const API_CACHE = `api-${API_PREFIX.split('/').pop()}`;
 
 /**
  * The security headers Vercel sends (vercel.json, the one place they are written), sent by
@@ -47,6 +52,13 @@ export default defineConfig({
         background_color: '#3468a0',
       },
       workbox: {
+        // A new worker takes over at once, so the next page load runs the new build. Without
+        // these (registerType alone sets them only with the plugin's virtual register module,
+        // not with injectRegister: 'script-defer') it waited until every tab was closed: an
+        // installed app that stays open, or one tab reloaded, kept the old code (and the old
+        // API version it calls) for good. A page already open keeps its old code until reloaded.
+        skipWaiting: true,
+        clientsClaim: true,
         // The app shell is precached; any page URL opens it, as vercel.json does online.
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         // Push notifications about weather warnings (public/push-sw.js).
@@ -59,11 +71,14 @@ export default defineConfig({
             // or stalls: a working network always wins, so the API's own cache rules stay in
             // charge. Error responses (502, 404) are returned but never stored. A saved copy is
             // marked with a header, so the page can say it may be out of date (api/savedResponses.ts).
+            // Any API version (serialized into sw.js, so a literal, not API_PREFIX): a page still
+            // on the old code asks the old one, under its own URLs.
             urlPattern: ({ url, sameOrigin }) =>
-              sameOrigin && /^\/api\/(forecasts?|air-quality|locations\/\d+)$/.test(url.pathname),
+              sameOrigin && /^\/api\/v\d+\/(forecasts?|air-quality|locations\/\d+)$/.test(url.pathname),
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'api',
+              // Named after the version (api-v1), so a new one starts empty and the old is deleted.
+              cacheName: API_CACHE,
               // A stalled request (weak signal) would otherwise hang until the browser gives up,
               // tens of seconds of skeleton. After this the saved copy is shown, if there is one
               // (without one Workbox keeps waiting); a late answer is still stored for next time.
@@ -81,6 +96,8 @@ export default defineConfig({
                 },
                 // Each forecast of a stored batch also under its city's own /forecast URL.
                 { cacheDidUpdate: splitForecastBatch },
+                // The previous version's cache (and the unversioned 'api' of before), once this one is used.
+                { cacheDidUpdate: deleteOldApiCaches },
                 {
                   // Serialized into sw.js: no outside references, so the header name is a
                   // literal (SAVED_RESPONSE_HEADER).

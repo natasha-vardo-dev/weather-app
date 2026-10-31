@@ -25,7 +25,7 @@ async function times(n: number, send: () => request.Test) {
 describe('rate limits', () => {
   it('refuses requests over the limit with the API error body and RateLimit headers', async () => {
     const { app, metrics } = setup();
-    const results = await times(6, () => request(app).get('/api/forecast?lat=52.23&lon=21.01'));
+    const results = await times(6, () => request(app).get('/api/v1/forecast?lat=52.23&lon=21.01'));
 
     expect(results.slice(0, 5).map((r) => r.status)).toEqual([200, 200, 200, 200, 200]);
     const refused = results[5]!;
@@ -39,10 +39,10 @@ describe('rate limits', () => {
 
   it('limits search more tightly than the rest', async () => {
     const { app } = setup();
-    const results = await times(3, () => request(app).get('/api/locations?q=warsaw'));
+    const results = await times(3, () => request(app).get('/api/v1/locations?q=warsaw'));
     expect(results.map((r) => r.status)).toEqual([200, 200, 429]);
     // The general allowance is not used up: other endpoints still answer.
-    expect((await request(app).get('/api/forecast?lat=1&lon=1')).status).toBe(200);
+    expect((await request(app).get('/api/v1/forecast?lat=1&lon=1')).status).toBe(200);
   });
 
   it('never limits the health check', async () => {
@@ -53,10 +53,12 @@ describe('rate limits', () => {
 
   it('counts per user address behind the trusted proxy', async () => {
     const { app } = setup(1);
-    const from = (ip: string) => () => request(app).get('/api/locations?q=warsaw').set('X-Forwarded-For', ip);
+    const from = (ip: string) => () => request(app).get('/api/v1/locations?q=warsaw').set('X-Forwarded-For', ip);
     expect((await times(3, from('203.0.113.1'))).map((r) => r.status)).toEqual([200, 200, 429]);
     // Another user behind the same proxy has their own allowance.
-    expect((await request(app).get('/api/locations?q=warsaw').set('X-Forwarded-For', '203.0.113.2')).status).toBe(200);
+    expect((await request(app).get('/api/v1/locations?q=warsaw').set('X-Forwarded-For', '203.0.113.2')).status).toBe(
+      200,
+    );
   });
 
   it('ignores X-Forwarded-For when no proxy is trusted, so it cannot be used to dodge the limit', async () => {
@@ -64,7 +66,7 @@ describe('rate limits', () => {
     let n = 0;
     const spoofed = () =>
       request(app)
-        .get('/api/locations?q=warsaw')
+        .get('/api/v1/locations?q=warsaw')
         .set('X-Forwarded-For', `198.51.100.${(n += 1)}`);
     expect((await times(3, spoofed)).map((r) => r.status)).toEqual([200, 200, 429]);
   });
@@ -77,7 +79,7 @@ describe('rate limits', () => {
     let n = 0;
     // A script asking for ten new places each time.
     const batch = () =>
-      request(app).get(`/api/forecasts?places=${Array.from({ length: 10 }, () => `${(n += 1)},0`).join(';')}`);
+      request(app).get(`/api/v1/forecasts?places=${Array.from({ length: 10 }, () => `${(n += 1)},0`).join(';')}`);
 
     const results = await times(5, batch);
     expect(results.map((r) => r.status)).toEqual([200, 200, 200, 429, 429]);

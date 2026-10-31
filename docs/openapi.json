@@ -1,0 +1,572 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Weather API",
+    "version": "1",
+    "description": "The API between the weather app and its clients. Errors share one shape (ApiError). Generated from the zod schemas in @weather/shared; do not edit by hand."
+  },
+  "servers": [{ "url": "/api/v1" }],
+  "paths": {
+    "/locations": {
+      "get": {
+        "summary": "Search places by name",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "minLength": 2, "maxLength": 100 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "default": 5, "type": "integer", "minimum": 1, "maximum": 10 }
+          },
+          { "name": "lang", "in": "query", "required": false, "schema": { "type": "string", "pattern": "^[a-z]{2}$" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LocationsResponse" } } }
+          },
+          "default": {
+            "description": "Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          }
+        }
+      }
+    },
+    "/locations/{id}": {
+      "get": {
+        "summary": "A place by id, named in a language",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 0, "exclusiveMinimum": true, "maximum": 2147483647 }
+          },
+          { "name": "lang", "in": "query", "required": false, "schema": { "type": "string", "pattern": "^[a-z]{2}$" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Location" } } }
+          },
+          "default": {
+            "description": "Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          }
+        }
+      }
+    },
+    "/forecast": {
+      "get": {
+        "summary": "The forecast at a place",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "number", "minimum": -90, "maximum": 90 }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "number", "minimum": -180, "maximum": 180 }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": { "default": 10, "type": "integer", "minimum": 1, "maximum": 16 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Forecast" } } }
+          },
+          "default": {
+            "description": "Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          }
+        }
+      }
+    },
+    "/forecasts": {
+      "get": {
+        "summary": "Forecasts for several places",
+        "parameters": [
+          { "name": "places", "in": "query", "required": true, "schema": { "type": "string" } },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": { "default": 10, "type": "integer", "minimum": 1, "maximum": 16 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ForecastsResponse" } } }
+          },
+          "default": {
+            "description": "Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          }
+        }
+      }
+    },
+    "/air-quality": {
+      "get": {
+        "summary": "Current air quality at a place",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "number", "minimum": -90, "maximum": 90 }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "number", "minimum": -180, "maximum": 180 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AirQuality" } } }
+          },
+          "default": {
+            "description": "Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          }
+        }
+      }
+    },
+    "/places/reverse": {
+      "get": {
+        "summary": "The place at coordinates",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "number", "minimum": -90, "maximum": 90 }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "number", "minimum": -180, "maximum": 180 }
+          },
+          { "name": "lang", "in": "query", "required": false, "schema": { "type": "string", "pattern": "^[a-z]{2}$" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReversePlace" } } }
+          },
+          "default": {
+            "description": "Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          }
+        }
+      }
+    },
+    "/places/approximate": {
+      "get": {
+        "summary": "The user's city from their IP address",
+        "parameters": [
+          { "name": "lang", "in": "query", "required": false, "schema": { "type": "string", "pattern": "^[a-z]{2}$" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReversePlace" } } }
+          },
+          "default": {
+            "description": "Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          }
+        }
+      }
+    },
+    "/alerts": {
+      "get": {
+        "summary": "Official weather warnings at a place",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "number", "minimum": -90, "maximum": 90 }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "number", "minimum": -180, "maximum": 180 }
+          },
+          { "name": "lang", "in": "query", "required": false, "schema": { "type": "string", "pattern": "^[a-z]{2}$" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AlertsResponse" } } }
+          },
+          "default": {
+            "description": "Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          }
+        }
+      }
+    },
+    "/push/topics": {
+      "post": {
+        "summary": "Subscribe or unsubscribe a device's push token to warnings for a place",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": { "type": "string", "minLength": 20, "maxLength": 4096 },
+                  "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+                  "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+                  "group": { "type": "string", "enum": ["storm", "all"] },
+                  "level": { "type": "string", "enum": ["yellow", "orange", "red"] },
+                  "subscribe": { "type": "boolean" }
+                },
+                "required": ["token", "latitude", "longitude", "group", "level", "subscribe"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AlertTopicsResponse" } } }
+          },
+          "default": {
+            "description": "Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          }
+        }
+      }
+    },
+    "/client-errors": {
+      "post": {
+        "summary": "An error from a user's browser, for the server log",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "kind": { "type": "string", "enum": ["render", "error", "rejection"] },
+                  "message": { "type": "string", "maxLength": 500 },
+                  "stack": { "type": "string", "maxLength": 4000 },
+                  "componentStack": { "type": "string", "maxLength": 2000 },
+                  "path": { "type": "string", "maxLength": 200 },
+                  "release": { "type": "string", "maxLength": 40 }
+                },
+                "required": ["kind", "message", "path"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Logged" },
+          "default": {
+            "description": "Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Location": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "minimum": 0, "exclusiveMinimum": true, "maximum": 9007199254740991 },
+          "name": { "type": "string" },
+          "country": { "type": "string" },
+          "region": { "type": "string" },
+          "areas": { "type": "array", "items": { "type": "string" } },
+          "kind": { "type": "string", "enum": ["island"] },
+          "latitude": { "type": "number" },
+          "longitude": { "type": "number" },
+          "timezone": { "type": "string" }
+        },
+        "required": ["id", "name", "country", "latitude", "longitude"],
+        "additionalProperties": false
+      },
+      "LocationsResponse": {
+        "type": "object",
+        "properties": { "locations": { "type": "array", "items": { "$ref": "#/components/schemas/Location" } } },
+        "required": ["locations"],
+        "additionalProperties": false
+      },
+      "CurrentWeather": {
+        "type": "object",
+        "properties": {
+          "time": { "type": "string" },
+          "temperature": { "type": "number" },
+          "apparentTemperature": { "type": "number" },
+          "humidity": { "type": "number" },
+          "windSpeed": { "type": "number" },
+          "windGusts": { "nullable": true, "type": "number" },
+          "windDirection": { "nullable": true, "type": "number" },
+          "weatherCode": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
+          "isDay": { "type": "boolean" }
+        },
+        "required": ["time", "temperature", "apparentTemperature", "humidity", "windSpeed", "weatherCode", "isDay"],
+        "additionalProperties": false
+      },
+      "DailyForecast": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string" },
+          "weatherCode": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
+          "tempMax": { "type": "number" },
+          "tempMin": { "type": "number" },
+          "precipitationProbability": { "nullable": true, "type": "number" },
+          "sunrise": { "nullable": true, "type": "string" },
+          "sunset": { "nullable": true, "type": "string" }
+        },
+        "required": ["date", "weatherCode", "tempMax", "tempMin", "precipitationProbability"],
+        "additionalProperties": false
+      },
+      "HourlyForecast": {
+        "type": "object",
+        "properties": {
+          "time": { "type": "string" },
+          "temperature": { "type": "number" },
+          "humidity": { "type": "number" },
+          "windSpeed": { "type": "number" },
+          "windGusts": { "nullable": true, "type": "number" },
+          "weatherCode": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
+          "precipitationProbability": { "nullable": true, "type": "number" },
+          "precipitation": { "nullable": true, "type": "number" },
+          "uvIndex": { "nullable": true, "type": "number" },
+          "pressure": { "nullable": true, "type": "number" },
+          "visibility": { "nullable": true, "type": "number" },
+          "dewPoint": { "nullable": true, "type": "number" },
+          "isDay": { "type": "boolean" }
+        },
+        "required": [
+          "time",
+          "temperature",
+          "humidity",
+          "windSpeed",
+          "weatherCode",
+          "precipitationProbability",
+          "isDay"
+        ],
+        "additionalProperties": false
+      },
+      "Forecast": {
+        "type": "object",
+        "properties": {
+          "latitude": { "type": "number" },
+          "longitude": { "type": "number" },
+          "timezone": { "type": "string" },
+          "units": {
+            "type": "object",
+            "properties": {
+              "temperature": { "type": "string" },
+              "windSpeed": { "type": "string" },
+              "precipitation": { "type": "string" }
+            },
+            "required": ["temperature", "windSpeed"],
+            "additionalProperties": false
+          },
+          "current": { "$ref": "#/components/schemas/CurrentWeather" },
+          "yesterday": { "nullable": true, "allOf": [{ "$ref": "#/components/schemas/DailyForecast" }] },
+          "hourly": { "type": "array", "items": { "$ref": "#/components/schemas/HourlyForecast" } },
+          "daily": { "type": "array", "items": { "$ref": "#/components/schemas/DailyForecast" } }
+        },
+        "required": ["latitude", "longitude", "timezone", "units", "current", "yesterday", "hourly", "daily"],
+        "additionalProperties": false
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "INVALID_REQUEST",
+                  "PROVIDER_ERROR",
+                  "NOT_FOUND",
+                  "INTERNAL",
+                  "RATE_LIMITED",
+                  "SERVICE_BUSY",
+                  "NETWORK_ERROR"
+                ]
+              },
+              "message": { "type": "string" }
+            },
+            "required": ["code", "message"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["error"],
+        "additionalProperties": false
+      },
+      "ForecastsResponse": {
+        "type": "object",
+        "properties": {
+          "forecasts": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": { "forecast": { "$ref": "#/components/schemas/Forecast" } },
+                  "required": ["forecast"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_REQUEST",
+                            "PROVIDER_ERROR",
+                            "NOT_FOUND",
+                            "INTERNAL",
+                            "RATE_LIMITED",
+                            "SERVICE_BUSY",
+                            "NETWORK_ERROR"
+                          ]
+                        },
+                        "message": { "type": "string" }
+                      },
+                      "required": ["code", "message"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": ["forecasts"],
+        "additionalProperties": false
+      },
+      "AirQuality": {
+        "type": "object",
+        "properties": {
+          "time": { "type": "string" },
+          "timezone": { "type": "string" },
+          "europeanAqi": { "nullable": true, "type": "number" },
+          "usAqi": { "nullable": true, "type": "number" },
+          "pollutants": {
+            "type": "object",
+            "properties": {
+              "pm2_5": { "nullable": true, "type": "number" },
+              "pm10": { "nullable": true, "type": "number" },
+              "ozone": { "nullable": true, "type": "number" },
+              "nitrogenDioxide": { "nullable": true, "type": "number" }
+            },
+            "required": ["pm2_5", "pm10", "ozone", "nitrogenDioxide"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["time", "timezone", "europeanAqi", "usAqi", "pollutants"],
+        "additionalProperties": false
+      },
+      "ReversePlace": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "country": { "type": "string" },
+          "latitude": { "type": "number" },
+          "longitude": { "type": "number" },
+          "id": { "type": "integer", "minimum": 0, "exclusiveMinimum": true, "maximum": 9007199254740991 }
+        },
+        "required": ["name", "latitude", "longitude"],
+        "additionalProperties": false
+      },
+      "WeatherAlert": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "level": { "type": "string", "enum": ["yellow", "orange", "red"] },
+          "type": {
+            "type": "string",
+            "enum": [
+              "wind",
+              "snow-ice",
+              "thunderstorm",
+              "fog",
+              "high-temperature",
+              "low-temperature",
+              "coastal-event",
+              "forest-fire",
+              "avalanches",
+              "rain",
+              "flooding",
+              "rain-flood",
+              "marine-hazard",
+              "drought",
+              "other"
+            ]
+          },
+          "onset": { "type": "string" },
+          "expires": { "type": "string" },
+          "language": { "type": "string" },
+          "event": { "type": "string" },
+          "headline": { "type": "string" },
+          "description": { "type": "string" },
+          "instruction": { "type": "string" },
+          "sender": { "type": "string" },
+          "web": { "type": "string" }
+        },
+        "required": ["id", "level", "type", "onset", "expires", "language", "event"],
+        "additionalProperties": false
+      },
+      "AlertsResponse": {
+        "type": "object",
+        "properties": {
+          "alerts": { "type": "array", "items": { "$ref": "#/components/schemas/WeatherAlert" } },
+          "attribution": {
+            "nullable": true,
+            "type": "object",
+            "properties": { "name": { "type": "string" }, "url": { "type": "string" } },
+            "required": ["name", "url"],
+            "additionalProperties": false
+          },
+          "covered": { "type": "boolean" }
+        },
+        "required": ["alerts", "attribution"],
+        "additionalProperties": false
+      },
+      "AlertTopicsResponse": {
+        "type": "object",
+        "properties": { "areas": { "type": "array", "items": { "type": "string" } } },
+        "required": ["areas"],
+        "additionalProperties": false
+      }
+    }
+  }
+}

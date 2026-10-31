@@ -1,4 +1,4 @@
-import { ERROR_CODES, ZodError, type ApiErrorBody, type ErrorCode } from '@weather/shared';
+import { API_PREFIX, ERROR_CODES, ZodError, type ApiErrorBody, type ErrorCode } from '@weather/shared';
 import cors from 'cors';
 import { isIP } from 'node:net';
 import express, { type ErrorRequestHandler } from 'express';
@@ -19,6 +19,21 @@ import type { AlertService } from './services/alertService.js';
 import type { ApproximateLocationService } from './services/approximateService.js';
 import type { PlaceService } from './services/placeService.js';
 import type { WeatherService } from './services/weatherService.js';
+
+/** The API versions served (when a new one comes, the old prefix stays here until it is removed). */
+const SERVED_VERSIONS = new Set([API_PREFIX.slice('/api/'.length)]);
+
+/**
+ * Which API version a path asks for: a served one ("v1"), "none" for an /api path without
+ * one, "other" for any other version; operations paths have none. A fixed set of names, so
+ * requests for made-up versions (/api/v987654321/…) cannot grow the metrics without limit.
+ */
+function apiVersion(path: string): string | undefined {
+  if (!path.startsWith('/api/') || path === '/api/health' || path.startsWith('/api/internal/')) return undefined;
+  const version = /^\/api\/(v\d+)\//.exec(path)?.[1];
+  if (!version) return 'none';
+  return SERVED_VERSIONS.has(version) ? version : 'other';
+}
 
 function errorBody(code: ErrorCode, message: string): ApiErrorBody {
   return { error: { code, message } };
@@ -100,8 +115,11 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
     next();
   });
   if (metrics) {
-    app.use((_req, res, next) => {
-      res.on('finish', () => metrics.request(res.statusCode));
+    app.use((req, res, next) => {
+      // Read now: mounted routers rewrite req.url (and so req.path) before the answer is sent.
+      const version = apiVersion(req.path);
+      // Requests refused for coming past the proxy are not clients of a version: anyone can send them.
+      res.on('finish', () => metrics.request(res.statusCode, res.locals.unproxied ? undefined : version));
       next();
     });
   }
@@ -156,6 +174,7 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
         logger.warn({ path: req.path }, 'request without the proxy secret refused');
       }
       res.set('Cache-Control', 'no-store');
+      res.locals.unproxied = true;
       // As an unknown endpoint, like the internal ones without their secret.
       res.status(404).json(errorBody(ERROR_CODES.NOT_FOUND, 'Endpoint not found.'));
     });
@@ -166,20 +185,21 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
     // The scheduler's notify call is behind a secret and must never be refused.
     app.use('/api', (req, res, next) => (req.path.startsWith('/internal/') ? next() : limit.api(req, res, next)));
     // Search only, not /locations/:id (cached a day, one per saved city).
-    app.get('/api/locations', limit.search);
-    app.get('/api/forecasts', limit.forecasts);
-    app.use('/api/places', limit.places);
-    app.use('/api/client-errors', limit.clientErrors);
+    app.get(`${API_PREFIX}/locations`, limit.search);
+    app.get(`${API_PREFIX}/forecasts`, limit.forecasts);
+    app.use(`${API_PREFIX}/places`, limit.places);
+    app.use(`${API_PREFIX}/client-errors`, limit.clientErrors);
   }
 
-  app.use('/api', weatherRouter(service, logger));
-  app.use('/api', clientErrorsRouter(logger, metrics));
-  if (places) app.use('/api', placesRouter(places, approximate));
-  if (alerts) app.use('/api', alertsRouter(alerts));
-  if (push) {
-    app.use('/api', pushRouter(push.source, push.sender));
-    if (push.notifier && push.notifySecret) app.use('/api', notifyRouter(push.notifier, push.notifySecret));
-  }
+  // The contract, under its version (API_PREFIX). A breaking change gets a new prefix served
+  // next to this one until old clients are gone (counted per version in the metrics).
+  app.use(API_PREFIX, weatherRouter(service, logger));
+  app.use(API_PREFIX, clientErrorsRouter(logger, metrics));
+  if (places) app.use(API_PREFIX, placesRouter(places, approximate));
+  if (alerts) app.use(API_PREFIX, alertsRouter(alerts));
+  if (push) app.use(API_PREFIX, pushRouter(push.source, push.sender));
+  // Operations, not the contract: no version, like /api/health.
+  if (push?.notifier && push.notifySecret) app.use('/api', notifyRouter(push.notifier, push.notifySecret));
 
   app.use('/api', (_req, res) => {
     res.status(404).json(errorBody(ERROR_CODES.NOT_FOUND, 'Endpoint not found.'));

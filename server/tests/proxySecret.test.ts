@@ -7,7 +7,7 @@ import { WeatherService } from '../src/services/weatherService.js';
 import { createFakeProvider } from './fakeProvider.js';
 
 const SECRET = 'proxy-secret-1234567890';
-const FORECAST = '/api/forecast?lat=52.23&lon=21.01';
+const FORECAST = '/api/v1/forecast?lat=52.23&lon=21.01';
 
 function setup(proxySecret?: string) {
   return createApp(new WeatherService(createFakeProvider()), {
@@ -33,6 +33,16 @@ describe('proxy secret', () => {
     expect(missing.headers['cache-control']).toBe('no-store');
     expect((await request(app).get(FORECAST).set('X-Proxy-Secret', 'wrong')).status).toBe(404);
     expect((await request(app).get(FORECAST).set('X-Proxy-Secret', SECRET)).status).toBe(200);
+  });
+
+  it('does not count refused requests as clients of an API version', async () => {
+    const app = setup(SECRET);
+    await request(app).get(FORECAST);
+    await request(app).get(FORECAST).set('X-Proxy-Secret', SECRET);
+    const metrics = await request(app)
+      .get('/api/internal/metrics')
+      .set('Authorization', 'Bearer metrics-secret-1234567890');
+    expect(metrics.body.apiVersions).toEqual({ v1: 1 });
   });
 
   it('leaves health and the internal endpoints to their own rules', async () => {

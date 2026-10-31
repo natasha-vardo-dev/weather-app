@@ -1,7 +1,17 @@
-import { FORECAST_DEFAULT_DAYS } from './constants.js';
+import { API_PREFIX, FORECAST_DEFAULT_DAYS } from './constants.js';
 import { ERROR_CODES, type ApiErrorBody, type ErrorCode } from './errors.js';
 import type { AlertsResponse } from './alerts.js';
 import type { AlertTopicsRequest, AlertTopicsResponse } from './push.js';
+import {
+  isAirQuality,
+  isAlertsResponse,
+  isAlertTopicsResponse,
+  isForecast,
+  isForecastsResponse,
+  isLocation,
+  isLocationsResponse,
+  isReversePlace,
+} from './responseChecks.js';
 import type { AirQuality, Forecast, ForecastsResponse, Location, LocationsResponse, ReversePlace } from './types.js';
 
 export class ApiError extends Error {
@@ -26,13 +36,12 @@ export interface ApiClientOptions {
  * Each app passes its own base URL.
  */
 export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args) }: ApiClientOptions) {
-  async function request<T>(path: string, signal?: AbortSignal, body?: unknown): Promise<T> {
-    let response: Response;
+  async function send(path: string, signal: AbortSignal | undefined, body: unknown, reload: boolean) {
     try {
-      response = await fetchFn(
+      return await fetchFn(
         `${baseUrl}${path}`,
         body === undefined
-          ? { signal }
+          ? { signal, ...(reload ? { cache: 'reload' as const } : {}) }
           : { signal, method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
       );
     } catch (err) {
@@ -43,16 +52,35 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
         0,
       );
     }
+  }
 
-    if (!response.ok) {
-      const body = (await response.json().catch(() => null)) as ApiErrorBody | null;
-      throw new ApiError(
-        body?.error?.message ?? 'Something went wrong. Try again.',
-        body?.error?.code ?? ERROR_CODES.INTERNAL,
-        response.status,
-      );
+  /**
+   * An answer of the wrong shape (`check` fails) is asked for once more past the browser's HTTP
+   * cache, where such answers usually come from (one kept from before a field existed); if the
+   * fresh one is no better, it is an error like any other, not a crash in the page reading it.
+   * Not for POST: nothing caches it.
+   */
+  async function request<T>(path: string, check: (body: unknown) => boolean, signal?: AbortSignal, body?: unknown) {
+    for (let reload = false; ; reload = true) {
+      const response = await send(path, signal, body, reload);
+      if (!response.ok) {
+        const error = (await response.json().catch(() => null)) as ApiErrorBody | null;
+        throw new ApiError(
+          error?.error?.message ?? 'Something went wrong. Try again.',
+          error?.error?.code ?? ERROR_CODES.INTERNAL,
+          response.status,
+        );
+      }
+      const data: unknown = await response.json().catch(() => undefined);
+      if (check(data)) return data as T;
+      if (reload || body !== undefined) {
+        throw new ApiError(
+          'The server sent an answer this app cannot read. Try again later.',
+          ERROR_CODES.INTERNAL,
+          response.status,
+        );
+      }
     }
-    return (await response.json()) as T;
   }
 
   return {
@@ -63,7 +91,7 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
       const { language, signal } = options;
       const params = new URLSearchParams({ q: query });
       if (language) params.set('lang', language);
-      const data = await request<LocationsResponse>(`/api/locations?${params}`, signal);
+      const data = await request<LocationsResponse>(`${API_PREFIX}/locations?${params}`, isLocationsResponse, signal);
       return data.locations;
     },
 
@@ -77,7 +105,7 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
         lon: String(longitude),
         days: String(options.days ?? FORECAST_DEFAULT_DAYS),
       });
-      return request<Forecast>(`/api/forecast?${params}`, options.signal);
+      return request<Forecast>(`${API_PREFIX}/forecast?${params}`, isForecast, options.signal);
     },
 
     /** Several places in one request (saved cities); each result is a forecast or an error. */
@@ -89,7 +117,7 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
         places: places.map((p) => `${p.latitude},${p.longitude}`).join(';'),
         days: String(options.days ?? FORECAST_DEFAULT_DAYS),
       });
-      return request<ForecastsResponse>(`/api/forecasts?${params}`, options.signal);
+      return request<ForecastsResponse>(`${API_PREFIX}/forecasts?${params}`, isForecastsResponse, options.signal);
     },
 
     /** One place by provider id, with names in `language`. */
@@ -97,7 +125,7 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
       const params = new URLSearchParams();
       if (options.language) params.set('lang', options.language);
       const query = params.toString();
-      return request<Location>(`/api/locations/${id}${query ? `?${query}` : ''}`, options.signal);
+      return request<Location>(`${API_PREFIX}/locations/${id}${query ? `?${query}` : ''}`, isLocation, options.signal);
     },
 
     /**
@@ -111,7 +139,7 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
     ): Promise<ReversePlace> {
       const params = new URLSearchParams({ lat: String(latitude), lon: String(longitude) });
       if (options.language) params.set('lang', options.language);
-      return request<ReversePlace>(`/api/places/reverse?${params}`, options.signal);
+      return request<ReversePlace>(`${API_PREFIX}/places/reverse?${params}`, isReversePlace, options.signal);
     },
 
     /**
@@ -122,12 +150,16 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
       const params = new URLSearchParams();
       if (options.language) params.set('lang', options.language);
       const query = params.toString();
-      return request<ReversePlace>(`/api/places/approximate${query ? `?${query}` : ''}`, options.signal);
+      return request<ReversePlace>(
+        `${API_PREFIX}/places/approximate${query ? `?${query}` : ''}`,
+        isReversePlace,
+        options.signal,
+      );
     },
 
     getAirQuality(latitude: number, longitude: number, signal?: AbortSignal): Promise<AirQuality> {
       const params = new URLSearchParams({ lat: String(latitude), lon: String(longitude) });
-      return request<AirQuality>(`/api/air-quality?${params}`, signal);
+      return request<AirQuality>(`${API_PREFIX}/air-quality?${params}`, isAirQuality, signal);
     },
 
     /** Official weather warnings at a place (Europe only for now), texts in `language` where available. */
@@ -138,12 +170,12 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
     ): Promise<AlertsResponse> {
       const params = new URLSearchParams({ lat: String(latitude), lon: String(longitude) });
       if (options.language) params.set('lang', options.language);
-      return request<AlertsResponse>(`/api/alerts?${params}`, options.signal);
+      return request<AlertsResponse>(`${API_PREFIX}/alerts?${params}`, isAlertsResponse, options.signal);
     },
 
     /** Subscribes (or unsubscribes) a device's push token to warnings for a place. */
     setAlertTopics(body: AlertTopicsRequest): Promise<AlertTopicsResponse> {
-      return request<AlertTopicsResponse>('/api/push/topics', undefined, body);
+      return request<AlertTopicsResponse>(`${API_PREFIX}/push/topics`, isAlertTopicsResponse, undefined, body);
     },
   };
 }

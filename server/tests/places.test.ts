@@ -176,7 +176,7 @@ describe('PlaceService', () => {
   });
 });
 
-describe('GET /api/places/reverse', () => {
+describe('GET /api/v1/places/reverse', () => {
   function setup(reverse: ReverseGeocoder['reverse']) {
     const service = new WeatherService(createFakeProvider());
     return createApp(service, { places: new PlaceService({ reverse }, service) });
@@ -184,15 +184,15 @@ describe('GET /api/places/reverse', () => {
 
   it('returns the matched city with a long cache lifetime', async () => {
     const app = setup(async () => ({ name: 'Warsaw', country: 'Poland' }));
-    const res = await request(app).get('/api/places/reverse?lat=52.25&lon=21.05&lang=en');
+    const res = await request(app).get('/api/v1/places/reverse?lat=52.25&lon=21.05&lang=en');
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ id: 1, name: 'Warsaw', country: 'Poland', latitude: 52.23, longitude: 21.01 });
     expect(res.headers['cache-control']).toBe('public, max-age=86400');
   });
   it('answers 404 where there is no place and 400 for bad coordinates', async () => {
     const app = setup(async () => null);
-    expect((await request(app).get('/api/places/reverse?lat=40&lon=-30')).status).toBe(404);
-    expect((await request(app).get('/api/places/reverse?lat=200&lon=0')).status).toBe(400);
+    expect((await request(app).get('/api/v1/places/reverse?lat=40&lon=-30')).status).toBe(404);
+    expect((await request(app).get('/api/v1/places/reverse?lat=200&lon=0')).status).toBe(400);
   });
 
   it('sends the search-failed fallback with no-store, so browsers do not keep it', async () => {
@@ -201,7 +201,7 @@ describe('GET /api/places/reverse', () => {
     const app = createApp(service, {
       places: new PlaceService({ reverse: async () => ({ name: 'Warsaw' }) }, failingSearch),
     });
-    const res = await request(app).get('/api/places/reverse?lat=52.25&lon=21.05');
+    const res = await request(app).get('/api/v1/places/reverse?lat=52.25&lon=21.05');
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ name: 'Warsaw', latitude: 52.25, longitude: 21.05 });
     expect(res.headers['cache-control']).toBe('no-store');
@@ -211,7 +211,7 @@ describe('GET /api/places/reverse', () => {
     const app = setup(async () => {
       throw new ProviderError('down');
     });
-    const res = await request(app).get('/api/places/reverse?lat=52.23&lon=21.01');
+    const res = await request(app).get('/api/v1/places/reverse?lat=52.23&lon=21.01');
     expect(res.status).toBe(502);
     expect(res.headers['cache-control']).toBe('no-store');
   });

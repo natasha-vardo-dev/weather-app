@@ -27,10 +27,53 @@ jobs:
       # input we control, and npm's suggested fix for them is a downgrade by years.
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run format:check
+      # docs/openapi.json is generated from the schemas in @weather/shared: a schema changed
+      # without regenerating it fails here, so the comparison below sees the real contract.
+      - run: npm run openapi:check
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  # Breaking changes to the API within its version: what clients already in use (an open tab on
+  # old code, an answer in a cache, a future mobile app) rely on must not change under them.
+  # Compares the pull request's OpenAPI description with the target branch's. A breaking
+  # change belongs in a new version (API_PREFIX in @weather/shared); then the versions differ
+  # and the comparison is skipped. See docs/architecture.md, "API versions".
+  api-compatibility:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - id: base
+        name: The target branch's description
+        run: |
+          git fetch --depth=1 origin "${{ github.base_ref }}"
+          # In the workspace: the oasdiff action runs in a container that sees only the workspace
+          # (not RUNNER_TEMP), at the same relative paths.
+          if ! git show FETCH_HEAD:docs/openapi.json > openapi-base.json 2>/dev/null; then
+            echo "::notice::No docs/openapi.json on ${{ github.base_ref }} yet: nothing to compare with."
+            echo "compare=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          version() { node -p "require('$1').info.version"; }
+          base=$(version "$GITHUB_WORKSPACE/openapi-base.json")
+          head=$(version "$GITHUB_WORKSPACE/docs/openapi.json")
+          if [ "$base" != "$head" ]; then
+            echo "::notice::API version $base → $head: a new version may break the old one."
+            echo "compare=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "compare=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.base.outputs.compare == 'true'
+        uses: oasdiff/oasdiff-action/breaking@v0.1.21
+        with:
+          base: openapi-base.json
+          revision: docs/openapi.json
+          fail-on: ERR
+          # Nothing leaves CI: no upload to oasdiff.com for a side-by-side review, no PR comment.
+          review: false
+          github-token: ''
 
   # The interface in a real browser (Chromium, desktop and phone sizes), with the API mocked
   # and an axe accessibility check in each state. A job of its own: it needs a browser.

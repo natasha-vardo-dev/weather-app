@@ -31,14 +31,27 @@ describe('GET /api/internal/metrics', () => {
 
   it('reports cache hit rates and requests to those with the secret', async () => {
     const { app } = setup();
-    await request(app).get('/api/forecast?lat=52.23&lon=21.01');
-    await request(app).get('/api/forecast?lat=52.23&lon=21.01');
-    await request(app).get('/api/forecast?lat=200&lon=21.01');
+    await request(app).get('/api/v1/forecast?lat=52.23&lon=21.01');
+    await request(app).get('/api/v1/forecast?lat=52.23&lon=21.01');
+    await request(app).get('/api/v1/forecast?lat=200&lon=21.01');
 
     const res = await request(app).get('/api/internal/metrics').set('Authorization', 'Bearer metrics-secret-123');
     expect(res.status).toBe(200);
     expect(res.body.caches.forecast).toMatchObject({ hits: 1, misses: 1, hitRate: 0.5 });
     expect(res.body.requests).toMatchObject({ '2xx': 2, '4xx': 1 });
+  });
+
+  it('counts requests per API version, leaving out health and internal ones', async () => {
+    const { app } = setup();
+    await request(app).get('/api/v1/forecast?lat=52.23&lon=21.01');
+    await request(app).get('/api/forecast?lat=52.23&lon=21.01');
+    await request(app).get('/api/health');
+    // Made-up versions share one name, however many there are.
+    await request(app).get('/api/v2/forecast');
+    await request(app).get('/api/v987654321/forecast');
+
+    const res = await request(app).get('/api/internal/metrics').set('Authorization', 'Bearer metrics-secret-123');
+    expect(res.body.apiVersions).toEqual({ v1: 1, none: 1, other: 2 });
   });
 
   it('does not exist for anyone else', async () => {

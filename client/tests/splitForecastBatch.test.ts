@@ -23,10 +23,9 @@ function urlsOf(call: (client: ReturnType<typeof createApiClient>) => Promise<un
       return new Response('{}');
     },
   });
-  return call(client).then(
-    () => urls,
-    () => urls,
-  );
+  // Each URL once: the client asks again (past the HTTP cache) when this stub's empty answer fails its check.
+  const unique = () => [...new Set(urls)];
+  return call(client).then(unique, unique);
 }
 
 const places = [
@@ -68,7 +67,7 @@ describe('splitForecastBatch', () => {
     await split({ forecasts: [{ forecast: {} }] });
     await splitForecastBatch({
       cacheName: 'api',
-      request: new Request('https://weather.test/api/forecast?lat=1&lon=1&days=10'),
+      request: new Request('https://weather.test/api/v1/forecast?lat=1&lon=1&days=10'),
       newResponse: new Response('{}'),
     });
     expect(stored.size).toBe(0);
@@ -76,15 +75,18 @@ describe('splitForecastBatch', () => {
 
   it('deletes city copies older than a day when a batch is stored, and keeps fresh ones', async () => {
     const old = new Date(Date.now() - 25 * 60 * 60 * 1000).toUTCString();
-    stored.set('https://weather.test/api/forecast?lat=1&lon=1&days=10', new Response('{}', { headers: { Date: old } }));
-    stored.set('https://weather.test/api/air-quality?lat=1&lon=1', new Response('{}', { headers: { Date: old } }));
+    stored.set(
+      'https://weather.test/api/v1/forecast?lat=1&lon=1&days=10',
+      new Response('{}', { headers: { Date: old } }),
+    );
+    stored.set('https://weather.test/api/v1/air-quality?lat=1&lon=1', new Response('{}', { headers: { Date: old } }));
 
     await split({ forecasts: [{ forecast: {} }, { forecast: {} }] }, { Date: new Date().toUTCString() });
 
     expect([...stored.keys()].sort()).toEqual([
-      'https://weather.test/api/air-quality?lat=1&lon=1',
-      'https://weather.test/api/forecast?lat=41.24&lon=-85.85&days=10',
-      'https://weather.test/api/forecast?lat=52.23&lon=21.01&days=10',
+      'https://weather.test/api/v1/air-quality?lat=1&lon=1',
+      'https://weather.test/api/v1/forecast?lat=41.24&lon=-85.85&days=10',
+      'https://weather.test/api/v1/forecast?lat=52.23&lon=21.01&days=10',
     ]);
   });
 });
