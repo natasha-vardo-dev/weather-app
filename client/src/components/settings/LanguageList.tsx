@@ -13,9 +13,9 @@ interface ListProps {
 }
 
 /**
- * The 19 languages, ARIA listbox: the list takes focus and points at the active option
+ * The languages, ARIA listbox: the list takes focus and points at the active option
  * with aria-activedescendant. Arrows, Home/End, Enter/Space choose, typed letters jump
- * ("ne" → Nederlands), Escape goes back. Scrolls itself, not the page.
+ * ("po" → Polski), Escape goes back. Scrolls itself, not the page.
  */
 export function LanguageList({ label, back, value, onChoose, onBack }: ListProps) {
   const [active, setActive] = useState(Math.max(0, LANGUAGES.indexOf(value)));

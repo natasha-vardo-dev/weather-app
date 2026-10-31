@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LANGUAGES, messagesFor, numberFormatter } from '../src/i18n';
+import { degreeFormatter, LANGUAGES, messagesFor, numberFormatter } from '../src/i18n';
 import { pluralize } from '../src/i18n/plural';
 
 describe('pluralize', () => {
@@ -43,15 +43,15 @@ describe('translations', () => {
 
 describe('numbers', () => {
   it('uses one digit system per locale, including inside translated texts', () => {
-    const egypt = messagesFor('ar', 'ar-EG');
-    expect(egypt.num(14)).toBe('١٤');
-    // Each temperature is wrapped in a left-to-right isolate so the sign stays after the number.
-    expect(egypt.t.current.highLow(15, 7)).toBe('العظمى \u2066١٥°\u2069، الصغرى \u2066٧°\u2069');
-    expect(egypt.deg(13)).toBe('\u2066١٣°\u2069');
-    expect(egypt.t.hourly.title(24)).toBe('الـ٢٤ ساعة القادمة');
-
+    // No right-to-left language is bundled now, but the formatters still handle one.
+    const egypt = numberFormatter('ar-EG');
+    expect(egypt(14)).toBe('١٤');
+    // A temperature is wrapped in a left-to-right isolate so the sign stays after the number.
+    expect(degreeFormatter('ar-EG', egypt)(13)).toBe('\u2066١٣°\u2069');
+    // Texts get the locale's digits too: messagesFor passes the locale's formatter to plurals.
+    expect(messagesFor('en', 'ar-EG').t.hourly.title(24)).toContain('٢٤');
     // Plain "ar" uses Latin digits in current CLDR, so nothing changes there.
-    expect(messagesFor('ar', 'ar').num(14)).toBe('14');
+    expect(numberFormatter('ar')(14)).toBe('14');
     // Left-to-right languages get no invisible characters.
     expect(messagesFor('en', 'en-GB').deg(13)).toBe('13°');
   });

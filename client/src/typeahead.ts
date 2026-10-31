@@ -1,4 +1,4 @@
-/** Typed letters within this time add up ("ne" finds "Nederlands"), like a native select. */
+/** Typed letters within this time add up ("po" finds "Polski"), like a native select. */
 export const TYPEAHEAD_RESET_MS = 500;
 
 export interface Typed {

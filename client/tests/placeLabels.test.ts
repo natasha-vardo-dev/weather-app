@@ -134,7 +134,7 @@ describe('regionToShow', () => {
   it('skips a region left in Latin letters for a non-Latin interface', () => {
     expect(regionToShow('Родос', 'South Aegean', 'ru')).toBeUndefined();
     expect(regionToShow('Варшава', 'Мазовецкое воеводство', 'ru')).toBe('Мазовецкое воеводство');
-    expect(regionToShow('東京', 'Kanagawa', 'ja')).toBeUndefined();
+    expect(regionToShow('Родос', 'South Aegean', 'uk')).toBeUndefined();
   });
 
   it('keeps it in Latin-script interfaces, where a fallback cannot be told apart', () => {

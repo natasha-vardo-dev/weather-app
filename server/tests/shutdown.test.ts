@@ -8,28 +8,34 @@ import { WeatherService } from '../src/services/weatherService.js';
 import { gracefulShutdown } from '../src/shutdown.js';
 import { createFakeProvider } from './fakeProvider.js';
 
-/** A server with one slow route, released by the test. */
+/**
+ * A server with one slow route, released by the test. `arrived` resolves once the route has the
+ * request: shutting down before that tests nothing (no connection is open yet, so the server
+ * stops at once), and a fixed pause was sometimes too short under load.
+ */
 async function slowServer() {
   let release!: () => void;
+  let arrive!: () => void;
+  const arrived = new Promise<void>((resolve) => (arrive = resolve));
   const app = express();
   app.get('/slow', (_req, res) => {
     new Promise<void>((resolve) => (release = resolve)).then(() => res.send('done'));
+    arrive();
   });
   const server = app.listen(0);
   await once(server, 'listening');
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  return { server, url, release: () => release() };
+  return { server, url, arrived, release: () => release() };
 }
 
 describe('graceful shutdown', () => {
   it('lets a request under way finish, then stops and exits 0', async () => {
-    const { server, url, release } = await slowServer();
+    const { server, url, arrived, release } = await slowServer();
     const exit = vi.fn();
     const shutdown = gracefulShutdown(server, { logger: silentLogger, exit });
 
     const answer = fetch(`${url}/slow`).then((r) => r.text());
-    await vi.waitFor(() => expect(server.listening).toBe(true));
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await arrived;
     shutdown('SIGTERM');
     shutdown('SIGTERM'); // a second signal changes nothing
 
@@ -42,13 +48,13 @@ describe('graceful shutdown', () => {
   });
 
   it('cuts requests still open after the timeout', async () => {
-    const { server, url } = await slowServer();
+    const { server, url, arrived } = await slowServer();
     const exit = vi.fn();
     const answer = fetch(`${url}/slow`).then(
       () => 'answered',
       () => 'cut',
     );
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await arrived;
     gracefulShutdown(server, { logger: silentLogger, exit, timeoutMs: 50 })('SIGTERM');
     expect(await answer).toBe('cut');
     await vi.waitFor(() => expect(exit).toHaveBeenCalled());
