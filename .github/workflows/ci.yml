@@ -15,6 +15,10 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # Known high or critical vulnerabilities in what reaches users (the app and the API) fail
+      # the build. Development and build tools are left out: their reports are mostly about
+      # input we control, and npm's suggested fix for them is a downgrade by years.
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
