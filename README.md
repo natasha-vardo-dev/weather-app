@@ -25,8 +25,8 @@ A web application that shows the current weather and a 10-day forecast for a sel
 
 | Layer    | Technology                                                                 |
 | -------- | -------------------------------------------------------------------------- |
-| Frontend | React 18, TypeScript, Vite                                                 |
-| Backend  | Node.js, Express, TypeScript, Zod                                          |
+| Frontend | React 19, React Router 8, TypeScript, Vite 8                               |
+| Backend  | Node.js 24, Express 5, TypeScript, Zod                                     |
 | Weather  | Open-Meteo (forecast + geocoding)                                          |
 | Testing  | Vitest, Testing Library, Supertest, Playwright, axe-core, ESLint, Prettier |
 | CI       | GitHub Actions (format, lint, typecheck, test, build; e2e in a browser)    |
@@ -135,5 +135,5 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 ## What I would do next
 
 - [Wind unit setting; accounts so favourites sync between devices]
-- [More e2e scenarios (geolocation, offline, notifications); React 19 with the React Compiler and its lint rules]
+- [More e2e scenarios (geolocation, offline, notifications); the React Compiler and its lint rules]
 - [Redis cache and rate limiting, monitoring]
