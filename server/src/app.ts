@@ -141,6 +141,18 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
       res.status(err.status).json(errorBody(err.code, err.message));
       return;
     }
+    // The JSON body parser's own errors (broken JSON, too large) are the client's: 400 or 413,
+    // not a 500 logged as our bug. Found while moving to Express 5 (and its body-parser 2).
+    const status = (err as { status?: unknown; type?: unknown }).status;
+    if (
+      typeof (err as { type?: unknown }).type === 'string' &&
+      typeof status === 'number' &&
+      status >= 400 &&
+      status < 500
+    ) {
+      res.status(status).json(errorBody(ERROR_CODES.INVALID_REQUEST, 'Invalid request body.'));
+      return;
+    }
     logger.error({ method: req.method, path, err }, 'unhandled error');
     res.status(500).json(errorBody(ERROR_CODES.INTERNAL, 'Something went wrong on our side.'));
   };
