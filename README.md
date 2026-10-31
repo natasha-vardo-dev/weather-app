@@ -70,6 +70,7 @@ Free, no database: Firebase Cloud Messaging keeps the subscriptions (topics), an
 1. Create a project in the [Firebase Console](https://console.firebase.google.com) (free Spark plan) and add a web app.
 2. Client (`client/.env`, see `client/.env.example`): the web app's config and the Web Push key (Project settings → Cloud Messaging → Web Push certificates). Public values.
 3. Server (`server/.env`): `FIREBASE_SERVICE_ACCOUNT` (Project settings → Service accounts → Generate new private key; the JSON as one line or base64) and `ALERTS_NOTIFY_SECRET` (a long random string). Secrets: never commit them.
+   Then give that service account (`firebase-adminsdk-…@<project>.iam.gserviceaccount.com`) the role **Firebase Cloud Messaging API Admin** in the Google Cloud Console (IAM → edit the account → Add another role). `firebase-admin` 14 manages topic subscriptions through the FCM v1 API, which needs it; without it, turning notifications on or off fails with a 502.
 4. After deploying: a job on [cron-job.org](https://cron-job.org) every 5 minutes, `POST https://<api>/api/internal/alerts/notify` with the header `Authorization: Bearer <ALERTS_NOTIFY_SECRET>`. It also keeps a free Render instance awake.
 
 Notifications need the production build (the service worker is off in `npm run dev`): `npm run build && npm run preview -w client`. On iPhone they work only from the app added to the Home Screen (iOS 16.4+).
