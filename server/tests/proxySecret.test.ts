@@ -48,6 +48,12 @@ describe('proxy secret', () => {
   it('leaves health and the internal endpoints to their own rules', async () => {
     const app = setup(SECRET);
     expect((await request(app).get('/api/health')).status).toBe(200);
+    // Whether the request came through the proxy, for an uptime monitor through the site.
+    expect((await request(app).get('/api/health')).body.proxied).toBe(false);
+    expect((await request(app).get('/api/health').set('X-Proxy-Secret', 'wrong')).body.proxied).toBe(false);
+    expect((await request(app).get('/api/health').set('X-Proxy-Secret', SECRET)).body.proxied).toBe(true);
+    // The uptime monitor may call Render directly, and does not count against the rate limits.
+    for (let i = 0; i < 4; i += 1) expect((await request(app).get('/api/health/quota')).status).toBe(200);
     const metrics = await request(app)
       .get('/api/internal/metrics')
       .set('Authorization', 'Bearer metrics-secret-1234567890');

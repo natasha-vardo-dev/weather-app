@@ -6,6 +6,10 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { reportError, reportUncaughtErrors } from './errorReporting';
 import { I18nProvider } from './i18n/I18nProvider';
 import { UnitProvider } from './units/UnitProvider';
+// The font is served from the site, not Google Fonts: loading it from Google sent every
+// visitor's address there (a German court found that against the GDPR). Optical size and
+// weight axes, as before; Cyrillic falls back to the system font, as it did then.
+import '@fontsource-variable/bricolage-grotesque/opsz.css';
 import './styles/index.css';
 
 reportUncaughtErrors();

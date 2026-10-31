@@ -20,6 +20,7 @@ A web application that shows the current weather and a 10-day forecast for a sel
 - Installable as an app (PWA): opens offline with the last loaded forecasts and a banner saying they may be out of date; on iPhone and iPad the start page explains how to add it to the Home Screen
 - Official weather warnings in Europe (national weather services via MeteoAlarm): level, type and when on the city page, the issuer's own text on demand
 - Responsive layout, light/dark mode, accessible combobox
+- Privacy: no accounts, cookies, analytics or ads; the font is served from the site, not Google Fonts; a privacy policy at `/privacy` (linked in the footer) says what goes where ([docs/architecture.md](docs/architecture.md#privacy))
 
 ## Tech stack
 
@@ -63,6 +64,8 @@ npm run dev
 
 - Frontend: http://localhost:5173
 - API: http://localhost:3001/api/health
+
+The API restarts when its code changes (`tsx watch`), and for that moment the frontend gets `502 Bad Gateway` from Vite's proxy for API calls (`http proxy error` in the terminal): reload, nothing is broken. Builds of `@weather/shared` that change nothing (`npm test` and `npm run typecheck` build it first) no longer cause a restart: the build is incremental and writes nothing then.
 
 ### Push notifications (optional)
 
@@ -120,6 +123,7 @@ Requests are limited per IP address (a minute's window): 300 for the API as a wh
 - Frontend: Vercel, root directory `client`. `client/middleware.ts` (Vercel Routing Middleware) forwards `/api/*` to the backend; `client/vercel.json` serves `index.html` for all other paths, so client-side routes survive a refresh. Environment variables on Vercel: `API_ORIGIN` (the backend's URL, e.g. `https://weather-api.onrender.com`), `PROXY_SECRET` (a long random string, the same as on Render), and the `VITE_FIREBASE_*` values for push notifications.
 - Backend: Render, root directory `server`, health check path `/api/health`. Do not set `IP_SELF_LOOKUP` there (it is for local development). Set `PROXY_SECRET` (the same value as on Vercel): the API then answers only requests that came through the frontend's proxy and takes the user's IP from it (`X-Client-IP`), so rate limits and the approximate location cannot be fooled by a forged `X-Forwarded-For` sent straight to Render. After deploying, check: turning notifications on and off works (the Content-Security-Policy allows the Firebase hosts push uses; tests cannot exercise push); the site works; a request straight to `https://<api>.onrender.com/api/v1/forecast?lat=52.23&lon=21.01` gets 404; "Looks like you're in …" (the approximate location) names your own city, so the user's address reaches the API; and a page opened while Render is asleep waits for it instead of failing. Set `TRUST_PROXY=2` as well (used only when a request carries no `X-Client-IP`). Optional: `METRICS_SECRET` (enables `/api/internal/metrics`), `LOG_LEVEL` (`info` by default; `debug` logs every provider call).
 - Logs are JSON lines on stdout (pino), which Render keeps and searches by field; every 15 minutes a `metrics` line records cache hit rates and provider usage, and a warning is logged when a provider's usage passes 80% of a limit.
+- Monitoring: an uptime monitor (UptimeRobot or Better Stack, free) on the site, `/api/health` and `/api/health/quota` (503 at 80% of a provider limit), with email alerts. Set-up and what each alert means: [docs/operations.md](docs/operations.md).
 
 Serving the API from the frontend's domain avoids CORS and keeps future auth cookies first-party.
 
@@ -134,8 +138,7 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 
 ## Trade-offs and decisions
 
-- Place URLs use rounded coordinates, not provider location IDs: links keep working if the weather provider changes, and identical URLs for nearby places are friendlier to HTTP caching. Name and country in the query string are for display only.
-
+- City URLs use the GeoNames id (`/weather/756135-warsaw`), which Open-Meteo and yr.no share, so a link is the same in every language and does not depend on the weather provider; places found by location have no id and keep coordinates in the URL ([ADR 0006](docs/adr/0006-place-urls-by-id.md)).
 - In-memory cache instead of Redis: enough for a single instance; the cache sits behind a small class, so it is easy to replace.
 - Monorepo with npm workspaces: `server`, `client` and `packages/shared` change together and are reviewed as one unit.
 - `@weather/shared` holds the API contract (types, error format, validation schemas, constants), environment-neutral weather helpers and the API client. Server internals (providers, cache) stay out of it so clients never depend on where data comes from.
@@ -144,4 +147,4 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 
 - [Wind unit setting; accounts so favourites sync between devices]
 - [More e2e scenarios (geolocation, offline, notifications); the React Compiler itself (its lint rules are on)]
-- [Redis cache and rate limiting, monitoring]
+- [Redis cache and rate limiting, so counters survive restarts]

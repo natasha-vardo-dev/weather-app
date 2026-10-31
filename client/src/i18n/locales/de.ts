@@ -9,6 +9,7 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
   back: 'Zurück',
   placesBy: 'Ortsnamen',
   dataBy: 'Wetterdaten von',
+  privacy: 'Datenschutz',
   offline: 'Sie sind offline. Angezeigt wird die zuletzt geladene Vorhersage, sie ist möglicherweise veraltet.',
   outdated: (time) => `Vorhersage zuletzt aktualisiert: ${time}.`,
   crash: {

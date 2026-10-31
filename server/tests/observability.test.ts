@@ -20,6 +20,51 @@ describe('GET /api/health', () => {
   });
 });
 
+describe('GET /api/health/quota', () => {
+  function setup() {
+    let now = 10 * 24 * 60 * MINUTE;
+    const metrics = new Metrics(silentLogger, () => now);
+    const record = metrics.provider('open-meteo', { perMinute: 10, perDay: 1000 });
+    const app = createApp(new WeatherService(createFakeProvider()), { metrics });
+    return { app, record, later: (ms: number) => (now += ms) };
+  }
+
+  it('is ok below 80% of every limit, never cached', async () => {
+    const { app, record } = setup();
+    for (let i = 0; i < 7; i++) record(true);
+    const res = await request(app).get('/api/health/quota');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: 'ok' });
+    expect(res.headers['cache-control']).toBe('no-store');
+  });
+
+  it('answers 503 with the limits used to 80% or more, so a monitor alerts', async () => {
+    const { app, record, later } = setup();
+    for (let i = 0; i < 8; i++) record(true);
+    const res = await request(app).get('/api/health/quota');
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({
+      status: 'near-limit',
+      near: [{ provider: 'open-meteo', window: 'perMinute', share: 0.8 }],
+    });
+
+    // Clears once the window moves on.
+    later(2 * MINUTE);
+    expect((await request(app).get('/api/health/quota')).status).toBe(200);
+  });
+
+  it('is not counted as an API version', async () => {
+    const service = new WeatherService(createFakeProvider());
+    const metrics = new Metrics(silentLogger);
+    const app = createApp(service, { metrics, metricsSecret: 'metrics-secret-123' });
+    await request(app).get('/api/health/quota');
+    // A look-alike outside health is an /api path without a version, as before.
+    await request(app).get('/api/healthz');
+    const res = await request(app).get('/api/internal/metrics').set('Authorization', 'Bearer metrics-secret-123');
+    expect(res.body.apiVersions).toEqual({ none: 1 });
+  });
+});
+
 describe('GET /api/internal/metrics', () => {
   function setup() {
     const service = new WeatherService(createFakeProvider());

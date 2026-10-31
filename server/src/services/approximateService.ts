@@ -1,3 +1,4 @@
+import { createHmac, randomBytes } from 'node:crypto';
 import type { ReversePlace } from '@weather/shared';
 import type { IpLocator } from '../providers/types.js';
 import { TtlCache } from './cache.js';
@@ -14,6 +15,16 @@ export function isPrivateIp(ip: string): boolean {
 }
 
 /**
+ * What the cache keeps instead of an IP address: a keyed hash, the same for one address while
+ * the process lives, and with the key never stored, not to be turned back into the address
+ * (unlike a plain hash: there are few enough IPv4 addresses to hash them all). So a day's
+ * cache does not hold who asked from where (privacy policy; found by roborev).
+ */
+export function ipFingerprint(ip: string, key: Buffer): string {
+  return createHmac('sha256', key).update(ip).digest('base64url');
+}
+
+/**
  * "Looks like you're in Warsaw": the user's city from their IP, offered when the browser
  * can't give a position. The position then goes through PlaceService, so it becomes the
  * city with its id, like the crosshair's answer.
@@ -26,7 +37,9 @@ export function isPrivateIp(ip: string): boolean {
  * centre, so without the opt-in it answers "unknown" instead.
  */
 export class ApproximateLocationService {
-  /** Per IP; null caches "no location for this address" too. */
+  /** The key of ipFingerprint: random per process, never stored. */
+  private readonly fingerprintKey = randomBytes(32);
+  /** Per IP fingerprint (ipFingerprint); null caches "no location for this address" too. */
   private readonly cache = new TtlCache<{ latitude: number; longitude: number } | null>(24 * 60 * 60 * 1000);
 
   constructor(
@@ -41,7 +54,7 @@ export class ApproximateLocationService {
     const publicIp = ip && !isPrivateIp(ip) ? ip : null;
     if (!publicIp && !this.allowSelfLookup) return null;
 
-    const key = publicIp ?? 'self';
+    const key = publicIp ? ipFingerprint(publicIp, this.fingerprintKey) : 'self';
     const position = await this.cache.getOrLoad(key, async () => {
       this.budget();
       return this.locator.locate(publicIp);

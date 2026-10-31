@@ -29,7 +29,13 @@ const SERVED_VERSIONS = new Set([API_PREFIX.slice('/api/'.length)]);
  * requests for made-up versions (/api/v987654321/…) cannot grow the metrics without limit.
  */
 function apiVersion(path: string): string | undefined {
-  if (!path.startsWith('/api/') || path === '/api/health' || path.startsWith('/api/internal/')) return undefined;
+  if (
+    !path.startsWith('/api/') ||
+    path === '/api/health' ||
+    path.startsWith('/api/health/') ||
+    path.startsWith('/api/internal/')
+  )
+    return undefined;
   const version = /^\/api\/(v\d+)\//.exec(path)?.[1];
   if (!version) return 'none';
   return SERVED_VERSIONS.has(version) ? version : 'other';
@@ -129,14 +135,33 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
   // does not call the weather provider: its outage is not ours, and failing here would make
   // Render restart or stop routing to an instance that still serves cached forecasts.
   // Before the rate limits, so checks never use up anyone's allowance.
-  app.get('/api/health', (_req, res) => {
+  // With a proxy secret, health also says whether this request carried it (`proxied`): health
+  // itself is open, so an uptime monitor calling it through the site would stay green with the
+  // secrets different on Vercel and Render, while every other API call got 404 (found by
+  // roborev). The monitor checks for `"proxied":true` (docs/operations.md). Says nothing of the secret.
+  app.get('/api/health', (req, res) => {
     res.set('Cache-Control', 'no-store');
     if (draining()) {
       res.status(503).json({ status: 'draining', version });
       return;
     }
-    res.json({ status: 'ok', uptimeSeconds: Math.round((Date.now() - startedAt) / 1000), version });
+    const proxied = proxySecret ? { proxied: sameSecret(req.get('x-proxy-secret') ?? '', proxySecret) } : {};
+    res.json({ status: 'ok', uptimeSeconds: Math.round((Date.now() - startedAt) / 1000), version, ...proxied });
   });
+
+  // For an uptime monitor (docs/operations.md): 503 while any provider limit is used to 80% or
+  // more, so the monitor's alert reaches someone; the same moment only logs a warning otherwise.
+  // Public and without a secret, like health (free monitors cannot send headers): it tells how
+  // busy the providers are, nothing about users. Not the health check: nearing a limit is no
+  // reason for Render to restart an instance that serves cached forecasts.
+  if (metrics) {
+    app.get('/api/health/quota', (_req, res) => {
+      res.set('Cache-Control', 'no-store');
+      const near = metrics.nearLimits();
+      if (near.length) res.status(503).json({ status: 'near-limit', near });
+      else res.json({ status: 'ok' });
+    });
+  }
 
   // Operators only: cache hit rates and provider calls against their limits.
   if (metrics && metricsSecret) {

@@ -4,7 +4,7 @@ import { createApp } from '../src/app.js';
 import { ProviderError } from '../src/errors.js';
 import { IpWhoIsLocator } from '../src/providers/ipwhois.js';
 import type { IpLocator } from '../src/providers/types.js';
-import { ApproximateLocationService, isPrivateIp } from '../src/services/approximateService.js';
+import { ApproximateLocationService, ipFingerprint, isPrivateIp } from '../src/services/approximateService.js';
 import { PlaceService } from '../src/services/placeService.js';
 import { WeatherService } from '../src/services/weatherService.js';
 import { createFakeProvider } from './fakeProvider.js';
@@ -83,6 +83,18 @@ describe('ApproximateLocationService', () => {
     expect(await approximate.approximate('1.1.1.1', 'en')).toBeNull();
     await approximate.approximate('1.1.1.1', 'en');
     expect(locator.locate).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('ipFingerprint', () => {
+  it('keeps one address apart from others without holding the address itself', () => {
+    const key = Buffer.alloc(32, 7);
+    const fingerprint = ipFingerprint('203.0.113.7', key);
+    expect(fingerprint).not.toContain('203.0.113.7');
+    expect(ipFingerprint('203.0.113.7', key)).toBe(fingerprint);
+    expect(ipFingerprint('203.0.113.8', key)).not.toBe(fingerprint);
+    // Another process, another key: nothing to match across restarts or against a table of all addresses.
+    expect(ipFingerprint('203.0.113.7', Buffer.alloc(32, 8))).not.toBe(fingerprint);
   });
 });
 

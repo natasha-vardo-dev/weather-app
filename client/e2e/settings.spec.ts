@@ -34,3 +34,17 @@ test('switch to °F and to German, and keep both after a reload', async ({ page,
   await expect(temperature).toContainText('54°');
   await checkA11y('city page in German, °F');
 });
+
+// No right-to-left language is bundled now (ADR 0016), but the layout still supports one
+// (logical CSS properties, [dir='rtl'] rules). Forcing the direction keeps that support from
+// rotting unnoticed: the usual break is something pushed off the edge, scrolling sideways.
+test('the layout still holds right to left', async ({ page, checkA11y }) => {
+  await page.goto('/weather/756135-warsaw');
+  await expect(page.locator('.now__temp')).toBeVisible();
+  await page.evaluate(() => (document.documentElement.dir = 'rtl'));
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+  await checkA11y('city page, right to left');
+});

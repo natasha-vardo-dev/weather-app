@@ -1,5 +1,9 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": { "rootDir": "src" },
+  // Incremental: a build with nothing changed writes nothing. Otherwise every `pretest` and
+  // `pretypecheck` rewrote dist, and `npm run dev`'s server (tsx watch) restarted on it,
+  // answering 502 through Vite's proxy for a moment. The state file lives in dist, so
+  // deleting dist starts afresh.
+  "compilerOptions": { "rootDir": "src", "incremental": true, "tsBuildInfoFile": "dist/.tsbuildinfo" },
   "include": ["src"]
 }

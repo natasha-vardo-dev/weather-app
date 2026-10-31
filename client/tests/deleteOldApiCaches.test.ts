@@ -9,11 +9,17 @@ vi.stubGlobal('caches', {
 afterEach(() => names.clear());
 
 describe('deleteOldApiCaches', () => {
-  it("deletes other API versions' caches and the unversioned one, keeping everything else", async () => {
-    for (const name of ['api', 'api-v1', 'api-v2', 'google-fonts', 'workbox-precache-v2-https://weather.test/']) {
-      names.add(name);
-    }
+  it("deletes other API versions' caches, the unversioned one and Google Fonts', keeping everything else", async () => {
+    const all = [
+      'api',
+      'api-v1',
+      'api-v2',
+      'google-fonts',
+      'google-fonts-css',
+      'workbox-precache-v2-https://weather.test/',
+    ];
+    for (const name of all) names.add(name);
     await deleteOldApiCaches({ cacheName: 'api-v2' });
-    expect([...names]).toEqual(['api-v2', 'google-fonts', 'workbox-precache-v2-https://weather.test/']);
+    expect([...names]).toEqual(['api-v2', 'workbox-precache-v2-https://weather.test/']);
   });
 });
