@@ -23,13 +23,13 @@ A web application that shows the current weather and a 10-day forecast for a sel
 
 ## Tech stack
 
-| Layer    | Technology                                                                 |
-| -------- | -------------------------------------------------------------------------- |
-| Frontend | React 19, React Router 8, TypeScript, Vite 8                               |
-| Backend  | Node.js 24, Express 5, TypeScript, Zod                                     |
-| Weather  | Open-Meteo (forecast + geocoding)                                          |
-| Testing  | Vitest, Testing Library, Supertest, Playwright, axe-core, ESLint, Prettier |
-| CI       | GitHub Actions (format, lint, typecheck, test, build; e2e in a browser)    |
+| Layer    | Technology                                                                                |
+| -------- | ----------------------------------------------------------------------------------------- |
+| Frontend | React 19, React Router 8, TypeScript, Vite 8                                              |
+| Backend  | Node.js 24, Express 5, TypeScript, Zod                                                    |
+| Weather  | Open-Meteo (forecast + geocoding)                                                         |
+| Testing  | Vitest, Testing Library, Supertest, Playwright, axe-core, ESLint, Prettier                |
+| CI       | GitHub Actions (audit, format, lint, typecheck, test, build; e2e), weekly too; Dependabot |
 
 ## Architecture
 
@@ -74,6 +74,10 @@ Free, no database: Firebase Cloud Messaging keeps the subscriptions (topics), an
 4. After deploying: a job on [cron-job.org](https://cron-job.org) every 5 minutes, `POST https://<api>/api/internal/alerts/notify` with the header `Authorization: Bearer <ALERTS_NOTIFY_SECRET>`. It also keeps a free Render instance awake.
 
 Notifications need the production build (the service worker is off in `npm run dev`): `npm run build && npm run preview -w client`. On iPhone they work only from the app added to the Home Screen (iOS 16.4+).
+
+### Dependencies
+
+Dependabot (`.github/dependabot.yml`) opens weekly pull requests into `dev`: minor and patch updates grouped (production and development apart), each major version alone, Firebase alone (its tests use a fake, so check push notifications live before merging), GitHub Actions monthly. CI also runs every Monday with no change at all, so a newly published vulnerability (the production audit fails on high ones) or a test that depends on the date shows up anyway. In the repository's settings (Code security), turn on Dependabot alerts and security updates: those pull requests come as soon as an advisory is out. Not automated: the Node version in `.nvmrc` (once a year, at a new LTS) and the `@grpc/grpc-js` override in `package.json` (drop it once `firebase` updates grpc itself).
 
 ### Other commands
 

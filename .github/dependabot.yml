@@ -1,0 +1,48 @@
+# Weekly dependency updates as pull requests into dev, where work happens (by default they
+# would go to main). CI runs on each: tests, e2e, the production audit.
+#
+# Grouped, or there would be a pull request per package (about a hundred): minor and patch
+# updates come together, production and development apart; a major version comes alone,
+# since it means reading its migration notes (Express 5, Vite 8, React 19 were such).
+#
+# Not covered here, by design:
+# - security updates: Dependabot opens them as soon as an advisory is out (turned on in the
+#   repository's settings, Code security), always against the default branch;
+# - the Node version in .nvmrc: once a year, when a new LTS comes out;
+# - the @grpc/grpc-js override in package.json: drop it when firebase updates grpc itself.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    commit-message:
+      prefix: deps
+    groups:
+      # Firebase on its own: its tests use a fake, so CI cannot tell whether push still
+      # works. Check it live (turn notifications on and off) before merging; firebase-admin
+      # 14 needed a new IAM role, which no test would have caught.
+      firebase:
+        patterns: ['firebase', 'firebase-admin', '@firebase/*']
+      production:
+        dependency-type: production
+        update-types: [minor, patch]
+      development:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: monthly
+    labels: [dependencies]
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ['*']

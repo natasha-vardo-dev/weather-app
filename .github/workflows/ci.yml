@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Weekly, with no change at all: advisories are published whatever we commit, so the
+  # production audit must run anyway, and so must the tests (one depended on the date and
+  # started failing a day after it was written). Runs on the default branch.
+  schedule:
+    - cron: '0 6 * * 1'
+  # By hand, from the Actions tab.
+  workflow_dispatch:
 
 jobs:
   check:
