@@ -61,6 +61,11 @@ export interface AppOptions {
   proxySecret?: string;
   /** Shown by /api/health, to tell which build is running (Render sets RENDER_GIT_COMMIT). */
   version?: string;
+  /**
+   * True once the server is shutting down (shutdown.ts): health answers 503, so the host stops
+   * routing here, and every answer closes its connection instead of keeping it alive.
+   */
+  draining?: () => boolean;
 }
 
 export function createApp(service: WeatherService, options: AppOptions = {}) {
@@ -77,6 +82,7 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
     metricsSecret,
     proxySecret,
     version,
+    draining = () => false,
   } = options;
   const app = express();
   const startedAt = Date.now();
@@ -84,6 +90,10 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
   app.disable('x-powered-by');
   app.set('trust proxy', trustProxy);
   app.use(requestLogger(logger));
+  app.use((_req, res, next) => {
+    if (draining()) res.set('Connection', 'close');
+    next();
+  });
   if (metrics) {
     app.use((_req, res, next) => {
       res.on('finish', () => metrics.request(res.statusCode));
@@ -98,6 +108,10 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
   // Before the rate limits, so checks never use up anyone's allowance.
   app.get('/api/health', (_req, res) => {
     res.set('Cache-Control', 'no-store');
+    if (draining()) {
+      res.status(503).json({ status: 'draining', version });
+      return;
+    }
     res.json({ status: 'ok', uptimeSeconds: Math.round((Date.now() - startedAt) / 1000), version });
   });
 

@@ -21,6 +21,7 @@ import {
   openMeteoWeight,
 } from './observability/metrics.js';
 import { DEFAULT_RATE_LIMITS } from './rateLimits.js';
+import { gracefulShutdown } from './shutdown.js';
 
 /**
  * A positive number from the environment, or the default when unset or empty. Anything
@@ -112,6 +113,9 @@ const push = account
 for (const name of Object.keys(service.cacheStats())) metrics.cache(name, () => service.cacheStats()[name]!);
 metrics.cache('reverse', () => places.cacheStats());
 
+/** Set on SIGTERM (below): health answers 503 while requests under way finish. */
+let draining = false;
+
 const app = createApp(service, {
   corsOrigins,
   places,
@@ -126,12 +130,37 @@ const app = createApp(service, {
   metricsSecret: process.env.METRICS_SECRET?.trim() || undefined,
   proxySecret: process.env.PROXY_SECRET?.trim() || undefined,
   version: process.env.RENDER_GIT_COMMIT?.slice(0, 7),
+  draining: () => draining,
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   logger.info({ port }, 'API listening');
 });
 
 // A summary in the logs every 15 minutes: history of cache hit rates and provider usage
 // without a metrics service (Render keeps the logs).
-setInterval(() => logger.info({ metrics: metrics.snapshot() }, 'metrics'), 15 * 60_000).unref();
+const metricsTimer = setInterval(() => logger.info({ metrics: metrics.snapshot() }, 'metrics'), 15 * 60_000);
+metricsTimer.unref();
+
+// Deploys and restarts send SIGTERM (Ctrl+C in a terminal, SIGINT): finish what is under way.
+const shutdown = gracefulShutdown(server, {
+  logger,
+  onStart: () => {
+    draining = true;
+    clearInterval(metricsTimer);
+    logger.info({ metrics: metrics.snapshot() }, 'metrics');
+  },
+});
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// A crash is logged before the process ends (Render restarts it): Node would otherwise print
+// the stack to stderr only, outside the JSON logs.
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err }, 'uncaught exception');
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  logger.fatal({ err: reason }, 'unhandled promise rejection');
+  process.exit(1);
+});
