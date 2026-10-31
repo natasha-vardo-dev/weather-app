@@ -207,7 +207,10 @@ export function AlertBell(props: Props) {
                 }}
               />
             </div>
-            <fieldset className="bell__choice">
+            {/* Settings of notifications that are on: off, they wait, dimmed (decision of the
+                project's owner); turning on uses what they show (storms from orange the first
+                time, the last settings after turning off). */}
+            <fieldset className="bell__choice" disabled={!on}>
               <legend>{t.notify.which}</legend>
               {ALERT_GROUPS.map((group) => (
                 <label key={group}>
@@ -226,7 +229,7 @@ export function AlertBell(props: Props) {
               ))}
             </fieldset>
             <p className="bell__text">{t.notify.stormsHint}</p>
-            <fieldset className="bell__choice">
+            <fieldset className="bell__choice" disabled={!on}>
               <legend>{t.notify.fromLevel}</legend>
               {ALERT_LEVELS.map((level) => (
                 <label key={level}>

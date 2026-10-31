@@ -39,16 +39,22 @@ describe('AlertBell', () => {
     hook.disable.mockReset();
   });
 
-  it('keeps a choice made before turning on, and turns on with it', async () => {
+  it('keeps the settings disabled while notifications are off, and turns on with the defaults', async () => {
     setHook({ on: false });
-    const { user } = await openPanel();
-    await user.click(screen.getByRole('radio', { name: 'All' }));
-    await user.click(screen.getByRole('radio', { name: 'Red' }));
-    expect(screen.getByRole('radio', { name: 'All' })).toBeChecked();
-    expect(hook.enable).not.toHaveBeenCalled();
+    const view = await openPanel();
+    for (const name of ['Storms', 'All', 'Yellow', 'Orange', 'Red']) {
+      expect(screen.getByRole('radio', { name })).toBeDisabled();
+    }
+    // What will apply stays marked.
+    expect(screen.getByRole('radio', { name: 'Storms' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Orange' })).toBeChecked();
 
-    await user.click(screen.getByRole('switch'));
-    expect(hook.enable).toHaveBeenCalledWith({ group: 'all', level: 'red' });
+    await view.user.click(screen.getByRole('switch'));
+    expect(hook.enable).toHaveBeenCalledWith({ group: 'storm', level: 'orange' });
+
+    setHook({ on: true });
+    view.rerender(<AlertBell {...props} />);
+    expect(screen.getByRole('radio', { name: 'All' })).toBeEnabled();
   });
 
   it('shows what is stored once nothing is applying: a change from another tab', async () => {

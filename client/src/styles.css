@@ -1767,6 +1767,17 @@ button.settings__row:hover,
 .bell__choice input:disabled:not(:checked) + span {
   opacity: 0.45;
 }
+/* Notifications off: the settings wait for the switch, all dimmed alike (the chosen one stays
+   marked), with no "busy" cursor: nothing is being applied. */
+.bell__choice:disabled {
+  opacity: 0.5;
+}
+.bell__choice:disabled input + span {
+  cursor: default;
+}
+.bell__choice:disabled input:not(:checked) + span {
+  opacity: 1;
+}
 
 /* Official weather warnings on a city page. The level is always written out; its colour
    (MeteoAlarm's yellow, orange, red) is a second signal, so a dark mark on it reads well. */
