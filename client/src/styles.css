@@ -1716,9 +1716,12 @@ button.settings__row:hover,
   padding: 0;
   border: 0;
 }
+/* The label above its options, not before them: on the same line, "From level" and three
+   levels did not fit the panel in Russian, and "Red" wrapped under the label. Above, the
+   options have the full width: they fit in every language, Ukrainian's longest included. */
 .bell__choice legend {
-  float: inline-start;
-  margin-inline-end: 0.5rem;
+  width: 100%;
+  margin: 0 0 0.3rem;
   padding: 0;
   font-size: 0.85rem;
 }
