@@ -87,7 +87,7 @@ describe('provider budget', () => {
     await provider.getForecast(52.23, 21.01, 10).catch(() => {});
     await provider.getAirQuality(52.23, 21.01).catch(() => {});
     const [forecast, airQuality] = urls.map(openMeteoWeight);
-    expect(forecast).toBeCloseTo(2.6);
+    expect(forecast).toBeCloseTo(2.2);
     expect(airQuality).toBe(1);
   });
 

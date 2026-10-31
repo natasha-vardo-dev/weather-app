@@ -26,7 +26,9 @@ export class WeatherService {
 
   constructor(
     private readonly provider: WeatherProvider,
-    forecastTtlMs = 10 * 60 * 1000,
+    // 15 minutes: Open-Meteo's current weather is per 15 minutes and its models run hourly or
+    // less often, so a shorter TTL fetched the same data again (each forecast costs 2.2 calls).
+    forecastTtlMs = 15 * 60 * 1000,
     logger?: Logger,
     /**
      * Run before each call to the provider (not for cached answers): throws to refuse it when
@@ -49,10 +51,11 @@ export class WeatherService {
     const names = { staleWhileRevalidateMs: DAY, staleIfErrorMs: 6 * DAY, ...LIMITS, maxBytes: 4 * MB };
     this.locationCache = new TtlCache(DAY, { ...names, onStaleError: staleErrorLogger(logger, 'search') });
     this.locationByIdCache = new TtlCache(DAY, { ...names, onStaleError: staleErrorLogger(logger, 'locationById') });
-    // The provider updates air quality hourly, so it can live longer than forecasts.
-    this.airQualityCache = new TtlCache(30 * MINUTE, {
+    // The provider updates air quality hourly: an hour (it was 30 minutes, half of them fetching
+    // the same data). Two hours in all when the provider is down, as before.
+    this.airQualityCache = new TtlCache(60 * MINUTE, {
       staleWhileRevalidateMs: 10 * MINUTE,
-      staleIfErrorMs: 90 * MINUTE,
+      staleIfErrorMs: 60 * MINUTE,
       onStaleError: staleErrorLogger(logger, 'airQuality'),
       ...LIMITS,
       maxBytes: 4 * MB,

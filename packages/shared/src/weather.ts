@@ -132,12 +132,13 @@ export function formatDay(date: string, today: string, options: FormatDayOptions
 export const PRECIPITATION_LIKELY = 30;
 
 /**
- * Past this age the city page says the forecast is old. Fresh data is up to ~35 minutes
- * behind: the provider's current weather is per 15 minutes, the server keeps it 10 (and 5
- * more while refreshing), browsers 5. So 45 means something went wrong: the provider was
+ * Past this age the city page says the forecast is old. Fresh data is up to ~40 minutes
+ * behind: the provider's current weather is per 15 minutes, the server keeps it 15 (and 5
+ * more while refreshing), browsers 5. So 60 means something went wrong: the provider was
  * down and the server answered with what it had (up to an hour), or the page stayed open.
+ * (45 while the server kept forecasts 10 minutes: with 15 it would have shown on fresh data.)
  */
-export const FORECAST_OUTDATED_MINUTES = 45;
+export const FORECAST_OUTDATED_MINUTES = 60;
 
 /** Building Intl formatters is costly, and the age is checked every minute: one per time zone. */
 const zoneClocks = new Map<string, Intl.DateTimeFormat>();

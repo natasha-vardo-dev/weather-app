@@ -53,18 +53,14 @@ interface ForecastResponse {
   latitude: number;
   longitude: number;
   timezone: string;
-  current_units: { temperature_2m: string; wind_speed_10m: string };
-  hourly_units?: { precipitation?: string };
+  current_units: { temperature_2m: string };
+  hourly_units: { wind_speed_10m: string; precipitation?: string };
   current: {
     time: string;
     temperature_2m: number;
     apparent_temperature: number;
-    relative_humidity_2m: number;
-    wind_speed_10m: number;
-    wind_gusts_10m?: number | null;
     wind_direction_10m?: number | null;
     weather_code: number;
-    is_day: number;
   };
   hourly: {
     time: string[];
@@ -147,10 +143,12 @@ export class OpenMeteoProvider implements WeatherProvider {
     const url = new URL(FORECAST_URL);
     url.searchParams.set('latitude', String(latitude));
     url.searchParams.set('longitude', String(longitude));
-    url.searchParams.set(
-      'current',
-      'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code,is_day',
-    );
+    // Each variable costs: Open-Meteo counts a request with more than 10 as several calls (2.6
+    // with 26, 2.2 with 22). So "now" asks only for what the hourly data has not: humidity,
+    // wind and gusts now are the current hour's, and day or night comes from today's sunrise
+    // and sunset. The temperature and the weather stay here: per 15 minutes, they are what
+    // the page is for.
+    url.searchParams.set('current', 'temperature_2m,apparent_temperature,wind_direction_10m,weather_code');
     url.searchParams.set(
       'hourly',
       // The same request, more fields: the tiles below the 10-day forecast and their charts.
@@ -168,6 +166,8 @@ export class OpenMeteoProvider implements WeatherProvider {
 
     const data = await this.request<ForecastResponse>(url);
     const { current, hourly, daily } = data;
+    // Hourly data starts at the current hour (forecast_hours), so its first entry is "now".
+    const thisHour = 0;
 
     const allDays = daily.time.map((date, i) => ({
       date,
@@ -189,19 +189,23 @@ export class OpenMeteoProvider implements WeatherProvider {
       timezone: data.timezone,
       units: {
         temperature: data.current_units.temperature_2m,
-        windSpeed: data.current_units.wind_speed_10m,
-        precipitation: data.hourly_units?.precipitation ?? 'mm',
+        windSpeed: data.hourly_units.wind_speed_10m,
+        precipitation: data.hourly_units.precipitation ?? 'mm',
       },
       current: {
         time: current.time,
         temperature: current.temperature_2m,
         apparentTemperature: current.apparent_temperature,
-        humidity: current.relative_humidity_2m,
-        windSpeed: current.wind_speed_10m,
-        windGusts: current.wind_gusts_10m ?? null,
+        humidity: hourly.relative_humidity_2m[thisHour]!,
+        windSpeed: hourly.wind_speed_10m[thisHour]!,
+        windGusts: hourly.wind_gusts_10m?.[thisHour] ?? null,
         windDirection: current.wind_direction_10m ?? null,
         weatherCode: current.weather_code,
-        isDay: current.is_day === 1,
+        isDay: isDaytime(
+          current.time,
+          allDays.find((day) => day.date === today),
+          hourly.is_day[thisHour] === 1,
+        ),
       },
       hourly: hourly.time.map((time, i) => ({
         time,
@@ -277,4 +281,19 @@ export class OpenMeteoProvider implements WeatherProvider {
     }
     return (await response.json()) as T;
   }
+}
+
+/**
+ * Day or night now, from today's sunrise and sunset (local times, "2026-10-31T06:40", so
+ * they compare as strings): exact to the minute, where the hourly flag would keep the night
+ * icon until the hour after sunrise. Without a sunrise or sunset (polar day or night), the
+ * current hour's flag.
+ */
+export function isDaytime(
+  now: string,
+  today: { sunrise: string | null; sunset: string | null } | undefined,
+  hourFlag: boolean,
+): boolean {
+  if (!today?.sunrise || !today.sunset) return hourFlag;
+  return now >= today.sunrise && now < today.sunset;
 }

@@ -38,7 +38,7 @@ function positiveNumber(name: string, fallback: number): number {
 }
 
 const port = positiveNumber('PORT', 3001);
-const ttlSeconds = positiveNumber('FORECAST_CACHE_TTL', 600);
+const ttlSeconds = positiveNumber('FORECAST_CACHE_TTL', 900);
 const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
   .split(',')
   .map((s) => s.trim())

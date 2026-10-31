@@ -25,9 +25,9 @@ export const OPEN_METEO_LIMITS: ProviderLimits = { perMinute: 600, perHour: 5000
  * location are considered multiple API calls", in fractions: "2 weeks of data with 15 weather
  * variables will be calculated as 1.5 API calls, while 4 weeks of data equals 3.0". So
  * variables / 10 times days / 14, each at least 1 (the product fits both examples; no closed
- * formula is published). Our forecast asks for 26 variables over 11 days: 2.6 calls (a test checks the
- * adapter's own URL), so counting requests only, the budget would have let through 2.6 times
- * the limit. Requests
+ * formula is published). Our forecast asks for 22 variables over 11 days: 2.2 calls (26 and 2.6 before
+ * the duplicates with the hourly data were dropped; a test checks the adapter's own URL), so
+ * counting requests only, the budget would let through more than twice the limit. Requests
  * without variables (geocoding) count as 1. Whether air quality is weighted the same way is
  * not stated; it is counted the same, the safe side. (Found by roborev.)
  */
