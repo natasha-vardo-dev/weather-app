@@ -28,6 +28,12 @@ export class WeatherService {
     private readonly provider: WeatherProvider,
     forecastTtlMs = 10 * 60 * 1000,
     logger?: Logger,
+    /**
+     * Run before each call to the provider (not for cached answers): throws to refuse it when
+     * the server is near the provider's limit (Metrics.budget). A refused refresh keeps a
+     * stale value where the cache has one.
+     */
+    private readonly budget: () => void = () => {},
   ) {
     // Past the TTL: 5 more minutes answered at once while a new forecast loads, and up to an
     // hour in all when the provider is down, instead of an error.
@@ -56,24 +62,36 @@ export class WeatherService {
   searchLocations(query: string, limit = 5, language = 'en'): Promise<Location[]> {
     // The language changes the returned names, so it is part of the key.
     const key = `${language}:${query.trim().toLowerCase()}:${limit}`;
-    return this.locationCache.getOrLoad(key, () => this.provider.searchLocations(query.trim(), limit, language));
+    return this.locationCache.getOrLoad(key, async () =>
+      this.call(() => this.provider.searchLocations(query.trim(), limit, language)),
+    );
   }
 
   /** With `stale`: a stale forecast should be kept by browsers for less long. */
   getForecast(latitude: number, longitude: number, days = FORECAST_DEFAULT_DAYS): Promise<Cached<Forecast>> {
     const [lat, lon] = [round(latitude), round(longitude)];
-    return this.forecastCache.load(`${lat}:${lon}:${days}`, () => this.provider.getForecast(lat, lon, days));
+    return this.forecastCache.load(`${lat}:${lon}:${days}`, async () =>
+      this.call(() => this.provider.getForecast(lat, lon, days)),
+    );
   }
 
   /** Place names change only when the provider's data does, so they share the search TTL. */
   getLocation(id: number, language = 'en'): Promise<Location | null> {
     const key = `id:${language}:${id}`;
-    return this.locationByIdCache.getOrLoad(key, () => this.provider.getLocation(id, language));
+    return this.locationByIdCache.getOrLoad(key, async () => this.call(() => this.provider.getLocation(id, language)));
   }
 
   getAirQuality(latitude: number, longitude: number): Promise<Cached<AirQuality>> {
     const [lat, lon] = [round(latitude), round(longitude)];
-    return this.airQualityCache.load(`${lat}:${lon}`, () => this.provider.getAirQuality(lat, lon));
+    return this.airQualityCache.load(`${lat}:${lon}`, async () =>
+      this.call(() => this.provider.getAirQuality(lat, lon)),
+    );
+  }
+
+  /** A provider call, after the budget check. */
+  private call<T>(load: () => Promise<T>): Promise<T> {
+    this.budget();
+    return load();
   }
 
   cacheStats(): Record<string, CacheStats> {

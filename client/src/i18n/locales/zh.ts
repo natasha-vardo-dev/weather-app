@@ -194,6 +194,7 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
     NOT_FOUND: '未找到任何内容。',
     INTERNAL: '出了点问题。请重试。',
     RATE_LIMITED: '来自你网络的请求过多。请等待一分钟后重试。',
+    SERVICE_BUSY: '服务当前繁忙。请几分钟后重试。',
     NETWORK_ERROR: '无法连接服务器。请检查网络后重试。',
   },
 });

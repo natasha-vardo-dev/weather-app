@@ -8,7 +8,7 @@ import {
   type LocationsResponse,
 } from '@weather/shared';
 import { Router } from 'express';
-import { AppError, errorDetails, NotFoundError, type ProviderError } from '../errors.js';
+import { AppError, BusyError, errorDetails, NotFoundError, type ProviderError } from '../errors.js';
 import type { Logger } from '../observability/logger.js';
 import type { WeatherService } from '../services/weatherService.js';
 
@@ -71,6 +71,9 @@ export function weatherRouter(service: WeatherService, logger?: Logger): Router 
       // Nothing to show: the usual error response (502 for the provider), so no one stores it.
       if (failed.length === settled.length) throw failed[0]!.reason;
       for (const { reason } of failed) {
+        // A budget refusal is logged by the budget, once a minute: here it would be up to ten
+        // lines a request while the budget is spent. (Found by roborev.)
+        if (reason instanceof BusyError) continue;
         // A bug (not an AppError) keeps its stack in the log, as it would on /forecast.
         if (reason instanceof AppError) {
           logger?.warn({ code: reason.code, detail: (reason as ProviderError).detail }, 'forecast in batch failed');

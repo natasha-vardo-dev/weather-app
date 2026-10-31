@@ -201,6 +201,7 @@ export const it: MessagesFactory = ({ num, deg, plural }) => ({
     NOT_FOUND: 'Nessun risultato.',
     INTERNAL: 'Qualcosa è andato storto. Riprova.',
     RATE_LIMITED: 'Troppe richieste dalla tua rete. Attendi un minuto e riprova.',
+    SERVICE_BUSY: 'Il servizio è sovraccarico in questo momento. Riprova tra qualche minuto.',
     NETWORK_ERROR: 'Nessuna connessione al server. Controlla la connessione a internet e riprova.',
   },
 });

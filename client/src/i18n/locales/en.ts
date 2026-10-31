@@ -201,6 +201,7 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
     NOT_FOUND: 'Nothing found.',
     INTERNAL: 'Something went wrong. Try again.',
     RATE_LIMITED: 'Too many requests from your network. Wait a minute and try again.',
+    SERVICE_BUSY: 'The service is busy right now. Try again in a few minutes.',
     NETWORK_ERROR: 'No connection to the server. Check your internet and try again.',
   },
 });

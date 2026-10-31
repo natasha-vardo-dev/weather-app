@@ -24,6 +24,16 @@ export class ProviderError extends AppError {
   }
 }
 
+/**
+ * Refused before calling a provider: the server is near the provider's limit (for everyone,
+ * whoever asks), so new data waits and cached data is still served.
+ */
+export class BusyError extends AppError {
+  constructor(message = 'The service is busy right now. Try again in a few minutes.') {
+    super(message, 503, ERROR_CODES.SERVICE_BUSY);
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor(message = 'Nothing found.') {
     super(message, 404, ERROR_CODES.NOT_FOUND);

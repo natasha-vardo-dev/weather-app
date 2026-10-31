@@ -13,7 +13,13 @@ import { PlaceService } from './services/placeService.js';
 import { loadRegions, RegionIndex } from './services/regions.js';
 import { WeatherService } from './services/weatherService.js';
 import { createLogger } from './observability/logger.js';
-import { instrumentFetch, Metrics, OPEN_METEO_LIMITS } from './observability/metrics.js';
+import {
+  instrumentFetch,
+  IPWHOIS_LIMITS,
+  Metrics,
+  OPEN_METEO_LIMITS,
+  openMeteoWeight,
+} from './observability/metrics.js';
 import { DEFAULT_RATE_LIMITS } from './rateLimits.js';
 
 /**
@@ -45,12 +51,15 @@ const nominatimUserAgent =
 const logger = createLogger();
 const metrics = new Metrics(logger);
 /** A provider's fetch, counted against its limits and logged (debug). */
-const counted = (name: string, limits = {}) => instrumentFetch(name, metrics.provider(name, limits), logger);
+const counted = (name: string, limits = {}, weigh?: (url: URL) => number) =>
+  instrumentFetch(name, metrics.provider(name, limits), logger, fetch, weigh);
 
+// New calls stop near Open-Meteo's limit, for everyone (cached answers still go out).
 const service = new WeatherService(
-  new OpenMeteoProvider(counted('open-meteo', OPEN_METEO_LIMITS)),
+  new OpenMeteoProvider(counted('open-meteo', OPEN_METEO_LIMITS, openMeteoWeight)),
   ttlSeconds * 1000,
   logger,
+  metrics.budget('open-meteo'),
 );
 // Matches the user's location to a searched city through the weather service's cached search.
 const places = new PlaceService(
@@ -66,9 +75,10 @@ const trustProxy = process.env.TRUST_PROXY?.trim() ? positiveNumber('TRUST_PROXY
 // up instead. Opt-in (IP_SELF_LOOKUP=1 in the local .env only): on by default, a server
 // whose proxy setup is wrong would offer its data centre's city to every user.
 const approximate = new ApproximateLocationService(
-  new IpWhoIsLocator(counted('ipwhois')),
+  new IpWhoIsLocator(counted('ipwhois', IPWHOIS_LIMITS)),
   places,
   process.env.IP_SELF_LOOKUP?.trim() === '1',
+  metrics.budget('ipwhois'),
 );
 // Official warnings (Europe). Region borders: data/meteoalarm-regions.json.gz, built by
 // scripts/buildAlertRegions.ts from MeteoAlarm's published file; read on first request.

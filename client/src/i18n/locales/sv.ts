@@ -200,6 +200,7 @@ export const sv: MessagesFactory = ({ num, deg, plural }) => ({
     NOT_FOUND: 'Inget hittades.',
     INTERNAL: 'Något gick fel. Försök igen.',
     RATE_LIMITED: 'För många förfrågningar från ditt nätverk. Vänta en minut och försök igen.',
+    SERVICE_BUSY: 'Tjänsten är överbelastad just nu. Försök igen om några minuter.',
     NETWORK_ERROR: 'Ingen anslutning till servern. Kontrollera internetanslutningen och försök igen.',
   },
 });

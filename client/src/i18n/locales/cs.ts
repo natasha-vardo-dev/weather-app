@@ -211,6 +211,7 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     NOT_FOUND: 'Nic nenalezeno.',
     INTERNAL: 'Něco se pokazilo. Zkuste to znovu.',
     RATE_LIMITED: 'Příliš mnoho požadavků z vaší sítě. Počkejte minutu a zkuste to znovu.',
+    SERVICE_BUSY: 'Služba je teď přetížená. Zkuste to znovu za pár minut.',
     NETWORK_ERROR: 'Žádné připojení k serveru. Zkontrolujte internet a zkuste to znovu.',
   },
 });

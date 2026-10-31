@@ -101,19 +101,30 @@ describe('Metrics', () => {
 });
 
 describe('instrumentFetch', () => {
-  it('counts successes and failures, including network errors', async () => {
-    const outcomes: boolean[] = [];
+  it('counts each call when sent, and failures (HTTP errors, network errors) as errors', async () => {
+    const metrics = new Metrics(silentLogger);
     const responses = [new Response('{}', { status: 200 }), new Response('', { status: 503 })];
+    let release!: () => void;
     const fetchFn = vi.fn(async () => {
       const next = responses.shift();
-      if (!next) throw new TypeError('fetch failed');
-      return next;
+      if (next) return next;
+      await new Promise<void>((resolve) => (release = resolve));
+      throw new TypeError('fetch failed');
     });
-    const counted = instrumentFetch('test', (ok) => outcomes.push(ok), silentLogger, fetchFn as typeof fetch);
+    const counted = instrumentFetch(
+      'test',
+      metrics.provider('test', { perMinute: 10 }),
+      silentLogger,
+      fetchFn as typeof fetch,
+    );
 
     await counted('https://api.example.com/v1/forecast?latitude=52.23');
     await counted('https://api.example.com/v1/forecast?latitude=52.23');
-    await expect(counted('https://api.example.com/v1/forecast')).rejects.toThrow('fetch failed');
-    expect(outcomes).toEqual([true, false, false]);
+    const pending = counted('https://api.example.com/v1/forecast');
+    // Still under way, already counted: the budget sees it.
+    expect(metrics.snapshot().providers.test!.lastMinute).toBe(3);
+    release();
+    await expect(pending).rejects.toThrow('fetch failed');
+    expect(metrics.snapshot().providers.test).toMatchObject({ lastMinute: 3, errorsLastDay: 2 });
   });
 });

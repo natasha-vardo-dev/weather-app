@@ -221,6 +221,7 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     NOT_FOUND: 'Nic nie znaleziono.',
     INTERNAL: 'Coś poszło nie tak. Spróbuj ponownie.',
     RATE_LIMITED: 'Zbyt wiele zapytań z Twojej sieci. Odczekaj minutę i spróbuj ponownie.',
+    SERVICE_BUSY: 'Usługa jest teraz przeciążona. Spróbuj ponownie za kilka minut.',
     NETWORK_ERROR: 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.',
   },
 });

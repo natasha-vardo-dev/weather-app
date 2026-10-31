@@ -203,6 +203,7 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
     NOT_FOUND: 'Aucun résultat.',
     INTERNAL: "Une erreur s'est produite. Réessayez.",
     RATE_LIMITED: 'Trop de requêtes depuis votre réseau. Patientez une minute, puis réessayez.',
+    SERVICE_BUSY: 'Le service est surchargé pour le moment. Réessayez dans quelques minutes.',
     NETWORK_ERROR: 'Pas de connexion au serveur. Vérifiez votre connexion Internet et réessayez.',
   },
 });

@@ -199,6 +199,7 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
     NOT_FOUND: '찾은 결과가 없습니다.',
     INTERNAL: '문제가 발생했습니다. 다시 시도하세요.',
     RATE_LIMITED: '네트워크에서 요청이 너무 많습니다. 1분 후에 다시 시도하세요.',
+    SERVICE_BUSY: '현재 서비스가 혼잡합니다. 몇 분 후에 다시 시도하세요.',
     NETWORK_ERROR: '서버에 연결할 수 없습니다. 인터넷 연결을 확인하고 다시 시도하세요.',
   },
 });

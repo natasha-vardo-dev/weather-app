@@ -201,6 +201,7 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
     NOT_FOUND: 'Hiçbir şey bulunamadı.',
     INTERNAL: 'Bir şeyler ters gitti. Tekrar dene.',
     RATE_LIMITED: 'Ağından çok fazla istek geldi. Bir dakika bekle ve tekrar dene.',
+    SERVICE_BUSY: 'Hizmet şu anda yoğun. Birkaç dakika sonra tekrar dene.',
     NETWORK_ERROR: 'Sunucuya bağlantı yok. İnternetini kontrol edip tekrar dene.',
   },
 });

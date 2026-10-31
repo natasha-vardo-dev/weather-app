@@ -1,3 +1,4 @@
+import { BusyError } from '../errors.js';
 import type { CacheStats } from '../services/cache.js';
 import type { Logger } from './logger.js';
 
@@ -12,11 +13,53 @@ export interface ProviderLimits {
   perDay?: number;
 }
 
-/** Open-Meteo's free tier, shared by forecast, geocoding and air quality (per IP of the server). */
+/**
+ * Open-Meteo's free tier, shared by forecast, geocoding and air quality (per IP of the server),
+ * in its own units: a request can count as more than one call (openMeteoWeight).
+ */
 export const OPEN_METEO_LIMITS: ProviderLimits = { perMinute: 600, perHour: 5000, perDay: 10_000 };
+
+/**
+ * How many calls Open-Meteo counts a request as. Its pricing FAQ: "Requests for data covering
+ * more than 10 weather variables or extending over a period of more than 2 weeks for a single
+ * location are considered multiple API calls", in fractions: "2 weeks of data with 15 weather
+ * variables will be calculated as 1.5 API calls, while 4 weeks of data equals 3.0". So
+ * variables / 10 times days / 14, each at least 1 (the product fits both examples; no closed
+ * formula is published). Our forecast asks for 26 variables over 11 days: 2.6 calls (a test checks the
+ * adapter's own URL), so counting requests only, the budget would have let through 2.6 times
+ * the limit. Requests
+ * without variables (geocoding) count as 1. Whether air quality is weighted the same way is
+ * not stated; it is counted the same, the safe side. (Found by roborev.)
+ */
+export function openMeteoWeight(url: URL): number {
+  const variables = ['current', 'hourly', 'daily', 'minutely_15']
+    .map((name) => url.searchParams.get(name))
+    .filter((list): list is string => !!list)
+    .reduce((total, list) => total + list.split(',').filter(Boolean).length, 0);
+  const days =
+    Number(url.searchParams.get('forecast_days') ?? (variables > 0 ? 7 : 0)) +
+    Number(url.searchParams.get('past_days') ?? 0);
+  const weight = Math.max(1, variables / 10) * Math.max(1, days / 14);
+  return Number.isFinite(weight) ? weight : 1;
+}
+
+/**
+ * Not a published limit: our own cap on ipwho.is ("low, non-commercial traffic"). Its lookups
+ * are cached a day per address, so real users make few; the cap is for a script sending a
+ * new forged address with every request (see the proxy secret in app.ts).
+ */
+export const IPWHOIS_LIMITS: ProviderLimits = { perMinute: 30, perDay: 1000 };
 
 /** Share of a limit after which a warning is logged, once per window. */
 const WARN_AT = 0.8;
+
+/**
+ * Share of a limit after which new calls are refused (BusyError) until the window moves on.
+ * Per-IP limits stop one address, not many, nor an address forged past the proxies; this
+ * keeps the provider's own limit (and its goodwill) for everyone. 10% is left for calls
+ * already under way when the share is crossed.
+ */
+export const BUDGET_SHARE = 0.9;
 
 const WINDOWS = [
   { name: 'perMinute', ms: MINUTE },
@@ -33,6 +76,8 @@ export interface ProviderUsage {
   limits: ProviderLimits;
   /** Usage of each limit, 0–1: what to watch. */
   share: Partial<Record<keyof ProviderLimits, number>>;
+  /** Calls refused because a limit was near (BUDGET_SHARE), since the start. */
+  refused: number;
 }
 
 /**
@@ -42,20 +87,24 @@ export interface ProviderUsage {
 class ProviderCounter {
   private readonly calls = new Map<number, { calls: number; errors: number }>();
   private readonly warnedAt: Partial<Record<keyof ProviderLimits, number>> = {};
+  private refusedCount = 0;
+  private lastRefusalLog = -Infinity;
 
   constructor(
     readonly name: string,
     readonly limits: ProviderLimits,
   ) {}
 
-  record(ok: boolean, now: number, logger: Logger): void {
+  /** `weight`: how many calls the provider counts this request as (1 unless it says otherwise). */
+  record(ok: boolean, now: number, logger: Logger, weight = 1): void {
     const minute = Math.floor(now / MINUTE);
+    const fresh = !this.calls.has(minute);
     const bucket = this.calls.get(minute) ?? { calls: 0, errors: 0 };
-    bucket.calls += 1;
+    bucket.calls += weight;
     if (!ok) bucket.errors += 1;
     this.calls.set(minute, bucket);
     // Buckets older than a day are dropped as new minutes start.
-    if (bucket.calls === 1) {
+    if (fresh) {
       for (const key of this.calls.keys()) if (key <= minute - DAY / MINUTE) this.calls.delete(key);
     }
     this.warnNearLimits(now, logger);
@@ -90,7 +139,24 @@ class ProviderCounter {
       errorsLastDay: count(DAY, 'errors'),
       limits: this.limits,
       share,
+      refused: this.refusedCount,
     };
+  }
+
+  /** Throws BusyError when a limit is at BUDGET_SHARE; logged at most once a minute. */
+  checkBudget(now: number, logger: Logger): void {
+    const { share } = this.usage(now);
+    const full = WINDOWS.find(({ name }) => (share[name] ?? 0) >= BUDGET_SHARE);
+    if (!full) return;
+    this.refusedCount += 1;
+    if (now - this.lastRefusalLog >= MINUTE) {
+      this.lastRefusalLog = now;
+      logger.warn(
+        { provider: this.name, window: full.name, share: share[full.name], refused: this.refusedCount },
+        'provider budget reached, refusing new calls',
+      );
+    }
+    throw new BusyError();
   }
 
   /** Before the provider starts refusing: the limit that bites first is the daily one. */
@@ -137,15 +203,23 @@ export class Metrics {
     this.startedAt = now();
   }
 
-  /** Calls to a provider are counted under `name`, against `limits`. */
-  provider(name: string, limits: ProviderLimits = {}): (ok: boolean) => void {
+  /** Calls to a provider are counted under `name`, against `limits`, each by its weight (default 1). */
+  provider(name: string, limits: ProviderLimits = {}): (ok: boolean, weight?: number) => void {
     let counter = this.providers.get(name);
     if (!counter) {
       counter = new ProviderCounter(name, limits);
       this.providers.set(name, counter);
     }
     const target = counter;
-    return (ok) => target.record(ok, this.now(), this.logger);
+    return (ok, weight) => target.record(ok, this.now(), this.logger, weight);
+  }
+
+  /**
+   * A check to run before calling the provider `name`: throws BusyError when one of its limits
+   * is at BUDGET_SHARE. A provider without limits (or not registered) is never refused.
+   */
+  budget(name: string): () => void {
+    return () => this.providers.get(name)?.checkBudget(this.now(), this.logger);
   }
 
   /** Reports a cache's stats under `name` (read when a snapshot is taken). */
@@ -193,21 +267,27 @@ export class Metrics {
  */
 export function instrumentFetch(
   name: string,
-  record: (ok: boolean) => void,
+  record: (ok: boolean, weight?: number) => void,
   logger: Logger,
   fetchFn: typeof fetch = fetch,
+  /** How many calls the provider counts a request as (openMeteoWeight); 1 without it. */
+  weigh: (url: URL) => number = () => 1,
 ): typeof fetch {
   return async (input, init) => {
     const started = performance.now();
     const url = new URL(input instanceof Request ? input.url : String(input));
     const where = { provider: name, host: url.host, path: url.pathname };
+    // Counted when sent, not when answered: the budget is checked before each call, and calls
+    // still under way must count, or a burst near the limit would all pass the check together.
+    // A failure adds an error only. (Found by roborev.)
+    record(true, weigh(url));
     try {
       const response = await fetchFn(input, init);
-      record(response.ok);
+      if (!response.ok) record(false, 0);
       logger.debug({ ...where, status: response.status, ms: Math.round(performance.now() - started) }, 'provider call');
       return response;
     } catch (err) {
-      record(false);
+      record(false, 0);
       logger.warn(
         { ...where, ms: Math.round(performance.now() - started), err: (err as Error).name },
         'provider call failed',

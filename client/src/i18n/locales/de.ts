@@ -203,6 +203,7 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
     NOT_FOUND: 'Nichts gefunden.',
     INTERNAL: 'Etwas ist schiefgelaufen. Versuche es erneut.',
     RATE_LIMITED: 'Zu viele Anfragen aus deinem Netzwerk. Warte eine Minute und versuche es erneut.',
+    SERVICE_BUSY: 'Der Dienst ist gerade ausgelastet. Versuche es in ein paar Minuten erneut.',
     NETWORK_ERROR: 'Keine Verbindung zum Server. Prüfe deine Internetverbindung und versuche es erneut.',
   },
 });

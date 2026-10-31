@@ -201,6 +201,7 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     NOT_FOUND: 'Niets gevonden.',
     INTERNAL: 'Er is iets misgegaan. Probeer het opnieuw.',
     RATE_LIMITED: 'Te veel verzoeken vanaf je netwerk. Wacht een minuut en probeer het opnieuw.',
+    SERVICE_BUSY: 'De dienst is op dit moment overbelast. Probeer het over een paar minuten opnieuw.',
     NETWORK_ERROR: 'Geen verbinding met de server. Controleer je internetverbinding en probeer het opnieuw.',
   },
 });

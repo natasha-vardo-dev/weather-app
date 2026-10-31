@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ProviderError } from '../src/errors.js';
+import { BusyError, ProviderError } from '../src/errors.js';
 import type { Logger } from '../src/observability/logger.js';
 import { staleErrorLogger } from '../src/services/staleErrorLogger.js';
 
@@ -23,6 +23,13 @@ describe('staleErrorLogger', () => {
     const err = new TypeError('bug');
     staleErrorLogger(logger as unknown as Logger, 'search')!(err);
     expect(logger.error).toHaveBeenCalledWith({ cache: 'search', err }, 'load failed, stale value kept');
+  });
+
+  it('leaves a budget refusal to the budget, which logs it once a minute', () => {
+    const logger = fakeLogger();
+    staleErrorLogger(logger as unknown as Logger, 'forecast')!(new BusyError());
+    expect(logger.warn).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   it('is nothing without a logger', () => {
