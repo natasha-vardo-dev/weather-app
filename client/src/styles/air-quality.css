@@ -1,0 +1,105 @@
+/*
+ * Level colours follow each index's official palette, lightened where the darkest bands
+ * would vanish on the blue background. The level is also written out, so colour is never
+ * the only signal; the light ring keeps the dot visible on any background.
+ */
+.aqi__dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.6);
+  background: var(--ink-soft);
+}
+.aqi__dot[data-scale='european'][data-level='good'] {
+  background: #50f0e6;
+}
+.aqi__dot[data-scale='european'][data-level='fair'] {
+  background: #50ccaa;
+}
+.aqi__dot[data-scale='european'][data-level='moderate'] {
+  background: #f0e641;
+}
+.aqi__dot[data-scale='european'][data-level='poor'] {
+  background: #ff5050;
+}
+.aqi__dot[data-scale='european'][data-level='very-poor'] {
+  background: #d1306e;
+}
+.aqi__dot[data-scale='european'][data-level='extremely-poor'] {
+  background: #a855d6;
+}
+.aqi__dot[data-scale='us'][data-level='good'] {
+  background: #00e400;
+}
+.aqi__dot[data-scale='us'][data-level='moderate'] {
+  background: #ffff00;
+}
+.aqi__dot[data-scale='us'][data-level='unhealthy-sensitive'] {
+  background: #ff7e00;
+}
+.aqi__dot[data-scale='us'][data-level='unhealthy'] {
+  background: #ff3b3b;
+}
+.aqi__dot[data-scale='us'][data-level='very-unhealthy'] {
+  background: #a95fd6;
+}
+.aqi__dot[data-scale='us'][data-level='hazardous'] {
+  background: #c0304e;
+}
+
+.pollutants {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Four rows the height of a 24-hour chart (120 px), so switching details doesn't move the page. */
+.pollutants__row {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr) 4.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  height: 30px;
+}
+.pollutants__code {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.pollutants__track {
+  position: relative;
+  height: 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--line);
+}
+.pollutants__fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: 0.25rem;
+  background: var(--cool);
+}
+/* The guideline: a white tick across the bar, the same mark as in the panel title. */
+.pollutants__mark {
+  position: absolute;
+  inset-block: -0.25rem;
+  width: 2px;
+  margin-inline-start: -1px;
+  background: var(--ink);
+}
+.pollutants__legend {
+  display: inline-block;
+  width: 2px;
+  height: 0.8em;
+  vertical-align: -0.1em;
+  background: var(--ink);
+}
+.pollutants__value {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: nowrap;
+}
+.pollutants__unit {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}

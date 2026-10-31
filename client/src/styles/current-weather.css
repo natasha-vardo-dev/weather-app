@@ -1,0 +1,128 @@
+/* Current weather: the temperature is the one loud element */
+.now__place {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 500;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  /* A name longer than the screen (Llanfairpwllgwyngyll…, one word) breaks inside the word
+     instead of widening the page into a sideways scroll. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+  /* Takes the room the buttons leave, so they stay on the name's line: basis 0, or a long
+     name would ask for its whole width and push the buttons onto the next line. */
+  flex: 1 1 0;
+}
+
+/* The country keeps to one line beside the name; the name wraps instead. */
+.now__sub {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+/* District and region: a line of their own under the name and the buttons, smaller. Each
+   part stays whole, so a long line breaks at the dot. */
+.now__area {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+/* An inline block moves to the next line whole, and wraps inside only if longer than a line. */
+.now__part {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+/* The phone's copy of "You are here", under the area line; hidden on wider screens. */
+.now__below {
+  display: none;
+  margin: 0.15rem 0 0;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+/* On a phone the country goes under the name, so the name and the buttons share one line. */
+@media (max-width: 480px) {
+  /* A block, not a flex row: its width is then its longest line, not the whole row. */
+  .now__place {
+    display: block;
+  }
+  .now__sub {
+    display: block;
+    font-size: 0.9rem;
+    white-space: normal;
+  }
+  /* The mark leaves the heading for its own line under the district and region (by the
+     name it made the column beside the buttons four lines tall). Scoped by .now: the
+     general rules come later in the file. */
+  /* Visually hidden, not display: none: screen readers still hear it with the name. */
+  .now .now__place .now__here {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .now .now__sep {
+    display: none;
+  }
+  .now .now__below {
+    display: block;
+  }
+  .now .now__below .now__here {
+    white-space: normal;
+    text-wrap: balance;
+  }
+  /* Buttons level with the name, not centred on name and country together (that put them
+     ~11 px low). The name's line is 36 px, as tall as the buttons. */
+  .now .now__head {
+    column-gap: 0.5rem;
+    align-items: flex-start;
+  }
+  .now__head .save-wrap {
+    column-gap: 0.4rem;
+  }
+}
+
+/* "You are here" after the country, a step smaller, same colour, on the same baseline. */
+.now__here {
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+.now__here .location-icon {
+  margin-inline-end: 0.2rem;
+  vertical-align: -0.1em;
+}
+/* Guessed from the IP: a yellow pin and its own words ("Approximate, by IP"); the text keeps
+   the soft colour for contrast (yellow text on blue is below 4.5:1). */
+.now__here--approximate .location-icon {
+  color: var(--sun);
+}
+
+.now__temp {
+  margin: 0;
+  font-size: clamp(6rem, 26vw, 11rem);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Under the number: the condition a little larger, then the details (feels like, high and
+   low, change since yesterday) in one size and the soft colour, one step apart. */
+.now__label {
+  margin: 0.9rem 0 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+.now__line,
+.now__trend {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.now__place:focus {
+  outline: none;
+}

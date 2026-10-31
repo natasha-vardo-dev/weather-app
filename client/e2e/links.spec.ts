@@ -18,6 +18,11 @@ test('a shared link opens the city with its forecast', async ({ page, checkA11y 
   await humidity.click();
   await expect(humidity).toHaveAttribute('aria-expanded', 'true');
   await checkA11y('humidity chart open');
+
+  // A tile under the mouse: lighter, and its soft texts must still read (4.1:1 once, found by
+  // axe in CI when, on a phone, the finger's hover stuck to the UV tile).
+  await page.getByRole('button', { name: /UV/ }).hover();
+  await checkA11y('tile under the mouse');
 });
 
 test('a link made in another language, or edited, moves to the canonical address', async ({ page }) => {

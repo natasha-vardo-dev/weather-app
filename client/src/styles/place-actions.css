@@ -1,0 +1,114 @@
+/* Place name and the save button on one line; the button wraps under a long name */
+.now__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.save {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.save:focus-visible {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
+
+.save-wrap {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem 0.75rem;
+}
+/* The star's message when the list is full: under the buttons, from the end side. */
+.save-wrap--star {
+  position: relative;
+}
+.save__notice {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  inset-inline-end: 0;
+  z-index: 12;
+  width: max-content;
+  /* Anchored at the star, which has the bell after it: leave room for that too on a narrow phone. */
+  max-width: min(17rem, calc(100vw - 5.5rem));
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--field-line);
+  border-radius: 0.75rem;
+  background: var(--field-list);
+  color: var(--field-ink);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  text-align: start;
+}
+.save__notice-line {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+/* No tooltip over the open message. */
+.save[data-open]::after {
+  display: none;
+}
+/* The live region takes no place in the row of buttons (even empty it was a flex item and
+   doubled the gap before the bell); the message in it is positioned against the star. */
+.save__live {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.save__notice {
+  pointer-events: auto;
+}
+/* Save and warnings: round icon buttons, at least 36 px for a finger. */
+.save--icon {
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+}
+/* The name as a tooltip under the icon, on hover and on keyboard focus (title would show
+   only on hover, late, and screen readers would read it twice). Decorative: the name is
+   already hidden text in the button. */
+.save[data-tip]:is(:hover, :focus-visible)::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  inset-inline-end: 0;
+  z-index: 11;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: var(--sky);
+  color: var(--ink);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* No tooltip over the open warnings panel. */
+.save[aria-expanded='true']::after {
+  display: none;
+}
+.save__star {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+.save[data-saved] .save__star {
+  fill: var(--sun);
+  stroke: var(--sun);
+}

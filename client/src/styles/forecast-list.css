@@ -1,0 +1,122 @@
+/* Weekly forecast with temperature range bars */
+.week__title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.week__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* The day names share one column as wide as the longest of them ("Сегодня", "Aujourd'hui"):
+   the rows are subgrids of the list. A fixed 3.5rem left "Сегодня" touching the icon and
+   put "Aujourd'hui" over it; a wider fixed one would leave "Thu" far from its icon. */
+@supports (grid-template-columns: subgrid) {
+  .week__list {
+    display: grid;
+    grid-template-columns: max-content 1.5rem 1fr auto;
+    column-gap: 0.75rem;
+  }
+  .week__list > .day {
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+  }
+}
+
+.day {
+  display: grid;
+  grid-template-columns: 3.5rem 1.5rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+
+.day__name {
+  font-weight: 500;
+}
+/* Today, a little lighter, with a dot for the temperature now on its bar. */
+/* The lighter background is drawn outside the row (a pseudo-element), not with padding: in a
+   subgrid, padding would shift this row's columns against the others. */
+.day--today {
+  position: relative;
+  isolation: isolate;
+}
+.day--today::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0 -0.5rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+.day__now {
+  position: absolute;
+  top: 50%;
+  width: 0.65rem;
+  height: 0.65rem;
+  border: 2px solid var(--sky);
+  border-radius: 50%;
+  background: var(--ink);
+  transform: translate(-50%, -50%);
+}
+.day__label {
+  color: var(--ink-soft);
+}
+/* Kept whole: it moves to the next line as one piece rather than splitting "rain | 31%". */
+.day__rain {
+  color: var(--rain);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.day__min {
+  text-align: end;
+  color: var(--ink-soft);
+}
+
+/*
+ * A temperature scale reads cold-to-warm left to right in every language, so low,
+ * bar and high form one left-to-right block; the rest of the row mirrors in RTL.
+ */
+.day__temps {
+  direction: ltr;
+  display: grid;
+  grid-template-columns: 2.5rem minmax(5rem, 9rem) 2.5rem;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.day__bar {
+  position: relative;
+  height: 0.4rem;
+  border-radius: 1rem;
+  background: var(--line);
+}
+
+.day__range {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 1rem;
+  background: linear-gradient(90deg, var(--cool), var(--warm));
+}
+
+@media (max-width: 30rem) {
+  .day {
+    grid-template-columns: 3rem 1.5rem 1fr auto;
+    row-gap: 0.25rem;
+  }
+  .week__list > .day {
+    grid-template-columns: subgrid;
+  }
+  .day__temps {
+    grid-template-columns: 2rem 2rem;
+  }
+  .day__bar {
+    display: none;
+  }
+}

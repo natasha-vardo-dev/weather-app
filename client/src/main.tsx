@@ -6,7 +6,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { reportError, reportUncaughtErrors } from './errorReporting';
 import { I18nProvider } from './i18n/I18nProvider';
 import { UnitProvider } from './units/UnitProvider';
-import './styles.css';
+import './styles/index.css';
 
 reportUncaughtErrors();
 

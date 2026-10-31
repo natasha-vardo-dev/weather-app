@@ -1,0 +1,23 @@
+/*
+ * The site's styles, one file per part of the page. The order is the cascade: later files
+ * override earlier ones at equal specificity (base first), so a new file goes where its rules
+ * should win. Each file keeps its own reduced-motion overrides at its end, after the rules
+ * they cancel: in a shared block earlier in the cascade they lost to transitions defined later.
+ */
+@import './base.css';
+@import './header.css';
+@import './settings.css';
+@import './search.css';
+@import './states.css';
+@import './current-weather.css';
+@import './tiles.css';
+@import './chart.css';
+@import './air-quality.css';
+@import './hourly.css';
+@import './forecast-list.css';
+@import './favorites-strip.css';
+@import './place-actions.css';
+@import './alert-bell.css';
+@import './weather-alerts.css';
+@import './install-hint.css';
+@import './favorites-list.css';

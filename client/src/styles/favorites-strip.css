@@ -1,0 +1,90 @@
+/* Saved cities as a scrolling strip at the top of a city page */
+.fav-strip {
+  margin: 0 0 1.75rem;
+  min-width: 0;
+}
+.fav-strip__list {
+  /* Contains the absolutely positioned screen-reader text, so the scroller clips it. */
+  position: relative;
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0 0 0.4rem;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-color: var(--line) transparent;
+}
+.fav-strip__list > li {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+.fav-tile {
+  display: flex;
+  flex-direction: column;
+  width: 7rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+}
+.fav-tile:hover {
+  border-color: var(--ink-soft);
+}
+.fav-tile:focus-visible {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
+.fav-tile--current {
+  border: 1.5px solid var(--ink);
+  background: var(--surface);
+}
+/* Warning triangle inside the top corner (the end side, so on the left in RTL); only a
+   tile with a warning gives up the room at the end of its name. */
+.fav-tile {
+  position: relative;
+}
+.fav-tile__alert {
+  position: absolute;
+  top: 0.55rem;
+  inset-inline-end: 0.55rem;
+}
+.fav-tile--alert .fav-tile__name {
+  padding-right: 1.1rem;
+}
+[dir='rtl'] .fav-tile--alert .fav-tile__name {
+  padding-right: 0;
+  padding-left: 1.1rem;
+}
+.fav-tile__name,
+.fav-tile__country {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Names carry dir="auto", so a Latin name in an Arabic interface is cut at its own end
+   ("Węgorze…", not "…gorzewo"). Their alignment and the room for the warning mark follow
+   the page instead (the name's own direction would put them on the wrong side). */
+[dir='rtl'] :is(.fav-tile__name, .fav-tile__country, .fav-card__name, .fav-card__country) {
+  text-align: right;
+}
+.fav-tile__name {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+.fav-tile__country {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+.fav-tile__weather {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.6rem;
+  margin-top: 0.2rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
