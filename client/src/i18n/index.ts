@@ -1,29 +1,19 @@
-import { ar } from './locales/ar';
-import { cs } from './locales/cs';
 import { de } from './locales/de';
 import { en } from './locales/en';
 import { es } from './locales/es';
 import { fr } from './locales/fr';
-import { he } from './locales/he';
-import { hi } from './locales/hi';
 import { it } from './locales/it';
-import { ja } from './locales/ja';
-import { ko } from './locales/ko';
-import { nl } from './locales/nl';
 import { pl } from './locales/pl';
-import { pt } from './locales/pt';
 import { ru } from './locales/ru';
-import { sv } from './locales/sv';
-import { tr } from './locales/tr';
 import { uk } from './locales/uk';
-import { zh } from './locales/zh';
 import type { Messages, MessagesFactory } from './messages';
 import { isRtl } from '@weather/shared';
 import { pluralize } from './plural';
 
 /**
- * All bundled translations (~2 KB gzip each). Bundled rather than lazy-loaded:
- * the whole set is small, and the first render never waits for a language file.
+ * All bundled translations (~2 KB gzip each). Kept to the languages of the app's main audience,
+ * Europe (warnings come from MeteoAlarm), whose drafts can be reviewed; see docs/adr/0016. Bundled rather than
+ * lazy-loaded: the whole set is small, and the first render never waits for a language file.
  */
 export const MESSAGES = {
   en,
@@ -31,20 +21,9 @@ export const MESSAGES = {
   fr,
   es,
   it,
-  pt,
-  nl,
   pl,
-  cs,
   uk,
   ru,
-  sv,
-  tr,
-  ar,
-  he,
-  hi,
-  ja,
-  ko,
-  zh,
 } satisfies Record<string, MessagesFactory>;
 
 export type Language = keyof typeof MESSAGES;

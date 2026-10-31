@@ -259,7 +259,7 @@ button.settings__row:hover,
   }
 }
 
-/* 19 languages: the list scrolls within the window, not the page. */
+/* A long language list scrolls within the window, not the page. */
 .settings__list {
   margin: 0.35rem 0 0;
   padding: 0;

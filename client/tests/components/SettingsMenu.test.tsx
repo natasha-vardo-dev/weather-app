@@ -1,7 +1,6 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { SettingsMenu } from '../../src/components/SettingsMenu';
-import { messagesFor } from '../../src/i18n';
 import { renderWithApp } from './render';
 
 // Without a Firebase config (as in tests) the "Warnings" row is not there: language and units only.
@@ -47,11 +46,11 @@ describe('SettingsMenu', () => {
     expect(list).toHaveFocus();
     expect(screen.getByRole('option', { name: 'English' })).toHaveAttribute('aria-selected', 'true');
 
-    // "ne" jumps to Nederlands, Enter chooses it and goes back to the panel, now in Dutch.
-    await user.keyboard('ne{Enter}');
-    expect(localStorage.getItem('language')).toBe('nl');
-    expect(document.documentElement.lang).toBe('nl');
-    expect(screen.getByRole('button', { name: /Taal/ })).toHaveFocus();
+    // "po" jumps to Polski, Enter chooses it and goes back to the panel, now in Polish.
+    await user.keyboard('po{Enter}');
+    expect(localStorage.getItem('language')).toBe('pl');
+    expect(document.documentElement.lang).toBe('pl');
+    expect(screen.getByRole('button', { name: /Język/ })).toHaveFocus();
   });
 
   it('steps back from the list to the panel with Escape, then closes', async () => {
@@ -65,13 +64,5 @@ describe('SettingsMenu', () => {
 
     await user.keyboard('{Escape}');
     expect(gear).toHaveAttribute('aria-expanded', 'false');
-  });
-
-  it('keeps "°C" left to right in an Arabic interface', async () => {
-    const { user } = renderWithApp(<SettingsMenu />, { language: 'ar' });
-    expect(document.documentElement.dir).toBe('rtl');
-
-    await user.click(screen.getByRole('button', { name: messagesFor('ar', 'ar').t.settings }));
-    expect(screen.getByRole('button', { name: '°C' })).toHaveAttribute('dir', 'ltr');
   });
 });

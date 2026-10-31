@@ -34,11 +34,3 @@ test('switch to °F and to German, and keep both after a reload', async ({ page,
   await expect(temperature).toContainText('54°');
   await checkA11y('city page in German, °F');
 });
-
-test('an Arabic interface runs right to left', async ({ page, checkA11y }) => {
-  await page.addInitScript(() => localStorage.setItem('language', 'ar'));
-  await page.goto('/weather/756135-warsaw');
-  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-  await expect(page.locator('.now__temp')).toBeVisible();
-  await checkA11y('city page in Arabic');
-});

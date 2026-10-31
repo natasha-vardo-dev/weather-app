@@ -289,6 +289,37 @@ describe('OpenMeteoProvider', () => {
     const err = await provider.searchLocations('Warsaw', 5, 'en').catch((e: unknown) => e);
     expect((err as ProviderError).detail).toMatch(/timeout after 5000 ms/);
   });
+
+  it('waits longer for air quality than for the forecast', async () => {
+    const answer = {
+      timezone: 'Europe/Warsaw',
+      current: { time: '2026-10-24T19:00', european_aqi: 54, us_aqi: 80 },
+    };
+    // Answers after 60 ms, unless the request's timeout fires first.
+    const slow = vi.fn(
+      (_url: URL, init?: RequestInit) =>
+        new Promise<Response>((resolve, reject) => {
+          const timer = setTimeout(() => resolve(jsonResponse(answer)), 60);
+          init?.signal?.addEventListener('abort', () => {
+            clearTimeout(timer);
+            reject(init.signal!.reason);
+          });
+        }),
+    );
+    const provider = new OpenMeteoProvider(slow as unknown as typeof fetch, 20, 200);
+    const err = await provider.getForecast(52.23, 21.01, 10).catch((e: unknown) => e);
+    expect((err as ProviderError).detail).toMatch(/timeout after 20 ms/);
+    expect((await provider.getAirQuality(52.23, 21.01)).europeanAqi).toBe(54);
+  });
+
+  it('reports the air quality timeout as its own', async () => {
+    const fetchFn = vi.fn(async () => {
+      throw new DOMException('The operation timed out.', 'TimeoutError');
+    });
+    const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
+    const err = await provider.getAirQuality(52.23, 21.01).catch((e: unknown) => e);
+    expect((err as ProviderError).detail).toMatch(/timeout after 10000 ms/);
+  });
 });
 
 describe('isDaytime', () => {

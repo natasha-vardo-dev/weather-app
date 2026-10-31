@@ -79,8 +79,8 @@ describe('loadNames: unknown ids', () => {
   it('asks only once for an unknown id', async () => {
     getLocation.mockRejectedValue(new ApiError('Location not found.', ERROR_CODES.NOT_FOUND, 404));
     const stale = { ...warsawLink, id: 125 };
-    expect(await withVerifiedId(stale, 'cs')).not.toHaveProperty('id');
-    expect(await withVerifiedId(stale, 'cs')).not.toHaveProperty('id');
+    expect(await withVerifiedId(stale, 'de')).not.toHaveProperty('id');
+    expect(await withVerifiedId(stale, 'de')).not.toHaveProperty('id');
     expect(getLocation).toHaveBeenCalledTimes(1);
   });
 });

@@ -7,3 +7,6 @@ coverage
 
 # Local instructions for Claude Code, not part of the project
 CLAUDE.md
+
+# Full decision history for Claude Code, local only (CLAUDE.md links to it)
+CLAUDE.history.md

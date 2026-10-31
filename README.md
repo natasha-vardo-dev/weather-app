@@ -13,7 +13,7 @@ A web application that shows the current weather and a 10-day forecast for a sel
 - 10-day forecast with temperature range bars and rain probability
 - Favourite cities (up to 10), saved in the browser: shown as cards with current weather, condition and today's high/low on the start page, and as a strip of tiles on city pages
 - Loading, empty and error states with retry
-- 19 interface languages, picked from the system language by default, with a switcher; dates, times, numbers and units follow the locale; right-to-left layout for Arabic and Hebrew
+- 8 interface languages (English, German, French, Spanish, Italian, Polish, Ukrainian, Russian), picked from the system language by default, with a switcher; dates, times, numbers and units follow the locale
 - °C or °F: Fahrenheit by default only when both the browser locale and the time zone are of the US or a few other regions, Celsius otherwise; a switcher in the header remembers the choice
 - Weather for your location: a crosshair in the search field (the browser asks for permission only when it is pressed). If the browser can't tell the position, the message offers "Try again" and the city guessed from the IP address ("Looks like you're in Warsaw"), marked as approximate. Place names come from OpenStreetMap
 - Push notifications about storms (optional, needs a free Firebase project): a bell on the city page turns them on for that place; one notification per warning, a closed one does not come back, only a raised level notifies again
@@ -39,7 +39,8 @@ Browser (React SPA) → Backend for Frontend (Express) → Open-Meteo
                        In-memory TTL cache
 ```
 
-See [docs/architecture.md](docs/architecture.md).
+See [docs/architecture.md](docs/architecture.md) for how it works and [docs/adr/](docs/adr/README.md) for the main
+decisions and the alternatives considered.
 
 ## Project structure
 
@@ -127,7 +128,7 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 - [No user accounts needed: favourites live in the browser (`localStorage`), so they do not sync between devices]
 - [10 days of forecast is enough: beyond that Open-Meteo still returns data (up to 16 days), but accuracy drops sharply]
 - [Only temperature has a unit switch (°C/°F); wind stays in km/h]
-- [UI translations for 19 languages are machine-quality drafts: they need a review by native speakers before a real release]
+- [UI translations for 8 languages are machine-quality drafts: they need a review by native speakers before a real release]
 - [Weather warnings cover Europe only (MeteoAlarm's ~38 countries). No banner means no warning was found, not a promise of calm weather; elsewhere there are none yet (the US National Weather Service would be the next source)]
 - [Push notifications: a warning issued while the server was down (deploy, restart) is not pushed; it still shows on the page]
 

@@ -106,7 +106,7 @@ function withoutSharedWords(value: string, values: string[]): string {
 }
 
 /** Interface languages not written in Latin letters. */
-const NON_LATIN = new Set(['ru', 'uk', 'ar', 'he', 'hi', 'ja', 'ko', 'zh']);
+const NON_LATIN = new Set(['ru', 'uk']);
 
 /**
  * The region to show under a place's name, or undefined:

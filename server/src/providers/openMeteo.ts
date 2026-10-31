@@ -105,13 +105,22 @@ type FetchFn = typeof fetch;
 
 interface RequestOptions {
   /** Which failed responses mean "no such thing" (null) rather than a provider error. */
-  isNotFound: (status: number, body: string) => boolean;
+  isNotFound?: (status: number, body: string) => boolean;
+  /** Instead of the provider's usual timeout. */
+  timeoutMs?: number;
 }
 
 export class OpenMeteoProvider implements WeatherProvider {
+  /**
+   * @param airQualityTimeoutMs Longer than the rest: the air quality API is slower (seen
+   *   past 5 s on a cache miss), and its answer is secondary and loaded apart from the
+   *   forecast, so waiting holds nothing up, while giving up hid the item until the client's
+   *   retry 20 s later.
+   */
   constructor(
     private readonly fetchFn: FetchFn = fetch,
     private readonly timeoutMs = 5000,
+    private readonly airQualityTimeoutMs = 10_000,
   ) {}
 
   async searchLocations(query: string, limit: number, language: string): Promise<Location[]> {
@@ -236,7 +245,7 @@ export class OpenMeteoProvider implements WeatherProvider {
     url.searchParams.set('current', 'european_aqi,us_aqi,pm2_5,pm10,ozone,nitrogen_dioxide');
     url.searchParams.set('timezone', 'auto');
 
-    const data = await this.request<AirQualityResponse>(url);
+    const data = await this.request<AirQualityResponse>(url, { timeoutMs: this.airQualityTimeoutMs });
     const { current } = data;
     return {
       time: current.time,
@@ -256,27 +265,28 @@ export class OpenMeteoProvider implements WeatherProvider {
    * Node's fetch reports every network failure as "TypeError: fetch failed"; the real
    * reason (DNS, refused or reset connection, TLS) is in `cause`, often with a code.
    */
-  private describeFailure(err: unknown): string {
-    if (err instanceof Error && err.name === 'TimeoutError') return `timeout after ${this.timeoutMs} ms`;
+  private describeFailure(err: unknown, timeoutMs: number): string {
+    if (err instanceof Error && err.name === 'TimeoutError') return `timeout after ${timeoutMs} ms`;
     const cause = err instanceof Error ? (err.cause as { code?: string; message?: string } | undefined) : undefined;
     const detail = cause ? [cause.code, cause.message].filter(Boolean).join(' ') : '';
     return detail ? `${String(err)} (${detail})` : String(err);
   }
 
-  private async request<T>(url: URL): Promise<T>;
+  private async request<T>(url: URL, options?: RequestOptions & { isNotFound?: undefined }): Promise<T>;
   private async request<T>(url: URL, options: RequestOptions): Promise<T | null>;
   private async request<T>(url: URL, options?: RequestOptions): Promise<T | null> {
     let response: Response;
     const where = `${url.host}${url.pathname}`;
+    const timeoutMs = options?.timeoutMs ?? this.timeoutMs;
     try {
-      response = await this.fetchFn(url, { signal: AbortSignal.timeout(this.timeoutMs) });
+      response = await this.fetchFn(url, { signal: AbortSignal.timeout(timeoutMs) });
     } catch (err) {
-      throw new ProviderError(`${where}: ${this.describeFailure(err)}`);
+      throw new ProviderError(`${where}: ${this.describeFailure(err, timeoutMs)}`);
     }
     if (!response.ok) {
       // Open-Meteo explains failures in {"reason": "..."}, e.g. "Minutely API request limit exceeded".
       const body = await response.text().catch(() => '');
-      if (options?.isNotFound(response.status, body)) return null;
+      if (options?.isNotFound?.(response.status, body)) return null;
       throw new ProviderError(`${where}: HTTP ${response.status} ${body.slice(0, 200)}`.trim());
     }
     return (await response.json()) as T;
