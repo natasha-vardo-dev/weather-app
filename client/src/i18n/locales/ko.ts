@@ -10,6 +10,7 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
   placesBy: '지명',
   dataBy: '날씨 데이터 제공:',
   offline: '오프라인 상태입니다. 마지막으로 불러온 예보를 표시하며, 최신이 아닐 수 있습니다.',
+  outdated: (time) => `예보 마지막 업데이트: ${time}`,
   home: {
     title: '가는 곳의 날씨는 어떨까요?',
     text: (days) => `도시를 검색하면 현재 날씨와 ${num(days)}일 예보를 볼 수 있습니다.`,
@@ -197,6 +198,8 @@ export const ko: MessagesFactory = ({ num, deg }) => ({
     PROVIDER_ERROR: '날씨 서비스가 응답하지 않습니다. 잠시 후 다시 시도하세요.',
     NOT_FOUND: '찾은 결과가 없습니다.',
     INTERNAL: '문제가 발생했습니다. 다시 시도하세요.',
+    RATE_LIMITED: '네트워크에서 요청이 너무 많습니다. 1분 후에 다시 시도하세요.',
+    SERVICE_BUSY: '현재 서비스가 혼잡합니다. 몇 분 후에 다시 시도하세요.',
     NETWORK_ERROR: '서버에 연결할 수 없습니다. 인터넷 연결을 확인하고 다시 시도하세요.',
   },
 });

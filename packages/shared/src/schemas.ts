@@ -9,6 +9,7 @@ import {
 } from './constants.js';
 import { LATITUDE_RANGE, LONGITUDE_RANGE, MAX_LOCATION_ID } from './coordinates.js';
 import { ALERT_LEVELS } from './alerts.js';
+import { MAX_FAVORITES } from './favorites.js';
 import { ALERT_GROUPS } from './push.js';
 
 /** ISO 639-1 code for place names. The provider falls back to English for unknown ones. */
@@ -38,6 +39,35 @@ export const locationByIdSchema = z.object({
 export const forecastQuerySchema = z.object({
   lat: z.coerce.number().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
   lon: z.coerce.number().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
+  days: z.coerce.number().int().min(1).max(FORECAST_MAX_DAYS).default(FORECAST_DEFAULT_DAYS),
+});
+
+/**
+ * GET /api/forecasts?places=52.23,21.01;50.06,19.94 — several places at once, for the saved
+ * cities: up to MAX_FAVORITES, the most a page asks for.
+ */
+export const forecastsQuerySchema = z.object({
+  places: z
+    .string()
+    .transform((value) =>
+      value.split(';').map((pair) => {
+        const [lat, lon] = pair.split(',');
+        return { lat, lon };
+      }),
+    )
+    .pipe(
+      z
+        .array(
+          z.object({
+            // The input type is the split string's: zod 4 types a coerced number's input as unknown,
+            // which a pipe from strings does not accept.
+            lat: z.coerce.number<string>().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
+            lon: z.coerce.number<string>().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
+          }),
+        )
+        .min(1)
+        .max(MAX_FAVORITES, `At most ${MAX_FAVORITES} places at once.`),
+    ),
   days: z.coerce.number().int().min(1).max(FORECAST_MAX_DAYS).default(FORECAST_DEFAULT_DAYS),
 });
 

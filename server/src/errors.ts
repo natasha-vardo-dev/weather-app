@@ -24,8 +24,24 @@ export class ProviderError extends AppError {
   }
 }
 
+/**
+ * Refused before calling a provider: the server is near the provider's limit (for everyone,
+ * whoever asks), so new data waits and cached data is still served.
+ */
+export class BusyError extends AppError {
+  constructor(message = 'The service is busy right now. Try again in a few minutes.') {
+    super(message, 503, ERROR_CODES.SERVICE_BUSY);
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor(message = 'Nothing found.') {
     super(message, 404, ERROR_CODES.NOT_FOUND);
   }
+}
+
+/** What a client may see of an error: an AppError's code and message, anything else is internal. */
+export function errorDetails(err: unknown): { code: ErrorCode; message: string } {
+  if (err instanceof AppError) return { code: err.code, message: err.message };
+  return { code: ERROR_CODES.INTERNAL, message: 'Something went wrong on our side.' };
 }

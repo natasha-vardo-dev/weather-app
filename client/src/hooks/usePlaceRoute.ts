@@ -1,5 +1,5 @@
 import { ApiError, ERROR_CODES, type ErrorCode } from '@weather/shared';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useI18n } from '../i18n/I18nProvider';
 import type { Place, PlaceRoute } from '../locationUrl';
 import { resolveRoute, type RouteState } from '../placeRoute';
@@ -21,7 +21,8 @@ export function usePlaceRoute(route: PlaceRoute | null): {
   const [, setLoaded] = useState(0);
   const [failure, setFailure] = useState<{ key: string; code: ErrorCode } | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const previous = useRef<Place | undefined>(undefined);
+  // The last place shown, so a change of language keeps it while the names load.
+  const [previous, setPrevious] = useState<Place | undefined>(undefined);
 
   const id = route?.kind === 'id' ? route.id : route?.place.id;
   const requestKey = id ? `${language}:${id}:${attempt}` : null;
@@ -29,7 +30,8 @@ export function usePlaceRoute(route: PlaceRoute | null): {
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
-    setFailure(null);
+    // No reset of `failure` here: it is kept with its request's key, so a new request (another
+    // language, a retry) does not see it.
     // Each settles on its own: one language failing must not hide the other's answer.
     Promise.allSettled([loadLocation(id, language), loadLocation(id, 'en')]).then((results) => {
       if (cancelled) return;
@@ -51,9 +53,23 @@ export function usePlaceRoute(route: PlaceRoute | null): {
     favorites,
     local: id ? cachedLocation(id, language) : undefined,
     english: id ? cachedLocation(id, 'en') : undefined,
-    previous: previous.current,
+    previous,
     failed: failure && failure.key === requestKey ? failure.code : null,
   });
-  if (result.state.status === 'ready') previous.current = result.state.place;
+  // Remembered during render, as React advises for state that follows other values; compared
+  // by content, since resolveRoute may build a new object each time.
+  const ready = result.state.status === 'ready' ? result.state.place : undefined;
+  if (ready && !samePlaceShown(ready, previous)) setPrevious(ready);
   return { ...result, retry: () => setAttempt((n) => n + 1) };
+}
+
+function samePlaceShown(a: Place, b: Place | undefined): boolean {
+  return (
+    !!b &&
+    a.id === b.id &&
+    a.latitude === b.latitude &&
+    a.longitude === b.longitude &&
+    a.name === b.name &&
+    a.country === b.country
+  );
 }

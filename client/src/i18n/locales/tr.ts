@@ -10,6 +10,7 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
   placesBy: 'Yer adları',
   dataBy: 'Hava durumu verileri:',
   offline: 'Çevrimdışısınız. Son yüklenen tahmin gösteriliyor, güncel olmayabilir.',
+  outdated: (time) => `Tahminin son güncellenmesi: ${time}.`,
   home: {
     title: 'Gideceğin yerde hava nasıl?',
     text: (days) => `Güncel hava durumunu ve ${num(days)} günlük tahmini görmek için bir şehir ara.`,
@@ -199,6 +200,8 @@ export const tr: MessagesFactory = ({ num, deg }) => ({
     PROVIDER_ERROR: 'Hava durumu servisi yanıt vermiyor. Biraz sonra tekrar dene.',
     NOT_FOUND: 'Hiçbir şey bulunamadı.',
     INTERNAL: 'Bir şeyler ters gitti. Tekrar dene.',
+    RATE_LIMITED: 'Ağından çok fazla istek geldi. Bir dakika bekle ve tekrar dene.',
+    SERVICE_BUSY: 'Hizmet şu anda yoğun. Birkaç dakika sonra tekrar dene.',
     NETWORK_ERROR: 'Sunucuya bağlantı yok. İnternetini kontrol edip tekrar dene.',
   },
 });

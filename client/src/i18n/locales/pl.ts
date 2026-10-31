@@ -10,6 +10,7 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
   placesBy: 'Nazwy miejsc',
   dataBy: 'Dane pogodowe:',
   offline: 'Jesteś offline. Pokazujemy ostatnio pobraną prognozę, może być nieaktualna.',
+  outdated: (time) => `Ostatnia aktualizacja prognozy: ${time}.`,
   home: {
     title: 'Jaka pogoda czeka cię u celu?',
     text: (days) =>
@@ -219,6 +220,8 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     PROVIDER_ERROR: 'Serwis pogodowy nie odpowiada. Spróbuj ponownie za chwilę.',
     NOT_FOUND: 'Nic nie znaleziono.',
     INTERNAL: 'Coś poszło nie tak. Spróbuj ponownie.',
+    RATE_LIMITED: 'Zbyt wiele zapytań z Twojej sieci. Odczekaj minutę i spróbuj ponownie.',
+    SERVICE_BUSY: 'Usługa jest teraz przeciążona. Spróbuj ponownie za kilka minut.',
     NETWORK_ERROR: 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.',
   },
 });

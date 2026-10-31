@@ -12,6 +12,15 @@ import { ApproximateLocationService } from './services/approximateService.js';
 import { PlaceService } from './services/placeService.js';
 import { loadRegions, RegionIndex } from './services/regions.js';
 import { WeatherService } from './services/weatherService.js';
+import { createLogger } from './observability/logger.js';
+import {
+  instrumentFetch,
+  IPWHOIS_LIMITS,
+  Metrics,
+  OPEN_METEO_LIMITS,
+  openMeteoWeight,
+} from './observability/metrics.js';
+import { DEFAULT_RATE_LIMITS } from './rateLimits.js';
 
 /**
  * A positive number from the environment, or the default when unset or empty. Anything
@@ -29,7 +38,7 @@ function positiveNumber(name: string, fallback: number): number {
 }
 
 const port = positiveNumber('PORT', 3001);
-const ttlSeconds = positiveNumber('FORECAST_CACHE_TTL', 600);
+const ttlSeconds = positiveNumber('FORECAST_CACHE_TTL', 900);
 const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
   .split(',')
   .map((s) => s.trim())
@@ -39,9 +48,26 @@ const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
 const nominatimUserAgent =
   process.env.NOMINATIM_USER_AGENT?.trim() || 'weather-app/1.0 (+https://github.com/natasha-vardo-dev/weather-app)';
 
-const service = new WeatherService(new OpenMeteoProvider(), ttlSeconds * 1000);
+const logger = createLogger();
+const metrics = new Metrics(logger);
+/** A provider's fetch, counted against its limits and logged (debug). */
+const counted = (name: string, limits = {}, weigh?: (url: URL) => number) =>
+  instrumentFetch(name, metrics.provider(name, limits), logger, fetch, weigh);
+
+// New calls stop near Open-Meteo's limit, for everyone (cached answers still go out).
+const service = new WeatherService(
+  new OpenMeteoProvider(counted('open-meteo', OPEN_METEO_LIMITS, openMeteoWeight)),
+  ttlSeconds * 1000,
+  logger,
+  metrics.budget('open-meteo'),
+);
 // Matches the user's location to a searched city through the weather service's cached search.
-const places = new PlaceService(new NominatimGeocoder({ userAgent: nominatimUserAgent }), service);
+const places = new PlaceService(
+  new NominatimGeocoder({ userAgent: nominatimUserAgent, fetchFn: counted('nominatim') }),
+  service,
+  undefined,
+  logger,
+);
 // Proxies in front of the server that may set X-Forwarded-For (Vercel and Render: 2).
 // Only these are trusted; otherwise anyone could fake their address in the header.
 const trustProxy = process.env.TRUST_PROXY?.trim() ? positiveNumber('TRUST_PROXY', 1) : false;
@@ -49,9 +75,10 @@ const trustProxy = process.env.TRUST_PROXY?.trim() ? positiveNumber('TRUST_PROXY
 // up instead. Opt-in (IP_SELF_LOOKUP=1 in the local .env only): on by default, a server
 // whose proxy setup is wrong would offer its data centre's city to every user.
 const approximate = new ApproximateLocationService(
-  new IpWhoIsLocator(),
+  new IpWhoIsLocator(counted('ipwhois', IPWHOIS_LIMITS)),
   places,
   process.env.IP_SELF_LOOKUP?.trim() === '1',
+  metrics.budget('ipwhois'),
 );
 // Official warnings (Europe). Region borders: data/meteoalarm-regions.json.gz, built by
 // scripts/buildAlertRegions.ts from MeteoAlarm's published file; read on first request.
@@ -59,6 +86,7 @@ const regionsFile = new URL('../data/meteoalarm-regions.json.gz', import.meta.ur
 const meteoAlarm = new MeteoAlarmProvider({
   regions: async () => new RegionIndex((await loadRegions(regionsFile)).regions),
   feedTtlMs: ALERTS_FEED_TTL_SECONDS * 1000,
+  fetchFn: counted('meteoalarm'),
 });
 const alerts = new AlertService(meteoAlarm);
 
@@ -81,8 +109,29 @@ const push = account
     })()
   : undefined;
 
-const app = createApp(service, corsOrigins, places, approximate, trustProxy, alerts, push);
+for (const name of Object.keys(service.cacheStats())) metrics.cache(name, () => service.cacheStats()[name]!);
+metrics.cache('reverse', () => places.cacheStats());
+
+const app = createApp(service, {
+  corsOrigins,
+  places,
+  approximate,
+  trustProxy,
+  alerts,
+  push,
+  rateLimits: DEFAULT_RATE_LIMITS,
+  logger,
+  metrics,
+  // Guards GET /api/internal/metrics; a SECRET. Without it the endpoint does not exist.
+  metricsSecret: process.env.METRICS_SECRET?.trim() || undefined,
+  proxySecret: process.env.PROXY_SECRET?.trim() || undefined,
+  version: process.env.RENDER_GIT_COMMIT?.slice(0, 7),
+});
 
 app.listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`);
+  logger.info({ port }, 'API listening');
 });
+
+// A summary in the logs every 15 minutes: history of cache hit rates and provider usage
+// without a metrics service (Render keeps the logs).
+setInterval(() => logger.info({ metrics: metrics.snapshot() }, 'metrics'), 15 * 60_000).unref();

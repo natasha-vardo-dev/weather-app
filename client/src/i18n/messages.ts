@@ -34,6 +34,12 @@ export interface Messages {
   dataBy: string;
   /** Banner while the browser has no network; the app shows what it saved earlier. */
   offline: string;
+  /**
+   * Above a city's forecast whose data is old (provider down, or the page left open): the data's
+   * time, "21:40" or "yesterday 21:40". A colon before it, as in alerts' times: the day word from
+   * Intl does not decline ("since yesterday" has no right form in many languages).
+   */
+  outdated: (time: string) => string;
   home: { title: string; text: (days: number) => string };
   /** Official weather warnings on a city page. The issuer's own texts are shown as they are. */
   alerts: {

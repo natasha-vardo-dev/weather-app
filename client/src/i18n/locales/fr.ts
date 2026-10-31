@@ -10,6 +10,7 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
   placesBy: 'Noms de lieux',
   dataBy: 'Données météo fournies par',
   offline: 'Vous êtes hors ligne. Dernières prévisions chargées affichées, elles peuvent être dépassées.',
+  outdated: (time) => `Dernière mise à jour de la prévision : ${time}.`,
   home: {
     title: 'Quel temps fera-t-il là où vous allez ?',
     text: (days) => `Recherchez une ville pour voir la météo actuelle et les prévisions sur ${num(days)} jours.`,
@@ -201,6 +202,8 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
     PROVIDER_ERROR: 'Le service météo ne répond pas. Réessayez dans un instant.',
     NOT_FOUND: 'Aucun résultat.',
     INTERNAL: "Une erreur s'est produite. Réessayez.",
+    RATE_LIMITED: 'Trop de requêtes depuis votre réseau. Patientez une minute, puis réessayez.',
+    SERVICE_BUSY: 'Le service est surchargé pour le moment. Réessayez dans quelques minutes.',
     NETWORK_ERROR: 'Pas de connexion au serveur. Vérifiez votre connexion Internet et réessayez.',
   },
 });

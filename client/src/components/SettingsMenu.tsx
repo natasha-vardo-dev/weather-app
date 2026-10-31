@@ -97,17 +97,15 @@ export function SettingsMenu() {
   }
 
   // A place turned on meanwhile (another tab) joins the rows kept while the menu is open, so
-  // switched off here it stays, greyed, with its settings, like the others.
-  useEffect(() => {
-    if (view !== 'alerts') return;
-    setAlertRows((rows) => {
-      const added = alerts.places.filter((p) => !(rows ?? []).some((r) => samePlace(r, p)));
-      return added.length > 0 ? [...(rows ?? []), ...added] : rows;
-    });
-  }, [view, alerts.places]);
+  // switched off here it stays, greyed, with its settings, like the others. Stored in the kept
+  // rows during render, as React advises for state that follows other values (an effect did
+  // it a render later); only shown, not stored, it vanished when switched off. (roborev)
+  const addedAlertRows = alertRows ? alerts.places.filter((p) => !alertRows.some((r) => samePlace(r, p))) : [];
+  if (alertRows && addedAlertRows.length > 0) setAlertRows([...alertRows, ...addedAlertRows]);
+  const shownAlertRows = alertRows ?? alerts.places;
 
   function openAlerts() {
-    setAlertRows((rows) => rows ?? alerts.places);
+    setAlertRows((rows) => rows ?? shownAlertRows);
     setView('alerts');
   }
 
@@ -197,11 +195,7 @@ export function SettingsMenu() {
               )}
             </>
           ) : view === 'alerts' ? (
-            <AlertsList
-              rows={alertRows ?? alerts.places}
-              back={() => backToMain('alerts')}
-              onNavigate={() => close(false)}
-            />
+            <AlertsList rows={shownAlertRows} back={() => backToMain('alerts')} onNavigate={() => close(false)} />
           ) : (
             <LanguageList
               label={t.language}

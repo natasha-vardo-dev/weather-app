@@ -1,7 +1,7 @@
-import { timingSafeEqual } from 'node:crypto';
 import { alertTopicsSchema, type AlertTopicsResponse } from '@weather/shared';
 import express, { Router } from 'express';
 import type { AlertBroadcastSource, PushSender } from '../providers/types.js';
+import { sameSecret } from '../secrets.js';
 import { alertTopic, type AlertNotifier } from '../services/alertNotifier.js';
 
 /** A device turns warnings for a place on or off. Nothing is stored here: FCM keeps the topics. */
@@ -21,12 +21,6 @@ export function pushRouter(source: AlertBroadcastSource, sender: PushSender): Ro
     }
   });
   return router;
-}
-
-function sameSecret(given: string, expected: string): boolean {
-  const a = Buffer.from(given);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 /**

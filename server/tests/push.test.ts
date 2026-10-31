@@ -254,11 +254,8 @@ describe('push routes', () => {
     const notifier = new AlertNotifier(source, sender, () => NOW);
     return {
       sender,
-      app: createApp(new WeatherService(createFakeProvider()), [], undefined, undefined, false, undefined, {
-        source,
-        sender,
-        notifier,
-        notifySecret: 'secret-1234567890',
+      app: createApp(new WeatherService(createFakeProvider()), {
+        push: { source, sender, notifier, notifySecret: 'secret-1234567890' },
       }),
     };
   }
@@ -293,6 +290,19 @@ describe('push routes', () => {
           .send({ ...body, level: 'green' })
       ).status,
     ).toBe(400);
+  });
+
+  it('answers a broken or oversized body with a client error, not a 500', async () => {
+    const { app: server } = app();
+    const broken = await request(server).post('/api/push/topics').set('Content-Type', 'application/json').send('{');
+    expect(broken.status).toBe(400);
+    expect(broken.body.error.code).toBe('INVALID_REQUEST');
+    const missing = await request(server).post('/api/push/topics');
+    expect(missing.status).toBe(400);
+    const huge = await request(server)
+      .post('/api/push/topics')
+      .send({ ...body, token: 'x'.repeat(9000) });
+    expect(huge.status).toBe(413);
   });
 
   it('runs the check only with the secret', async () => {

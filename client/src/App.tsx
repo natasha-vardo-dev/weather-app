@@ -1,6 +1,7 @@
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { SearchBar } from './components/SearchBar';
 import { SettingsMenu } from './components/SettingsMenu';
+import { NoSignalIcon } from './components/NoticeIcons';
 import { WeatherIcon } from './components/WeatherIcon';
 import { useOffline } from './hooks/useOffline';
 import { usePushMaintenance } from './hooks/useAlertNotifications';
@@ -44,7 +45,14 @@ export function App() {
       <main className="page__main">
         {/* The live region stays in the page, so going offline is announced. Offline the
             service worker serves the last loaded forecasts, so the banner warns they may be old. */}
-        <div role="status">{offline && <p className="offline-banner">{t.offline}</p>}</div>
+        <div role="status">
+          {offline && (
+            <p className="notice">
+              <NoSignalIcon />
+              <span>{t.offline}</span>
+            </p>
+          )}
+        </div>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/weather/:where" element={<WeatherPage />} />

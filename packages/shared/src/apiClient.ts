@@ -2,7 +2,7 @@ import { FORECAST_DEFAULT_DAYS } from './constants.js';
 import { ERROR_CODES, type ApiErrorBody, type ErrorCode } from './errors.js';
 import type { AlertsResponse } from './alerts.js';
 import type { AlertTopicsRequest, AlertTopicsResponse } from './push.js';
-import type { AirQuality, Forecast, Location, LocationsResponse, ReversePlace } from './types.js';
+import type { AirQuality, Forecast, ForecastsResponse, Location, LocationsResponse, ReversePlace } from './types.js';
 
 export class ApiError extends Error {
   constructor(
@@ -78,6 +78,18 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
         days: String(options.days ?? FORECAST_DEFAULT_DAYS),
       });
       return request<Forecast>(`/api/forecast?${params}`, options.signal);
+    },
+
+    /** Several places in one request (saved cities); each result is a forecast or an error. */
+    getForecasts(
+      places: { latitude: number; longitude: number }[],
+      options: { days?: number; signal?: AbortSignal } = {},
+    ): Promise<ForecastsResponse> {
+      const params = new URLSearchParams({
+        places: places.map((p) => `${p.latitude},${p.longitude}`).join(';'),
+        days: String(options.days ?? FORECAST_DEFAULT_DAYS),
+      });
+      return request<ForecastsResponse>(`/api/forecasts?${params}`, options.signal);
     },
 
     /** One place by provider id, with names in `language`. */

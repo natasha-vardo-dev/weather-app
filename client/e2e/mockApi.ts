@@ -44,6 +44,14 @@ export async function mockApi(page: Page): Promise<{ unexpected: string[] }> {
     if (path === '/api/forecast') {
       return json(route, forecast({ latitude: Number(params.get('lat')), longitude: Number(params.get('lon')) }));
     }
+    if (path === '/api/forecasts') {
+      const places = (params.get('places') ?? '').split(';').map((pair) => pair.split(',').map(Number));
+      return json(route, {
+        forecasts: places.map(([latitude, longitude]) => ({
+          forecast: forecast({ latitude: latitude!, longitude: longitude! }),
+        })),
+      });
+    }
     if (path === '/api/air-quality') return json(route, airQuality());
     if (path === '/api/alerts') return json(route, noAlerts);
     // Nothing to name by position in these tests.

@@ -10,6 +10,7 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
   placesBy: 'Place names',
   dataBy: 'Weather data by',
   offline: "You're offline. Showing the last loaded forecast, which may be out of date.",
+  outdated: (time) => `Forecast last updated: ${time}.`,
   home: {
     title: "What's the weather where you're going?",
     text: (days) => `Search for a city to see the current conditions and a ${num(days)}-day forecast.`,
@@ -199,6 +200,8 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
     PROVIDER_ERROR: "The weather service isn't responding. Try again in a moment.",
     NOT_FOUND: 'Nothing found.',
     INTERNAL: 'Something went wrong. Try again.',
+    RATE_LIMITED: 'Too many requests from your network. Wait a minute and try again.',
+    SERVICE_BUSY: 'The service is busy right now. Try again in a few minutes.',
     NETWORK_ERROR: 'No connection to the server. Check your internet and try again.',
   },
 });

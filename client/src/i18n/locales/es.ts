@@ -10,6 +10,7 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
   placesBy: 'Nombres de lugares',
   dataBy: 'Datos meteorológicos de',
   offline: 'Estás sin conexión. Se muestra el último pronóstico cargado, puede estar desactualizado.',
+  outdated: (time) => `Última actualización del pronóstico: ${time}.`,
   home: {
     title: '¿Qué tiempo hará adonde vas?',
     text: (days) => `Busca una ciudad para ver el tiempo actual y el pronóstico de ${num(days)} días.`,
@@ -201,6 +202,8 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
     PROVIDER_ERROR: 'El servicio meteorológico no responde. Inténtalo de nuevo en un momento.',
     NOT_FOUND: 'No se encontró nada.',
     INTERNAL: 'Algo salió mal. Inténtalo de nuevo.',
+    RATE_LIMITED: 'Demasiadas solicitudes desde tu red. Espera un minuto e inténtalo de nuevo.',
+    SERVICE_BUSY: 'El servicio está saturado en este momento. Inténtalo de nuevo en unos minutos.',
     NETWORK_ERROR: 'No hay conexión con el servidor. Revisa tu conexión a internet e inténtalo de nuevo.',
   },
 });

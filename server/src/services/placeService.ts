@@ -1,6 +1,8 @@
 import { CITY_MATCH_KM, distanceKm, type Location, type ReversePlace } from '@weather/shared';
 import type { ReverseGeocoder } from '../providers/types.js';
-import { TtlCache } from './cache.js';
+import type { Logger } from '../observability/logger.js';
+import { TtlCache, type CacheStats } from './cache.js';
+import { staleErrorLogger } from './staleErrorLogger.js';
 
 /** City search, as the weather service offers it (cached there). */
 export interface CitySearch {
@@ -28,15 +30,25 @@ export interface ReverseResult {
 }
 
 export class PlaceService {
-  /** null caches "no place here" too, so the sea is not asked about again. */
-  private readonly cache: TtlCache<ReversePlace | null>;
+  /** Caches "no place here" too, so the sea is not asked about again. */
+  private readonly cache: TtlCache<ReverseResult>;
 
   constructor(
     private readonly geocoder: ReverseGeocoder,
     private readonly cities: CitySearch,
     ttlMs = 7 * 24 * 60 * 60 * 1000,
+    logger?: Logger,
   ) {
-    this.cache = new TtlCache(ttlMs);
+    // A place's name hardly changes, and Nominatim is slow and strict: a stale answer is
+    // returned at once while it refreshes, and kept for another TTL when Nominatim fails.
+    this.cache = new TtlCache(ttlMs, {
+      staleWhileRevalidateMs: ttlMs,
+      staleIfErrorMs: ttlMs,
+      maxEntries: 5000,
+      maxBytes: 2 * 1024 * 1024,
+      jitter: 0.1,
+      onStaleError: staleErrorLogger(logger, 'reverse'),
+    });
   }
 
   /**
@@ -50,14 +62,16 @@ export class PlaceService {
     // Same ~1 km rounding as forecasts; the language changes the names.
     const here = { latitude: round(latitude), longitude: round(longitude) };
     const key = `${language}:${here.latitude}:${here.longitude}`;
-    const cached = this.cache.get(key);
-    if (cached !== undefined) return { place: cached, cacheable: true };
+    return this.cache.getOrLoad(
+      key,
+      () => this.lookUp(here, language),
+      (result) => result.cacheable,
+    );
+  }
 
+  private async lookUp(here: { latitude: number; longitude: number }, language: string): Promise<ReverseResult> {
     const named = await this.geocoder.reverse(here.latitude, here.longitude, language);
-    if (!named) {
-      this.cache.set(key, null);
-      return { place: null, cacheable: true };
-    }
+    if (!named) return { place: null, cacheable: true };
     let city: ReversePlace | null;
     try {
       city = await this.matchCity(named.name, here, language);
@@ -65,9 +79,11 @@ export class PlaceService {
       // Matching is an improvement, not a requirement: answer with the position, uncached.
       return { place: { ...named, ...here }, cacheable: false };
     }
-    const place = city ?? { ...named, ...here };
-    this.cache.set(key, place);
-    return { place, cacheable: true };
+    return { place: city ?? { ...named, ...here }, cacheable: true };
+  }
+
+  cacheStats(): CacheStats {
+    return this.cache.stats();
   }
 
   /** The searched city of that name nearest to the position, if close enough; throws if search fails. */

@@ -11,6 +11,7 @@ export const ar: MessagesFactory = ({ num, deg, plural }) => ({
   placesBy: 'أسماء الأماكن',
   dataBy: 'بيانات الطقس من',
   offline: 'أنت غير متصل. يُعرض آخر توقع تم تحميله، وقد لا يكون محدّثًا.',
+  outdated: (time) => `آخر تحديث للتوقعات: ${time}.`,
   home: {
     title: 'كيف سيكون الطقس حيث تذهب؟',
     text: (days) =>
@@ -233,6 +234,8 @@ export const ar: MessagesFactory = ({ num, deg, plural }) => ({
     PROVIDER_ERROR: 'خدمة الطقس لا تستجيب. حاول مرة أخرى بعد قليل.',
     NOT_FOUND: 'لم يتم العثور على شيء.',
     INTERNAL: 'حدث خطأ ما. حاول مرة أخرى.',
+    RATE_LIMITED: 'طلبات كثيرة جدًا من شبكتك. انتظر دقيقة ثم حاول مرة أخرى.',
+    SERVICE_BUSY: 'الخدمة مشغولة الآن. حاول مرة أخرى بعد بضع دقائق.',
     NETWORK_ERROR: 'لا يوجد اتصال بالخادم. تحقق من الإنترنت وحاول مرة أخرى.',
   },
 });

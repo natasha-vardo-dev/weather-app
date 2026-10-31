@@ -10,6 +10,7 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
   placesBy: 'Ortsnamen',
   dataBy: 'Wetterdaten von',
   offline: 'Sie sind offline. Angezeigt wird die zuletzt geladene Vorhersage, sie ist möglicherweise veraltet.',
+  outdated: (time) => `Vorhersage zuletzt aktualisiert: ${time}.`,
   home: {
     title: 'Wie wird das Wetter dort, wo du hinwillst?',
     text: (days) => `Suche nach einer Stadt, um das aktuelle Wetter und die Vorhersage für ${num(days)} Tage zu sehen.`,
@@ -201,6 +202,8 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
     PROVIDER_ERROR: 'Der Wetterdienst antwortet nicht. Versuche es gleich noch einmal.',
     NOT_FOUND: 'Nichts gefunden.',
     INTERNAL: 'Etwas ist schiefgelaufen. Versuche es erneut.',
+    RATE_LIMITED: 'Zu viele Anfragen aus deinem Netzwerk. Warte eine Minute und versuche es erneut.',
+    SERVICE_BUSY: 'Der Dienst ist gerade ausgelastet. Versuche es in ein paar Minuten erneut.',
     NETWORK_ERROR: 'Keine Verbindung zum Server. Prüfe deine Internetverbindung und versuche es erneut.',
   },
 });

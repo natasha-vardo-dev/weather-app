@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
 import { ProviderError } from '../src/errors.js';
 import { WeatherService } from '../src/services/weatherService.js';
@@ -24,6 +24,41 @@ describe('GET /api/forecast', () => {
     const res = await request(app).get('/api/forecast?lat=200&lon=21');
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('INVALID_REQUEST');
+  });
+
+  it('lets browsers keep a stale forecast for a minute only', async () => {
+    const provider = createFakeProvider();
+    // A 1 ms TTL: the second answer is past it, returned at once while the forecast refreshes.
+    const app = createApp(new WeatherService(provider, 1));
+    const fresh = await request(app).get('/api/forecast?lat=52.23&lon=21.01');
+    // Warsaw's refresh never finishes, so it stays stale however fast the requests are.
+    provider.getForecast.mockImplementation((lat) =>
+      lat === 52.23 ? new Promise(() => {}) : Promise.resolve(sampleForecast),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const stale = await request(app).get('/api/forecast?lat=52.23&lon=21.01');
+    const batch = await request(app).get('/api/forecasts?places=52.23,21.01;50.06,19.94');
+
+    expect(fresh.headers['cache-control']).toBe('public, max-age=300');
+    expect(stale.headers['cache-control']).toBe('public, max-age=60');
+    expect(stale.body).toEqual(sampleForecast);
+    expect(batch.headers['cache-control']).toBe('public, max-age=60');
+  });
+
+  it('lets browsers keep stale air quality for a minute only', async () => {
+    // Only Date is faked: the HTTP machinery keeps its real timers.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const { app } = setup();
+      const fresh = await request(app).get('/api/air-quality?lat=52.23&lon=21.01');
+      vi.setSystemTime(Date.now() + 65 * 60 * 1000); // past the hour's TTL, within the 10 minutes after it
+      const stale = await request(app).get('/api/air-quality?lat=52.23&lon=21.01');
+      expect(fresh.headers['cache-control']).toBe('public, max-age=900');
+      expect(stale.headers['cache-control']).toBe('public, max-age=60');
+      expect(stale.body).toEqual(sampleAirQuality);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('returns 502 when the provider fails', async () => {
@@ -97,5 +132,52 @@ describe('GET /api/locations', () => {
     const { app, provider } = setup();
     await request(app).get('/api/locations?q=war&lang=pl');
     expect(provider.searchLocations).toHaveBeenCalledWith('war', 5, 'pl');
+  });
+});
+
+describe('GET /api/forecasts', () => {
+  it('returns the forecasts in the order asked, each through the shared cache', async () => {
+    const { app, provider } = setup();
+    // The second place rounds to the first (~1 km): one provider call for both.
+    const res = await request(app).get('/api/forecasts?places=52.23,21.01;50.06,19.94;52.2301,21.0099');
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toBe('public, max-age=300');
+    expect(res.body.forecasts).toHaveLength(3);
+    expect(res.body.forecasts[0]).toEqual({ forecast: sampleForecast });
+    expect(provider.getForecast).toHaveBeenCalledTimes(2);
+    expect(provider.getForecast.mock.calls.map(([lat, lon]) => [lat, lon])).toEqual([
+      [52.23, 21.01],
+      [50.06, 19.94],
+    ]);
+  });
+
+  it('answers the places that worked when one fails, and is not cached', async () => {
+    const { app, provider } = setup();
+    provider.getForecast.mockImplementation(async (lat: number) => {
+      if (lat === 50.06) throw new ProviderError('timeout');
+      return sampleForecast;
+    });
+    const res = await request(app).get('/api/forecasts?places=52.23,21.01;50.06,19.94');
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toBe('no-store');
+    expect(res.body.forecasts[0]).toEqual({ forecast: sampleForecast });
+    expect(res.body.forecasts[1]).toEqual({ error: { code: 'PROVIDER_ERROR', message: expect.any(String) } });
+  });
+
+  it('is an error when every place fails', async () => {
+    const { app, provider } = setup();
+    provider.getForecast.mockRejectedValue(new ProviderError());
+    const res = await request(app).get('/api/forecasts?places=52.23,21.01;50.06,19.94');
+    expect(res.status).toBe(502);
+    expect(res.headers['cache-control']).toBe('no-store');
+  });
+
+  it('rejects more than ten places and malformed ones', async () => {
+    const { app } = setup();
+    const eleven = Array.from({ length: 11 }, (_, i) => `${i},${i}`).join(';');
+    expect((await request(app).get(`/api/forecasts?places=${eleven}`)).status).toBe(400);
+    expect((await request(app).get('/api/forecasts?places=52.23')).status).toBe(400);
+    expect((await request(app).get('/api/forecasts?places=200,1')).status).toBe(400);
+    expect((await request(app).get('/api/forecasts')).status).toBe(400);
   });
 });

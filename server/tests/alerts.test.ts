@@ -358,14 +358,7 @@ describe('AlertService', () => {
 
 describe('GET /api/alerts', () => {
   function app(alerts: AlertsProvider) {
-    return createApp(
-      new WeatherService(createFakeProvider()),
-      [],
-      undefined,
-      undefined,
-      false,
-      new AlertService(alerts, () => NOW),
-    );
+    return createApp(new WeatherService(createFakeProvider()), { alerts: new AlertService(alerts, () => NOW) });
   }
 
   it('returns warnings for a place, cached briefly (delivery deadlines)', async () => {

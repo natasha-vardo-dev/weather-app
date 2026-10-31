@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ProviderError } from '../src/errors.js';
-import { OpenMeteoProvider } from '../src/providers/openMeteo.js';
+import { isDaytime, OpenMeteoProvider } from '../src/providers/openMeteo.js';
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -16,18 +16,14 @@ describe('OpenMeteoProvider', () => {
         latitude: 52.25,
         longitude: 21,
         timezone: 'Europe/Warsaw',
-        current_units: { temperature_2m: '°C', wind_speed_10m: 'km/h' },
-        hourly_units: { precipitation: 'mm' },
+        current_units: { temperature_2m: '°C' },
+        hourly_units: { wind_speed_10m: 'km/h', precipitation: 'mm' },
         current: {
           time: '2026-10-15T12:00',
           temperature_2m: 12,
           apparent_temperature: 10,
-          relative_humidity_2m: 70,
-          wind_speed_10m: 15,
-          wind_gusts_10m: 32,
           wind_direction_10m: 315,
           weather_code: 61,
-          is_day: 1,
         },
         hourly: {
           time: ['2026-10-15T12:00', '2026-10-15T13:00'],
@@ -62,13 +58,20 @@ describe('OpenMeteoProvider', () => {
     const url = new URL(String((fetchFn.mock.calls[0] as unknown[])[0]));
     expect(url.searchParams.get('past_days')).toBe('1');
     expect(url.searchParams.get('forecast_hours')).toBe('24');
+    // Only what the hourly data lacks is asked for "now" (each variable costs, see the adapter).
+    expect(url.searchParams.get('current')).toBe('temperature_2m,apparent_temperature,wind_direction_10m,weather_code');
     expect(forecast.current).toMatchObject({
       temperature: 12,
       weatherCode: 61,
-      isDay: true,
-      windGusts: 32,
+      // From the current hour.
+      humidity: 80,
+      windSpeed: 14,
+      windGusts: 30,
       windDirection: 315,
+      // No sunset today in this data: the current hour's flag.
+      isDay: true,
     });
+    expect(forecast.units.windSpeed).toBe('km/h');
     expect(forecast.units.precipitation).toBe('mm');
     expect(forecast.hourly).toEqual([
       {
@@ -278,5 +281,19 @@ describe('OpenMeteoProvider', () => {
     const provider = new OpenMeteoProvider(fetchFn as unknown as typeof fetch);
     const err = await provider.searchLocations('Warsaw', 5, 'en').catch((e: unknown) => e);
     expect((err as ProviderError).detail).toMatch(/timeout after 5000 ms/);
+  });
+});
+
+describe('isDaytime', () => {
+  const today = { sunrise: '2026-10-31T06:40', sunset: '2026-10-31T16:20' };
+  it('is exact to the minute around sunrise and sunset, whatever the hour says', () => {
+    expect(isDaytime('2026-10-31T06:30', today, true)).toBe(false);
+    expect(isDaytime('2026-10-31T06:45', today, false)).toBe(true);
+    expect(isDaytime('2026-10-31T16:15', today, false)).toBe(true);
+    expect(isDaytime('2026-10-31T16:30', today, true)).toBe(false);
+  });
+  it("falls back to the hour's flag without a sunrise or sunset (polar day or night)", () => {
+    expect(isDaytime('2026-12-21T12:00', { sunrise: null, sunset: null }, false)).toBe(false);
+    expect(isDaytime('2026-06-21T02:00', undefined, true)).toBe(true);
   });
 });

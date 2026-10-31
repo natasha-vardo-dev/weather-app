@@ -11,6 +11,7 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
   placesBy: '地名',
   dataBy: '気象データ提供:',
   offline: 'オフラインです。最後に読み込んだ予報を表示しています。古い可能性があります。',
+  outdated: (time) => `予報の最終更新：${time}`,
   home: {
     title: '行き先の天気は？',
     text: (days) => `都市を検索すると、現在の天気と${num(days)}日間の予報を確認できます。`,
@@ -195,6 +196,8 @@ export const ja: MessagesFactory = ({ num, deg }) => ({
     PROVIDER_ERROR: '気象サービスが応答していません。しばらくしてからもう一度お試しください。',
     NOT_FOUND: '見つかりませんでした。',
     INTERNAL: '問題が発生しました。もう一度お試しください。',
+    RATE_LIMITED: 'お使いのネットワークからのリクエストが多すぎます。1分待ってからもう一度お試しください。',
+    SERVICE_BUSY: '現在サービスが混み合っています。数分後にもう一度お試しください。',
     NETWORK_ERROR: 'サーバーに接続できません。インターネット接続を確認して、もう一度お試しください。',
   },
 });

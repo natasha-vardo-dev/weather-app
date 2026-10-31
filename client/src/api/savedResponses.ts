@@ -36,6 +36,11 @@ export function markSavedResponse(response: Response): Response {
   return response;
 }
 
+/** For values taken out of a saved answer (one forecast of a batch): they are saved too. */
+export function markSavedValue(value: object): void {
+  savedValues.add(value);
+}
+
 export function isSavedValue(value: unknown): boolean {
   return typeof value === 'object' && value !== null && savedValues.has(value);
 }

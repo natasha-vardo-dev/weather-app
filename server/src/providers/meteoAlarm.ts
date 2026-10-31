@@ -254,8 +254,8 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
 
   constructor(private readonly options: MeteoAlarmOptions) {
     this.now = options.now ?? Date.now;
-    this.feeds = new TtlCache(options.feedTtlMs, 50, this.now);
-    this.caps = new TtlCache(options.capTtlMs ?? 60 * 60 * 1000, 1000, this.now);
+    this.feeds = new TtlCache(options.feedTtlMs, { maxEntries: 50, now: this.now });
+    this.caps = new TtlCache(options.capTtlMs ?? 60 * 60 * 1000, { maxEntries: 1000, now: this.now });
     this.timeoutMs = options.timeoutMs ?? 8000;
     this.fetchFn = options.fetchFn ?? fetch;
   }

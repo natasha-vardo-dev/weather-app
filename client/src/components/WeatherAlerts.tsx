@@ -1,6 +1,7 @@
 import { isAlertActive, type AlertLevel, type AlertsResponse, type WeatherAlert } from '@weather/shared';
 import { useId, useState } from 'react';
 import { formatAlertTime } from '../alertTime';
+import { useNow } from '../hooks/useNow';
 import { useI18n } from '../i18n/I18nProvider';
 import { ChevronIcon } from './ChevronIcon';
 
@@ -28,13 +29,16 @@ export function AlertMark({ level, size = 14, className }: { level: AlertLevel; 
 
 function AlertItem({ alert, timeZone }: { alert: WeatherAlert; timeZone?: string }) {
   const { t, locale } = useI18n();
-  const time = (iso: string) => formatAlertTime(iso, { locale, timeZone });
+  // From the clock, not Date.now() in render: a warning that starts while the page is open
+  // turns from "from … to …" into "until …" on its own.
+  const now = useNow().getTime();
+  const time = (iso: string) => formatAlertTime(iso, { locale, timeZone, now });
   // Times are the place's, so they wait for its time zone (it comes with the forecast):
   // shown first in the reader's zone, they would jump, "today" and all, a moment later.
   const startKnown = Number.isFinite(Date.parse(alert.onset));
   const when = !timeZone
     ? null
-    : !startKnown || isAlertActive(alert, Date.now())
+    : !startKnown || isAlertActive(alert, now)
       ? t.alerts.until(time(alert.expires))
       : t.alerts.fromTo(time(alert.onset), time(alert.expires));
   // A type we have no word for keeps the issuer's own name of the event.

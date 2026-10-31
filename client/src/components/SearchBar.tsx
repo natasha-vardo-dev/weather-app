@@ -17,9 +17,14 @@ interface Props {
 export function SearchBar({ onSelect, onLocate }: Props) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(0);
+  // The highlighted row, kept with the list it belongs to: new results (after a debounce, the
+  // user may have moved down a longer, older list) start from the top without an effect.
+  const [highlight, setHighlight] = useState<{ list: readonly Location[]; index: number }>({ list: [], index: 0 });
   const { t, language } = useI18n();
   const { results, loading, error, searchedFor } = useLocationSearch(query, language);
+  const active = highlight.list === results ? highlight.index : 0;
+  const setActive = (next: number | ((index: number) => number)) =>
+    setHighlight({ list: results, index: typeof next === 'function' ? next(active) : next });
   const listId = useId();
   const locateMe = useLocateMe();
   const { clearError, cancel: cancelLocate } = locateMe;
@@ -58,9 +63,6 @@ export function SearchBar({ onSelect, onLocate }: Props) {
 
   const meta = describePlaces(results);
   const showList = open && searchedFor.length >= SEARCH_MIN_LENGTH;
-
-  // Results arrive after a debounce: the user may have moved down a longer, older list.
-  useEffect(() => setActive(0), [results]);
 
   function choose(location: Location) {
     cancelLocate();

@@ -86,7 +86,7 @@ export function AlertBell(props: Props) {
   const { t } = useI18n();
   const { status, subscription, settings: saved, busy, error, enable, disable } = useAlertNotifications(props);
   const [open, setOpen] = useState(false);
-  // What the panel shows: chosen before turning on, or the latest choice while it applies.
+  // The choice before turning on, or the latest choice while it applies.
   const [draft, setDraft] = useState<AlertNotificationSettings>(saved);
   const wrapRef = useRef<HTMLSpanElement>(null);
   const panelId = useId();
@@ -99,7 +99,7 @@ export function AlertBell(props: Props) {
   // Once shown on this page, the bell stays while coverage is unknown: turning notifications
   // off must not make it vanish when /api/alerts did not answer (offline, where warnings are
   // deliberately not served from the cache). The page remounts it for each place.
-  const shown = useRef(false);
+  const [shown, setShown] = useState(false);
 
   // A disabled control loses focus to <body>; when the lock ends, give it back to the
   // control the user last used, so keyboard users stay in the panel.
@@ -108,14 +108,6 @@ export function AlertBell(props: Props) {
     if (busy || !open) return;
     if (document.activeElement === document.body && lastUsed.current?.isConnected) lastUsed.current.focus();
   }, [busy, open]);
-
-  // Once nothing is being applied, show what is actually stored: a change made in another
-  // tab, or the previous settings again after a change failed.
-  // By fields: `saved` is a new object on every render.
-  const { group: savedGroup, level: savedLevel } = saved;
-  useEffect(() => {
-    if (on && !busy) setDraft({ group: savedGroup, level: savedLevel });
-  }, [on, busy, savedGroup, savedLevel]);
 
   useEffect(() => {
     if (!open) return;
@@ -133,18 +125,29 @@ export function AlertBell(props: Props) {
     };
   }, [open]);
 
-  if (status === 'off' || status === 'unsupported') return null;
-  // Known not covered (Minsk, New York) and off: nothing to offer.
-  if (!on && props.covered !== true && !(shown.current && props.covered === undefined)) return null;
-  shown.current = true;
+  const hidden =
+    status === 'off' ||
+    status === 'unsupported' ||
+    // Known not covered (Minsk, New York) and off: nothing to offer.
+    (!on && props.covered !== true && !(shown && props.covered === undefined));
+  // Remembered during render, as React advises for state that follows other values.
+  if (!hidden && !shown) setShown(true);
+  if (hidden) return null;
 
-  const settings = draft;
+  // Once nothing is being applied, the panel shows what is actually stored: a change made in
+  // another tab, or the previous settings again after a change failed. Kept in the draft during
+  // render (an effect did it a render later), so the draft is still those settings when
+  // notifications are then turned off, here or in another tab. (roborev)
+  if (on && !busy && (draft.group !== saved.group || draft.level !== saved.level)) {
+    setDraft({ group: saved.group, level: saved.level });
+  }
+  const settings = on && !busy ? saved : draft;
   // While a change is being applied (a second or two: token, then leaving and joining
   // topics) every control is disabled until the server answers; the clicked option keeps
   // its highlight. Disabling drops keyboard focus, so it is given back afterwards.
   const change = (next: Partial<AlertNotificationSettings>) => {
     if (busy) return;
-    const chosen = { ...draft, ...next };
+    const chosen = { ...settings, ...next };
     setDraft(chosen);
     setPending('group' in next ? 'group' : 'level');
     if (on) enable(chosen);
@@ -196,6 +199,10 @@ export function AlertBell(props: Props) {
                 onClick={() => {
                   if (busy) return;
                   setPending('switch');
+                  // What is on screen becomes the choice: turned off, the panel keeps showing it,
+                  // and turning on again uses it, not an older one from this tab, when the
+                  // settings were changed in another. (Found by roborev.)
+                  setDraft(settings);
                   void (on ? disable() : enable(settings));
                 }}
               />

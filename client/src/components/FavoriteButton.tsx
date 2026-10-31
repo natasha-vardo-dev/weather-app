@@ -37,13 +37,11 @@ export function FavoriteButton({ place }: { place: Favorite }) {
   const saved = isFavorite(place);
   const blocked = !saved && isFull;
   const [notice, setNotice] = useState(false);
-  const showNotice = notice && blocked;
-
   // Closed for good once the list has room: otherwise, filled up again (in another tab), it
-  // would reappear and be announced with nobody pressing the star.
-  useEffect(() => {
-    if (!blocked) setNotice(false);
-  }, [blocked]);
+  // would reappear and be announced with nobody pressing the star. Reset during render, as
+  // React advises for state that follows other values (an effect rendered it twice).
+  if (notice && !blocked) setNotice(false);
+  const showNotice = notice && blocked;
 
   useEffect(() => {
     if (!showNotice) return;

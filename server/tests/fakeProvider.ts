@@ -43,7 +43,7 @@ export function createFakeProvider() {
     searchLocations: vi.fn(async () => [
       { id: 1, name: 'Warsaw', country: 'Poland', latitude: 52.23, longitude: 21.01 },
     ]),
-    getForecast: vi.fn(async () => sampleForecast),
+    getForecast: vi.fn(async (_latitude: number, _longitude: number, _days: number) => sampleForecast),
     getAirQuality: vi.fn(async () => sampleAirQuality),
     getLocation: vi.fn(async (id: number, language: string) =>
       id === 756135

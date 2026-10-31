@@ -33,6 +33,8 @@ export class ApproximateLocationService {
     private readonly locator: IpLocator,
     private readonly places: PlaceService,
     private readonly allowSelfLookup: boolean,
+    /** Run before each lookup (not for cached ones): throws to refuse it near ipwho.is's cap. */
+    private readonly budget: () => void = () => {},
   ) {}
 
   async approximate(ip: string | undefined, language = 'en'): Promise<ReversePlace | null> {
@@ -40,11 +42,10 @@ export class ApproximateLocationService {
     if (!publicIp && !this.allowSelfLookup) return null;
 
     const key = publicIp ?? 'self';
-    let position = this.cache.get(key);
-    if (position === undefined) {
-      position = await this.locator.locate(publicIp);
-      this.cache.set(key, position);
-    }
+    const position = await this.cache.getOrLoad(key, async () => {
+      this.budget();
+      return this.locator.locate(publicIp);
+    });
     if (!position) return null;
     return (await this.places.reverse(position.latitude, position.longitude, language)).place;
   }

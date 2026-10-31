@@ -18,7 +18,8 @@ export interface CurrentWeatherSummary {
  * then shows just its name). Same request as the city page, so they share caches.
  */
 export function useCurrentWeather(latitude: number, longitude: number): CurrentWeatherSummary | null {
-  const { forecast } = useForecast(latitude, longitude);
+  // Saved cities: the tiles or cards of one list go out as one request.
+  const { forecast } = useForecast(latitude, longitude, { batch: true });
   const { temp } = useUnits();
   const current = forecast?.current;
   if (!current) return null;

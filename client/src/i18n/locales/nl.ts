@@ -10,6 +10,7 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
   placesBy: 'Plaatsnamen',
   dataBy: 'Weergegevens van',
   offline: 'Je bent offline. De laatst geladen verwachting wordt getoond, die mogelijk verouderd is.',
+  outdated: (time) => `Verwachting laatst bijgewerkt: ${time}.`,
   home: {
     title: 'Wat voor weer is het waar je heen gaat?',
     text: (days) => `Zoek een stad om het huidige weer en de verwachting voor ${num(days)} dagen te zien.`,
@@ -199,6 +200,8 @@ export const nl: MessagesFactory = ({ num, deg, plural }) => ({
     PROVIDER_ERROR: 'De weerdienst reageert niet. Probeer het zo opnieuw.',
     NOT_FOUND: 'Niets gevonden.',
     INTERNAL: 'Er is iets misgegaan. Probeer het opnieuw.',
+    RATE_LIMITED: 'Te veel verzoeken vanaf je netwerk. Wacht een minuut en probeer het opnieuw.',
+    SERVICE_BUSY: 'De dienst is op dit moment overbelast. Probeer het over een paar minuten opnieuw.',
     NETWORK_ERROR: 'Geen verbinding met de server. Controleer je internetverbinding en probeer het opnieuw.',
   },
 });

@@ -10,6 +10,7 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
   placesBy: 'Názvy míst',
   dataBy: 'Data o počasí:',
   offline: 'Jste offline. Zobrazuje se naposledy načtená předpověď, může být zastaralá.',
+  outdated: (time) => `Poslední aktualizace předpovědi: ${time}.`,
   home: {
     title: 'Jaké bude počasí tam, kam jedete?',
     text: (days) =>
@@ -209,6 +210,8 @@ export const cs: MessagesFactory = ({ deg, plural }) => ({
     PROVIDER_ERROR: 'Služba počasí neodpovídá. Zkuste to za chvíli znovu.',
     NOT_FOUND: 'Nic nenalezeno.',
     INTERNAL: 'Něco se pokazilo. Zkuste to znovu.',
+    RATE_LIMITED: 'Příliš mnoho požadavků z vaší sítě. Počkejte minutu a zkuste to znovu.',
+    SERVICE_BUSY: 'Služba je teď přetížená. Zkuste to znovu za pár minut.',
     NETWORK_ERROR: 'Žádné připojení k serveru. Zkontrolujte internet a zkuste to znovu.',
   },
 });

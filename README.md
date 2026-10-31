@@ -23,13 +23,13 @@ A web application that shows the current weather and a 10-day forecast for a sel
 
 ## Tech stack
 
-| Layer    | Technology                                                                 |
-| -------- | -------------------------------------------------------------------------- |
-| Frontend | React 18, TypeScript, Vite                                                 |
-| Backend  | Node.js, Express, TypeScript, Zod                                          |
-| Weather  | Open-Meteo (forecast + geocoding)                                          |
-| Testing  | Vitest, Testing Library, Supertest, Playwright, axe-core, ESLint, Prettier |
-| CI       | GitHub Actions (format, lint, typecheck, test, build; e2e in a browser)    |
+| Layer    | Technology                                                                                |
+| -------- | ----------------------------------------------------------------------------------------- |
+| Frontend | React 19, React Router 8, TypeScript, Vite 8                                              |
+| Backend  | Node.js 24, Express 5, TypeScript, Zod                                                    |
+| Weather  | Open-Meteo (forecast + geocoding)                                                         |
+| Testing  | Vitest, Testing Library, Supertest, Playwright, axe-core, ESLint, Prettier                |
+| CI       | GitHub Actions (audit, format, lint, typecheck, test, build; e2e), weekly too; Dependabot |
 
 ## Architecture
 
@@ -52,7 +52,7 @@ docs/              Architecture notes and open questions
 
 ## Getting started
 
-Requires Node.js 20.19+ (the PWA build plugin needs it).
+Requires Node.js 24 (24.15 or later; `.nvmrc` pins the major version, so `nvm use` picks it). CI and Render read the same `.nvmrc`, so all three run one version.
 
 ```bash
 npm install
@@ -70,9 +70,14 @@ Free, no database: Firebase Cloud Messaging keeps the subscriptions (topics), an
 1. Create a project in the [Firebase Console](https://console.firebase.google.com) (free Spark plan) and add a web app.
 2. Client (`client/.env`, see `client/.env.example`): the web app's config and the Web Push key (Project settings → Cloud Messaging → Web Push certificates). Public values.
 3. Server (`server/.env`): `FIREBASE_SERVICE_ACCOUNT` (Project settings → Service accounts → Generate new private key; the JSON as one line or base64) and `ALERTS_NOTIFY_SECRET` (a long random string). Secrets: never commit them.
+   Then give that service account (`firebase-adminsdk-…@<project>.iam.gserviceaccount.com`) the role **Firebase Cloud Messaging API Admin** in the Google Cloud Console (IAM → edit the account → Add another role). `firebase-admin` 14 manages topic subscriptions through the FCM v1 API, which needs it; without it, turning notifications on or off fails with a 502.
 4. After deploying: a job on [cron-job.org](https://cron-job.org) every 5 minutes, `POST https://<api>/api/internal/alerts/notify` with the header `Authorization: Bearer <ALERTS_NOTIFY_SECRET>`. It also keeps a free Render instance awake.
 
 Notifications need the production build (the service worker is off in `npm run dev`): `npm run build && npm run preview -w client`. On iPhone they work only from the app added to the Home Screen (iOS 16.4+).
+
+### Dependencies
+
+Dependabot (`.github/dependabot.yml`) opens weekly pull requests into `dev`: minor and patch updates grouped (production and development apart), each major version alone, Firebase alone (its tests use a fake, so check push notifications live before merging), GitHub Actions monthly. CI also runs every Monday with no change at all, so a newly published vulnerability (the production audit fails on high ones) or a test that depends on the date shows up anyway. In the repository's settings (Code security), turn on Dependabot alerts and security updates: those pull requests come as soon as an advisory is out. Not automated: the Node version in `.nvmrc` (once a year, at a new LTS) and the `@grpc/grpc-js` override in `package.json` (drop it once `firebase` updates grpc itself).
 
 ### Other commands
 
@@ -92,20 +97,25 @@ npm run build      # production build
 | GET    | `/api/locations?q=warsaw&limit=5`                 | Search cities                                                                                                                  |
 | GET    | `/api/locations/756135?lang=ru`                   | One place by id, names in a language                                                                                           |
 | GET    | `/api/forecast?lat=52.23&lon=21.01&days=10`       | Current weather, next 24 hours, yesterday and daily forecast                                                                   |
+| GET    | `/api/forecasts?places=52.23,21.01;50.06,19.94`   | Forecasts for up to 10 places at once (saved cities); each item is a forecast or an error                                      |
 | GET    | `/api/air-quality?lat=52.23&lon=21.01`            | Current air quality (European and US AQI)                                                                                      |
 | GET    | `/api/alerts?lat=54.21&lon=21.74&lang=pl`         | Official weather warnings in force or announced at a place (Europe, MeteoAlarm), texts in the language where the issuer has it |
 | GET    | `/api/places/approximate?lang=ru`                 | The user's city guessed from their IP address (fallback when the browser can't locate them); never cached                      |
 | GET    | `/api/places/reverse?lat=52.25&lon=21.05&lang=ru` | The place at the user's location: the city with its coordinates and id (as from search), named via OpenStreetMap Nominatim     |
 | POST   | `/api/push/topics`                                | Subscribe or unsubscribe a device's push token to warnings for a place (only with Firebase configured)                         |
 | POST   | `/api/internal/alerts/notify`                     | Push new warnings; called every 5 minutes by an external scheduler, needs `Authorization: Bearer <ALERTS_NOTIFY_SECRET>`       |
-| GET    | `/api/health`                                     | Health check                                                                                                                   |
+| GET    | `/api/health`                                     | Health check for Render: the process answers (does not call the weather provider)                                              |
+| GET    | `/api/internal/metrics`                           | Cache hit rates, provider calls against their limits, rate-limited requests; needs `Authorization: Bearer <METRICS_SECRET>`    |
 
 Errors use one format: `{ "error": { "code": "INVALID_REQUEST", "message": "..." } }`.
 
+Requests are limited per IP address (a minute's window): 300 for the API as a whole, 30 batches for `/api/forecasts` (up to 10 places each), 60 for city search, 10 for `/api/places/*`. Over the limit: `429` with code `RATE_LIMITED` and the standard `RateLimit` and `Retry-After` headers.
+
 ## Deployment
 
-- Frontend: Vercel, root directory `client`. `client/vercel.json` rewrites `/api/*` to the backend (replace `YOUR-API` with the real URL) and serves `index.html` for all other paths, so client-side routes survive a refresh.
-- Backend: Render, root directory `server`. Do not set `IP_SELF_LOOKUP` there (it is for local development). Set `TRUST_PROXY=2` (Vercel's rewrite and Render's proxy), so the approximate location sees the user's IP; only that many proxies are trusted with `X-Forwarded-For`, otherwise anyone could fake their address.
+- Frontend: Vercel, root directory `client`. `client/middleware.ts` (Vercel Routing Middleware) forwards `/api/*` to the backend; `client/vercel.json` serves `index.html` for all other paths, so client-side routes survive a refresh. Environment variables on Vercel: `API_ORIGIN` (the backend's URL, e.g. `https://weather-api.onrender.com`), `PROXY_SECRET` (a long random string, the same as on Render), and the `VITE_FIREBASE_*` values for push notifications.
+- Backend: Render, root directory `server`, health check path `/api/health`. Do not set `IP_SELF_LOOKUP` there (it is for local development). Set `PROXY_SECRET` (the same value as on Vercel): the API then answers only requests that came through the frontend's proxy and takes the user's IP from it (`X-Client-IP`), so rate limits and the approximate location cannot be fooled by a forged `X-Forwarded-For` sent straight to Render. After deploying, check: the site works; a request straight to `https://<api>.onrender.com/api/forecast?lat=52.23&lon=21.01` gets 404; "Looks like you're in …" (the approximate location) names your own city, so the user's address reaches the API; and a page opened while Render is asleep waits for it instead of failing. Set `TRUST_PROXY=2` as well (used only when a request carries no `X-Client-IP`). Optional: `METRICS_SECRET` (enables `/api/internal/metrics`), `LOG_LEVEL` (`info` by default; `debug` logs every provider call).
+- Logs are JSON lines on stdout (pino), which Render keeps and searches by field; every 15 minutes a `metrics` line records cache hit rates and provider usage, and a warning is logged when a provider's usage passes 80% of a limit.
 
 Serving the API from the frontend's domain avoids CORS and keeps future auth cookies first-party.
 
@@ -130,5 +140,5 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 ## What I would do next
 
 - [Wind unit setting; accounts so favourites sync between devices]
-- [More e2e scenarios (geolocation, offline, notifications); React 19 with the React Compiler and its lint rules]
+- [More e2e scenarios (geolocation, offline, notifications); the React Compiler itself (its lint rules are on)]
 - [Redis cache and rate limiting, monitoring]

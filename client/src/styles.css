@@ -10,6 +10,9 @@
   --danger: #ffdcd8;
   --sky: #3468a0;
   --field: #ffffff;
+  /* Notices above a page (old forecast, offline): darker than the page, not lighter. White
+     text on 15% white over the blue was 4.2:1, below AA; on this it is 6.9:1. */
+  --notice: rgba(0, 0, 0, 0.12);
   --field-ink: #0f1d33;
   --field-query: #1d4f86;
   /* 4.85:1 on a highlighted row (--field-active), the darkest place it sits; #5a6b82 was
@@ -44,6 +47,8 @@
     --sun: #f5c451;
     --warm: #e39a35;
     --sky: #1e2a40;
+    /* Lighter than the dark page; at the page's 6% surface it hardly stood out. */
+    --notice: rgba(255, 255, 255, 0.1);
     --danger: #f08a80;
     --field: var(--surface);
     --field-ink: var(--ink);
@@ -107,13 +112,26 @@ body {
   flex: 1;
 }
 
-.offline-banner {
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
   margin: 0 0 1.5rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--line);
   border-radius: 0.75rem;
-  background: var(--surface);
+  background: var(--notice);
   font-size: 0.9rem;
+}
+
+.notice__icon {
+  flex: none;
+  /* Centred on the first line of text. */
+  margin-top: 0.15em;
+  fill: none;
+  stroke: var(--sun);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .page__footer {

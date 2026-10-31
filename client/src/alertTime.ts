@@ -17,8 +17,12 @@ function dayOffset(instant: number, now: number, timeZone: string | undefined): 
   return Math.round((Date.parse(dateIn(instant, timeZone)) - Date.parse(dateIn(now, timeZone))) / 86_400_000);
 }
 
-export function formatAlertTime(iso: string, options: { locale: string; timeZone?: string; now?: number }): string {
-  const { locale, timeZone, now = Date.now() } = options;
+/** `omitToday`: just the time on the same day ("21:40"), the day otherwise ("yesterday 21:40"). */
+export function formatAlertTime(
+  iso: string,
+  options: { locale: string; timeZone?: string; now?: number; omitToday?: boolean },
+): string {
+  const { locale, timeZone, now = Date.now(), omitToday = false } = options;
   const instant = Date.parse(iso);
   // Intl throws on an invalid date; one bad upstream warning must not break the page.
   if (!Number.isFinite(instant)) return '';
@@ -30,6 +34,7 @@ export function formatAlertTime(iso: string, options: { locale: string; timeZone
     timeZone,
   }).format(instant);
   const offset = dayOffset(instant, now, timeZone);
+  if (omitToday && offset === 0) return time;
   const day =
     offset >= -1 && offset <= 1
       ? new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(offset, 'day')

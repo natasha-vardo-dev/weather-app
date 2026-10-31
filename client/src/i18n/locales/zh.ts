@@ -11,6 +11,7 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
   placesBy: '地名',
   dataBy: '天气数据来源：',
   offline: '您已离线。显示的是上次加载的预报，可能已过时。',
+  outdated: (time) => `预报最后更新：${time}`,
   home: {
     title: '你要去的地方天气如何？',
     text: (days) => `搜索城市，查看当前天气和未来${num(days)}天的预报。`,
@@ -192,6 +193,8 @@ export const zh: MessagesFactory = ({ num, deg }) => ({
     PROVIDER_ERROR: '天气服务没有响应。请稍后重试。',
     NOT_FOUND: '未找到任何内容。',
     INTERNAL: '出了点问题。请重试。',
+    RATE_LIMITED: '来自你网络的请求过多。请等待一分钟后重试。',
+    SERVICE_BUSY: '服务当前繁忙。请几分钟后重试。',
     NETWORK_ERROR: '无法连接服务器。请检查网络后重试。',
   },
 });

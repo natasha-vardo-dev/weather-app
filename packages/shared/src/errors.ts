@@ -3,6 +3,13 @@ export const ERROR_CODES = {
   PROVIDER_ERROR: 'PROVIDER_ERROR',
   NOT_FOUND: 'NOT_FOUND',
   INTERNAL: 'INTERNAL',
+  /** Too many requests from one address (429); the RateLimit headers say when to try again. */
+  RATE_LIMITED: 'RATE_LIMITED',
+  /**
+   * The server is near a data provider's limit for everyone (503): new data waits, what is
+   * cached is still served. Not the user's doing, unlike RATE_LIMITED.
+   */
+  SERVICE_BUSY: 'SERVICE_BUSY',
   /** Client-side only: the request never reached the server. */
   NETWORK_ERROR: 'NETWORK_ERROR',
 } as const;
@@ -19,5 +26,10 @@ export interface ApiErrorBody {
 
 /** Errors worth retrying automatically or offering a "Try again" button for. */
 export function isRetryable(code: ErrorCode): boolean {
-  return code === ERROR_CODES.PROVIDER_ERROR || code === ERROR_CODES.NETWORK_ERROR;
+  return (
+    code === ERROR_CODES.PROVIDER_ERROR ||
+    code === ERROR_CODES.NETWORK_ERROR ||
+    code === ERROR_CODES.RATE_LIMITED ||
+    code === ERROR_CODES.SERVICE_BUSY
+  );
 }

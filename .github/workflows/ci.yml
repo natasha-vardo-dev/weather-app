@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Weekly, with no change at all: advisories are published whatever we commit, so the
+  # production audit must run anyway, and so must the tests (one depended on the date and
+  # started failing a day after it was written). Runs on the default branch.
+  schedule:
+    - cron: '0 6 * * 1'
+  # By hand, from the Actions tab.
+  workflow_dispatch:
 
 jobs:
   check:
@@ -12,9 +19,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # Known high or critical vulnerabilities in what reaches users (the app and the API) fail
+      # the build. Development and build tools are left out: their reports are mostly about
+      # input we control, and npm's suggested fix for them is a downgrade by years.
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
@@ -29,7 +40,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
