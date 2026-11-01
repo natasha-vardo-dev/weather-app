@@ -1,0 +1,45 @@
+# The API on the Oracle Cloud VM (ADR 0019). Installed by setup.sh to
+# /etc/systemd/system/weather-api.service; logs: journalctl -u weather-api.
+
+[Unit]
+Description=Weather app API
+After=network-online.target
+Wants=network-online.target
+# Nothing to start before the first deploy (setup.sh enables the unit earlier).
+ConditionPathExists=/opt/weather-app-current
+
+[Service]
+Type=simple
+User=weather
+Group=weather
+# The build deploy.sh switched to.
+WorkingDirectory=/opt/weather-app-current
+# Secrets and settings, root-only (api.env.example).
+EnvironmentFile=/etc/weather-api.env
+# The deployed commit, for /api/health, written by deploy.sh.
+EnvironmentFile=-/etc/weather-api.commit
+# Production, the port and 127.0.0.1 (only Caddy, on this machine, reaches the server) are set
+# here, after the env file, so a line copied into it cannot change them.
+ExecStart=/usr/bin/env NODE_ENV=production PORT=3001 LISTEN_HOST=127.0.0.1 /usr/bin/node server/dist/index.js
+Restart=always
+RestartSec=5
+# The server finishes requests and saves its state within about 15 s of SIGTERM (src/shutdown.ts).
+TimeoutStopSec=30
+
+# The server only reads its code and talks to the network.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+# The service sees no other users' processes in /proc. Its own environment (the secrets) is
+# readable only by its user and root, hence builds run as another user (deploy.sh).
+ProtectProc=invisible
+
+[Install]
+WantedBy=multi-user.target

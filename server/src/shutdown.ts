@@ -3,13 +3,13 @@ import type { Logger } from './observability/logger.js';
 
 export interface ShutdownOptions {
   logger: Logger;
-  /** How long requests under way may take to finish (Render kills the process after 30 s). */
+  /** How long requests under way may take to finish (systemd kills the process after 30 s, TimeoutStopSec). */
   timeoutMs?: number;
   /** Called first: the app starts answering health checks with 503 and closing connections. */
   onStart?: () => void;
   /**
    * Awaited after the last request, before the process exits (saving state), for at most
-   * `beforeExitMs`: a hung write must not hold the exit until Render kills the process.
+   * `beforeExitMs`: a hung write must not hold the exit until systemd kills the process.
    */
   beforeExit?: () => Promise<void>;
   beforeExitMs?: number;
@@ -17,7 +17,7 @@ export interface ShutdownOptions {
 }
 
 /**
- * Stops the server the way a deploy needs it (SIGTERM, then SIGKILL 30 s later on Render):
+ * Stops the server the way a deploy needs it (SIGTERM, then SIGKILL 30 s later from systemd):
  * no new connections, requests under way finish, idle keep-alive connections close at once,
  * and whatever is still open after `timeoutMs` is cut. Before, the process just died and the
  * answers it was preparing were lost.

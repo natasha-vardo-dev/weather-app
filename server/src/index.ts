@@ -112,16 +112,26 @@ const app = createApp(service, {
   draining: () => draining,
 });
 
-const server = app.listen(config.port, () => {
-  logger.info({ port: config.port, production: config.production, node: process.version }, 'API listening');
-});
+// Express 5 passes a failure to listen (port taken, LISTEN_HOST not on this machine) here: exit, so
+// systemd restarts the server instead of it running without listening.
+const onListening = (err?: Error) => {
+  if (err) {
+    logger.fatal({ err, host: config.host, port: config.port }, 'cannot listen');
+    process.exit(1);
+  }
+  logger.info(
+    { host: config.host, port: config.port, production: config.production, node: process.version },
+    'API listening',
+  );
+};
+const server = config.host ? app.listen(config.port, config.host, onListening) : app.listen(config.port, onListening);
 
 // Provider usage survives restarts and deploys (stateStore.ts), so restarting can't reset the budget.
 const usage = store.kind === 'memory' ? undefined : persistUsage(store, metrics, logger);
 logger.info({ store: store.kind, push: !!push }, 'operational state store');
 
 // A summary in the logs every 15 minutes: history of cache hit rates and provider usage
-// without a metrics service (Render keeps the logs).
+// without a metrics service (journald keeps the logs).
 const metricsTimer = setInterval(() => logger.info({ metrics: metrics.snapshot() }, 'metrics'), 15 * 60_000);
 metricsTimer.unref();
 
@@ -144,7 +154,7 @@ const shutdown = gracefulShutdown(server, {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-// A crash is logged before the process ends (Render restarts it): Node would otherwise print
+// A crash is logged before the process ends (systemd restarts it): Node would otherwise print
 // the stack to stderr only, outside the JSON logs.
 process.on('uncaughtException', (err) => {
   logger.fatal({ err }, 'uncaught exception');

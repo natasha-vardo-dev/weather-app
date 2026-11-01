@@ -1,6 +1,6 @@
 # 0005. Vercel and Render, one origin through a proxy with a secret
 
-- Status: Accepted (not yet verified on the real hosts)
+- Status: Accepted; the Render part superseded by [0019](0019-api-on-oracle-free-vm.md) (the proxy with a secret stays)
 - Date: 2026-10-31 (recorded)
 
 ## Context
