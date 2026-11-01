@@ -98,8 +98,8 @@ export function PrivacyPage() {
       <h2>Who else processes data</h2>
       <ul>
         <li>
-          Vercel (hosting of the site) and Oracle Cloud (hosting of our server, in the EU): requests, including IP
-          addresses.
+          Vercel (hosting of the site) and Amazon Web Services (hosting of our server, in the EU): requests, including
+          IP addresses.
         </li>
         <li>Open-Meteo: places and searches, from our server.</li>
         <li>OpenStreetMap Foundation (Nominatim): rounded positions, from our server.</li>
@@ -107,7 +107,7 @@ export function PrivacyPage() {
         <li>Google (Firebase Cloud Messaging) and your browser&apos;s push service: only with notifications on.</li>
       </ul>
       <p>
-        Vercel, Oracle and Google may process data in the United States, under the EU–US Data Privacy Framework or the
+        Vercel, Amazon and Google may process data in the United States, under the EU–US Data Privacy Framework or the
         European Commission&apos;s standard contractual clauses.
       </p>
 

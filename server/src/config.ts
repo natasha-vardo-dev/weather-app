@@ -29,7 +29,7 @@ export interface Config {
 type Env = Record<string, string | undefined>;
 
 /**
- * Production is NODE_ENV=production (set by the systemd unit in deploy/oracle), or Render
+ * Production is NODE_ENV=production (set by the systemd unit in deploy/vm), or Render
  * (which sets RENDER=true): the host is enough, so a deploy where nobody set NODE_ENV is
  * still checked.
  */
@@ -86,7 +86,7 @@ export function loadConfig(env: Env): Config {
   const config: Config = {
     production,
     port: positiveNumber(env, 'PORT', 3001),
-    // On the VM only Caddy, on the same machine, should reach the server (deploy/oracle).
+    // On the VM only Caddy, on the same machine, should reach the server (deploy/vm).
     host: value(env, 'LISTEN_HOST'),
     forecastTtlSeconds: positiveNumber(env, 'FORECAST_CACHE_TTL', 900),
     corsOrigins,
@@ -101,7 +101,7 @@ export function loadConfig(env: Env): Config {
     firebaseAccount: serviceAccount(value(env, 'FIREBASE_SERVICE_ACCOUNT')),
     notifySecret: value(env, 'ALERTS_NOTIFY_SECRET'),
     metricsSecret: value(env, 'METRICS_SECRET'),
-    // Written by deploy/oracle/deploy.sh; Render sets its own.
+    // Written by deploy/vm/deploy.sh; Render sets its own.
     version: (value(env, 'GIT_COMMIT') ?? value(env, 'RENDER_GIT_COMMIT'))?.slice(0, 7),
   };
 

@@ -1,4 +1,4 @@
-# The API on the Oracle Cloud VM (ADR 0019). Installed by setup.sh to
+# The API on the VM (ADR 0020). Installed by setup.sh to
 # /etc/systemd/system/weather-api.service; logs: journalctl -u weather-api.
 
 [Unit]

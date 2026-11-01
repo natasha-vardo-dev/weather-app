@@ -90,7 +90,7 @@ export interface AppOptions {
    * directly, and /internal/* has its own secret.
    */
   proxySecret?: string;
-  /** Shown by /api/health, to tell which build is running (GIT_COMMIT, from deploy/oracle/deploy.sh). */
+  /** Shown by /api/health, to tell which build is running (GIT_COMMIT, from deploy/vm/deploy.sh). */
   version?: string;
   /**
    * True once the server is shutting down (shutdown.ts): health answers 503, so the host stops

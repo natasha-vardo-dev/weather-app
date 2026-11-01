@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploys the API on the VM (ADR 0019): builds a commit in a directory of its own, then points
+# Deploys the API on the VM (ADR 0020): builds a commit in a directory of its own, then points
 # /opt/weather-app-current at it and restarts. The running server is untouched until then, so
 # a failed pull or build changes nothing. The last builds are kept: deploying one of them again
 # (a rollback) only restarts. A build that does not answer its health check within 30 s is
@@ -9,7 +9,7 @@
 # dependency's install scripts) only inside the release, so a bad package cannot change what
 # root runs next, and every build is root's once built.
 #
-# Usage: sudo bash /opt/weather-app/deploy/oracle/deploy.sh [commit]   (default: latest main)
+# Usage: sudo bash /opt/weather-app/deploy/vm/deploy.sh [commit]   (default: latest main)
 set -euo pipefail
 
 APP_DIR=/opt/weather-app
@@ -53,8 +53,8 @@ if [[ -z $commit || ! -f $RELEASES/$commit.built ]]; then
   git -C "$APP_DIR" pull --quiet --ff-only origin main
   commit=$(git -C "$APP_DIR" rev-parse --verify "${1:-HEAD}^{commit}")
 fi
-if ! git -C "$APP_DIR" cat-file -e "$commit:deploy/oracle/weather-api.service" 2>/dev/null; then
-  echo "${commit:0:7} predates the VM deploy (no deploy/oracle/weather-api.service)." >&2
+if ! git -C "$APP_DIR" cat-file -e "$commit:deploy/vm/weather-api.service" 2>/dev/null; then
+  echo "${commit:0:7} predates the VM deploy (no deploy/vm/weather-api.service)." >&2
   exit 1
 fi
 release=$RELEASES/$commit
@@ -96,7 +96,7 @@ switch_to() {
   local target=$1 id
   id=$(basename "$target")
   # The unit may change with the code; taken from git, not from the build user's release.
-  git -C "$APP_DIR" show "$id:deploy/oracle/weather-api.service" >"$UNIT.new" &&
+  git -C "$APP_DIR" show "$id:deploy/vm/weather-api.service" >"$UNIT.new" &&
     chmod 644 "$UNIT.new" &&
     mv "$UNIT.new" "$UNIT" &&
     echo "GIT_COMMIT=$id" >/etc/weather-api.commit &&

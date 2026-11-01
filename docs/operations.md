@@ -30,8 +30,11 @@ Set up:
    keyword `"proxied":true`, alert when the keyword is _not_ present.
 3. For the site monitor, a keyword check for `Weather forecast` (the page title) also catches an empty page.
 
-The API runs on an Oracle Cloud VM ([docs/deploy-oracle.md](deploy-oracle.md), [ADR 0019](adr/0019-api-on-oracle-free-vm.md)): it
-does not sleep, so nothing needs to keep it awake.
+The API runs on an AWS EC2 instance ([docs/deploy-aws.md](deploy-aws.md), [ADR 0020](adr/0020-api-on-aws-ec2.md)): it does not
+sleep, so nothing needs to keep it awake. It is free only for the AWS free plan's first 6 months. The plan does not
+turn into charges: when it ends (or its credits run out) the account is suspended and the API stops, unless it was
+upgraded to the paid plan before. Note the end date (Billing home page) and upgrade, or move, ahead of it; the
+zero-spend budget only warns of charges after an upgrade.
 
 ## What an alert means
 
@@ -42,7 +45,7 @@ does not sleep, so nothing needs to keep it awake.
   - `"proxied":false`: `PROXY_SECRET` differs between Vercel and the VM (every other API call gets 404);
   - no answer, `5xx` or `"status":"draining"` for long: on the VM, `systemctl status weather-api` and
     `journalctl -u weather-api -n 100` (a crash, a failed deploy, the server not starting), `journalctl -u caddy` (the
-    certificate), and Oracle's console (the instance stopped or reclaimed).
+    certificate), and the EC2 console (the instance stopped, its status checks).
 - **Quota:** the body names the provider, window (`perMinute`, `perHour`, `perDay`) and share used. At 90% the server
   itself refuses new calls to that provider (cached answers still go out, the rest gets `503 SERVICE_BUSY`), so the
   alert is the time to look: `GET /api/internal/metrics` with `Authorization: Bearer <METRICS_SECRET>` shows cache hit
