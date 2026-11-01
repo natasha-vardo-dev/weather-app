@@ -4,6 +4,7 @@ import type { Whereabouts } from '../geolocation';
 import { useI18n } from '../i18n/I18nProvider';
 import { useUnits } from '../units/UnitProvider';
 import { PinIcon } from './LocationIcons';
+import { WeatherIcon } from './WeatherIcon';
 
 interface Props {
   name: string;
@@ -21,7 +22,8 @@ export function CurrentWeather({ name, country, area = [], forecast, actions, he
   const { t, deg } = useI18n();
   const { temp } = useUnits();
   const { current } = forecast;
-  const label = t.conditions[describeWeather(current.weatherCode).condition];
+  const { condition, icon } = describeWeather(current.weatherCode);
+  const label = t.conditions[condition];
   const today = forecast.daily[0];
   // Compared in the chosen unit, so the difference reads in that unit too (2 °C apart is 4 °F).
   const trend =
@@ -90,10 +92,12 @@ export function CurrentWeather({ name, country, area = [], forecast, actions, he
           {hereMark}
         </p>
       )}
-      {/* aria-label is not allowed on a paragraph and often ignored: hidden text instead. */}
+      {/* aria-label is not allowed on a paragraph and often ignored: hidden text instead. The
+          icon beside the number (variant A of four), decorative: the condition is the next line. */}
       <p className="now__temp">
         <span className="visually-hidden">{t.current.degrees(temp(current.temperature))}</span>
         <span aria-hidden="true">{deg(temp(current.temperature))}</span>
+        <WeatherIcon icon={icon} isDay={current.isDay} />
       </p>
       {/* Three levels: the number; the condition, a little larger; then the details, one size
           and colour, one step apart. "Feels like" sits with the other temperatures of the day

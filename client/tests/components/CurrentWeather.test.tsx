@@ -32,6 +32,19 @@ describe('CurrentWeather', () => {
     expect(screen.getByText('5° warmer than yesterday')).toBeInTheDocument();
   });
 
+  it('shows the weather’s icon by the temperature, hidden from screen readers', () => {
+    const { container, unmount } = renderWithApp(<CurrentWeather name="Warsaw" forecast={data} />);
+    const icon = container.querySelector('.now__temp svg');
+    // Overcast: the cloud; decorative, since the condition is spelled out below it.
+    expect(icon).toHaveAttribute('aria-hidden', 'true');
+    expect(icon?.querySelector('.wi-cloud')).not.toBeNull();
+    unmount();
+
+    const clearNight = { ...data, current: { ...data.current, weatherCode: 0, isDay: false } };
+    const night = renderWithApp(<CurrentWeather name="Warsaw" forecast={clearNight} />);
+    expect(night.container.querySelector('.now__temp svg .wi-moon')).not.toBeNull();
+  });
+
   it('marks the user’s own place, in the heading for screen readers', () => {
     renderWithApp(<CurrentWeather name="Warsaw" country="Poland" forecast={data} here="exact" />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('You are here');
