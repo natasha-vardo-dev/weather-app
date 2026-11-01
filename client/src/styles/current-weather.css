@@ -102,11 +102,21 @@
 
 .now__temp {
   margin: 0;
+  /* The icon beside the number, centred on it; flex, so it changes sides in right-to-left text. */
+  display: flex;
+  align-items: center;
+  gap: 0.1em;
   font-size: clamp(6rem, 26vw, 11rem);
   font-weight: 700;
   line-height: 0.9;
   letter-spacing: -0.06em;
   font-variant-numeric: tabular-nums;
+}
+
+/* Sized by the number's font, so it grows and shrinks with it (variant A of four). */
+.now__temp .weather-icon {
+  width: 0.62em;
+  height: 0.62em;
 }
 
 /* Under the number: the condition a little larger, then the details (feels like, high and
