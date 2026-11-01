@@ -45,7 +45,7 @@ A small `StateStore` (`server/src/services/stateStore.ts`): JSON documents by na
 - Warnings issued while the server was down are pushed on the next run; nothing is pushed twice after a restart.
 - A restart no longer resets the provider budget.
 - Firestore must be created in the Firebase project, and the service account needs the **Cloud Datastore User** role
-  (README, "Deployment"). Not verified live yet.
+  (README, "Deployment"). Verified live 2026-11-01 (`/api/health/notify` reports `"store":"firestore"`).
 - About 2,600 writes (plus one per warning pushed) and 900 reads a day, within Firestore's free tier (20,000 writes, 50,000 reads).
 - Rate limits per IP are still per instance and in memory: during a deploy's overlap each instance counts on its own.
   Acceptable with one instance; several instances would need a shared store (Redis, backlog).

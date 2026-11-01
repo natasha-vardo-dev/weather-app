@@ -24,7 +24,7 @@ would bypass the limits.
 ## Consequences
 
 - Without the variables (locally, in tests) everything is allowed, as before.
-- The middleware runs only on Vercel; it is covered by unit tests but not checked live yet.
+- The middleware runs only on Vercel; it is covered by unit tests and was checked live on 2026-11-01.
 - Keeping Render awake uses almost all of its free monthly hours, leaving none for a second service.
 
 ## Alternatives considered
