@@ -103,13 +103,16 @@ previous one at once (the script then fails, with the log to read). The last thr
 
 ## On the VM
 
-| What                     | Command                                                                     |
-| ------------------------ | --------------------------------------------------------------------------- |
-| Logs, live               | `journalctl -u weather-api -f`                                              |
-| Last errors              | `journalctl -u weather-api -p warning -n 50`                                |
-| Status, restart          | `systemctl status weather-api`, `sudo systemctl restart weather-api`        |
-| Caddy (certificate) logs | `journalctl -u caddy -n 50`                                                 |
-| Settings changed         | `sudo nano /etc/weather-api.env`, then `sudo systemctl restart weather-api` |
+| What                     | Command                                                                            |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| Logs, live               | `journalctl -u weather-api -f`                                                     |
+| Warnings and errors      | `journalctl -u weather-api --since today -o cat \| grep -E '"level":(40\|50\|60)'` |
+| Status, restart          | `systemctl status weather-api`, `sudo systemctl restart weather-api`               |
+| Caddy (certificate) logs | `journalctl -u caddy -n 50`                                                        |
+| Settings changed         | `sudo nano /etc/weather-api.env`, then `sudo systemctl restart weather-api`        |
+
+The server logs JSON lines (pino) on stdout, which journald files all as information, so `-p warning` finds nothing:
+warnings and errors are found by their `level` (40 warning, 50 error, 60 fatal).
 
 Ubuntu installs security updates by itself (unattended-upgrades), Node's and Caddy's included, and restarts the API
 or Caddy after upgrading them. Some need a reboot (`/var/run/reboot-required` exists): `sudo reboot` at a quiet time;
