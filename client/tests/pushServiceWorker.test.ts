@@ -1,8 +1,23 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 
+const request = <T>(result: T) => {
+  const req: { result: T; onsuccess?: () => void; onerror?: () => void } = { result };
+  queueMicrotask(() => req.onsuccess?.());
+  return req;
+};
+
+/** A fake IndexedDB holding `state`. */
+const fakeIndexedDB = (state: unknown) => ({
+  open: () =>
+    request({
+      transaction: () => ({ objectStore: () => ({ get: () => request(state) }) }),
+      createObjectStore: () => {},
+    }),
+});
+
 /** Runs public/push-sw.js with a fake service worker scope and IndexedDB holding `state`. */
-function loadServiceWorker(state: unknown) {
+function loadServiceWorker(state: unknown, indexedDB: unknown = fakeIndexedDB(state)) {
   const handlers: Record<string, (event: unknown) => void> = {};
   const showNotification = vi.fn(async () => {});
   const self = {
@@ -12,18 +27,6 @@ function loadServiceWorker(state: unknown) {
     registration: { showNotification },
     location: { origin: 'https://weather.example' },
     clients: { matchAll: vi.fn(async () => []), openWindow: vi.fn(async () => null) },
-  };
-  const request = <T>(result: T) => {
-    const req: { result: T; onsuccess?: () => void; onerror?: () => void } = { result };
-    queueMicrotask(() => req.onsuccess?.());
-    return req;
-  };
-  const indexedDB = {
-    open: () =>
-      request({
-        transaction: () => ({ objectStore: () => ({ get: () => request(state) }) }),
-        createObjectStore: () => {},
-      }),
   };
   const source = readFileSync(new URL('../public/push-sw.js', import.meta.url), 'utf8');
   new Function('self', 'indexedDB', source)(self, indexedDB);
@@ -80,6 +83,63 @@ describe('push service worker', () => {
     const sw = loadServiceWorker(null);
     await push(sw, message);
     expect(sw.showNotification).toHaveBeenCalledWith('Thunderstorms', expect.objectContaining({ tag: 'alert-W1' }));
+  });
+
+  // Each case would otherwise end with no notification at all.
+  it.each([
+    ['a place stored without areas (an older format)', loadServiceWorker({ ...state, places: [{ name: 'Краков' }] })],
+    ['strings stored without a field', loadServiceWorker({ ...state, strings: { titles: {} } })],
+    ['an invalid stored locale', loadServiceWorker({ ...state, locale: 'not a locale!' })],
+  ])('shows one notification from the message alone despite %s, and logs why', async (_, sw) => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await push(sw, message);
+    expect(sw.showNotification).toHaveBeenCalledTimes(1);
+    // The issuer's English text: the fake worker has no navigator.language.
+    expect(sw.showNotification).toHaveBeenCalledWith(
+      'Thunderstorms',
+      expect.objectContaining({ body: 'Thunderstorms with hail', tag: 'alert-W1', renotify: false }),
+    );
+    expect(logged).toHaveBeenCalledWith('push: full notification failed', expect.any(Error));
+    logged.mockRestore();
+  });
+
+  // Unreadable IndexedDB is the same as no saved state, not a failure.
+  it.each([
+    [
+      'IndexedDB throws on open',
+      loadServiceWorker(null, {
+        open: () => {
+          throw new Error('SecurityError');
+        },
+      }),
+    ],
+    [
+      'IndexedDB throws inside its callback',
+      loadServiceWorker(null, {
+        open: () =>
+          request({
+            transaction: () => {
+              throw new Error('InvalidStateError');
+            },
+          }),
+      }),
+    ],
+  ])('shows the notification without saved state when %s', async (_, sw) => {
+    await push(sw, message);
+    expect(sw.showNotification).toHaveBeenCalledTimes(1);
+    expect(sw.showNotification).toHaveBeenCalledWith('Thunderstorms', expect.objectContaining({ tag: 'alert-W1' }));
+  });
+
+  it.each([
+    ['a message that is not even an object', null],
+    ['malformed issuer texts', { ...message, data: { ...message.data, texts: 'null', areas: 'null' } }],
+  ])('shows "Weather warning" for %s', async (_, payload) => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const sw = loadServiceWorker(state);
+    await push(sw, payload);
+    expect(sw.showNotification).toHaveBeenCalledTimes(1);
+    expect(sw.showNotification).toHaveBeenCalledWith('Weather warning', expect.any(Object));
+    logged.mockRestore();
   });
 });
 

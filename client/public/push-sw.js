@@ -10,16 +10,25 @@
 const DB = 'weather-push';
 const STORE = 'kv';
 
+/** Never rejects nor hangs: an exception inside a callback would leave the promise unsettled. */
 function readState() {
   return new Promise((resolve) => {
-    const open = indexedDB.open(DB, 1);
-    open.onupgradeneeded = () => open.result.createObjectStore(STORE);
-    open.onerror = () => resolve(null);
-    open.onsuccess = () => {
-      const get = open.result.transaction(STORE).objectStore(STORE).get('state');
-      get.onsuccess = () => resolve(get.result ?? null);
-      get.onerror = () => resolve(null);
-    };
+    try {
+      const open = indexedDB.open(DB, 1);
+      open.onupgradeneeded = () => open.result.createObjectStore(STORE);
+      open.onerror = () => resolve(null);
+      open.onsuccess = () => {
+        try {
+          const get = open.result.transaction(STORE).objectStore(STORE).get('state');
+          get.onsuccess = () => resolve(get.result ?? null);
+          get.onerror = () => resolve(null);
+        } catch {
+          resolve(null);
+        }
+      };
+    } catch {
+      resolve(null);
+    }
   });
 }
 
@@ -88,10 +97,46 @@ async function showWarning(payload) {
   });
 }
 
+/**
+ * A plain notification when writing the full one failed: the stored state is of an older
+ * format, IndexedDB is unavailable, the locale is invalid. It uses only the message: the
+ * issuer's event and headline in the browser's language, else "Weather warning". Same tag,
+ * so an update still replaces it quietly.
+ */
+function showFallback(payload) {
+  const data = (payload && typeof payload === 'object' && (payload.data ?? payload)) || {};
+  let text = {};
+  try {
+    const language = String(self.navigator?.language ?? 'en')
+      .toLowerCase()
+      .split('-')[0];
+    text = pickText(parse(data.texts, {}), language) ?? {};
+  } catch {
+    // Malformed texts: the plain title.
+  }
+  const key = data.key;
+  return self.registration.showNotification(
+    typeof text.event === 'string' && text.event ? text.event : 'Weather warning',
+    {
+      ...(typeof text.headline === 'string' && text.headline ? { body: text.headline } : {}),
+      ...(typeof key === 'string' ? { tag: `alert-${key}`, renotify: false } : {}),
+      icon: '/pwa-192x192.png',
+      badge: '/pwa-64x64.png',
+      data: { url: '/' },
+    },
+  );
+}
+
 self.addEventListener('push', (event) => {
   const payload = event.data ? parse(event.data.text(), {}) : {};
   // Every push must show a notification (Chrome shows its own otherwise, Safari unsubscribes).
-  event.waitUntil(showWarning(payload));
+  event.waitUntil(
+    showWarning(payload).catch((error) => {
+      // Visible in the worker's console; the error carries no personal data.
+      console.error('push: full notification failed', error);
+      return showFallback(payload);
+    }),
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
