@@ -13,7 +13,7 @@ function setup() {
   const app = createApp(new WeatherService(createFakeProvider()), {
     logger,
     metrics,
-    rateLimits: { api: 100, forecasts: 10, search: 10, places: 10, clientErrors: 2 },
+    rateLimits: { api: 100, forecasts: 10, search: 10, places: 10, clientErrors: 2, push: 5 },
   });
   return { app, warn, metrics };
 }

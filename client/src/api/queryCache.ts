@@ -15,6 +15,13 @@ export interface QueryCache<T> {
   get(key: string): T | undefined;
   /** Cached value, the in-flight request, or a new request. */
   load(key: string, fetcher: () => Promise<T>): Promise<T>;
+  /** Milliseconds since the key's value was stored, expired or not; undefined without one. */
+  age(key: string): number | undefined;
+  /**
+   * Called with the key whenever a loaded value is stored, so components showing the key
+   * pick up a value another component refreshed. Returns the unsubscribe function.
+   */
+  subscribe(listener: (key: string) => void): () => void;
 }
 
 export function createQueryCache<T>(options: {
@@ -24,9 +31,10 @@ export function createQueryCache<T>(options: {
   /** Whether a loaded value may be cached (e.g. not a fallback the server marked no-store). */
   keep?: (value: T) => boolean;
 }): QueryCache<T> {
-  const { ttlMs, maxEntries = 50, now = Date.now, keep = () => true } = options;
+  const { ttlMs, maxEntries = 50, now = () => Date.now(), keep = () => true } = options;
   const values = new Map<string, { value: T; storedAt: number }>();
   const inFlight = new Map<string, Promise<T>>();
+  const listeners = new Set<(key: string) => void>();
 
   function get(key: string): T | undefined {
     const entry = values.get(key);
@@ -50,6 +58,7 @@ export function createQueryCache<T>(options: {
         values.delete(key); // re-insert so Map order stays oldest-first
         values.set(key, { value, storedAt: now() });
         if (values.size > maxEntries) values.delete(values.keys().next().value!);
+        for (const listener of [...listeners]) listener(key);
         return value;
       })
       .finally(() => inFlight.delete(key));
@@ -57,5 +66,15 @@ export function createQueryCache<T>(options: {
     return request;
   }
 
-  return { get, load };
+  function age(key: string): number | undefined {
+    const entry = values.get(key);
+    return entry ? now() - entry.storedAt : undefined;
+  }
+
+  function subscribe(listener: (key: string) => void): () => void {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  }
+
+  return { get, load, age, subscribe };
 }

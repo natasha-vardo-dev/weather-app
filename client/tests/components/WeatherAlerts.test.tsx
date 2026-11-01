@@ -1,6 +1,6 @@
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import type { AlertsResponse, WeatherAlert } from '@weather/shared';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { WeatherAlerts } from '../../src/components/WeatherAlerts';
 import { noAlerts } from '../fixtures/weather';
 import { renderWithApp } from './render';
@@ -62,5 +62,23 @@ describe('WeatherAlerts', () => {
   it('waits for the place’s time zone before showing times', () => {
     renderWithApp(<WeatherAlerts data={three} />);
     expect(screen.queryByText(/^Until /)).not.toBeInTheDocument();
+  });
+
+  it('drops a warning once it has expired, while the page stays open', async () => {
+    vi.useFakeTimers({ now: Date.parse('2026-03-10T12:00:00Z') });
+    try {
+      const soon = { ...alert('a', 'red', 'thunderstorm'), expires: new Date(Date.now() + 30_000).toISOString() };
+      const later = alert('b', 'orange', 'wind');
+      renderWithApp(<WeatherAlerts data={{ ...noAlerts, alerts: [soon, later] }} timeZone="Europe/Warsaw" />);
+      expect(screen.getByText('Red warning: Thunderstorms')).toBeInTheDocument();
+
+      await act(() => vi.advanceTimersByTimeAsync(60_000));
+
+      expect(screen.queryByText('Red warning: Thunderstorms')).not.toBeInTheDocument();
+      expect(screen.getByText('Orange warning: Wind')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /more warnings/ })).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

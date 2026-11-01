@@ -1,6 +1,6 @@
 import { isAlertActive, type AlertLevel, type AlertsResponse, type WeatherAlert } from '@weather/shared';
 import { useId, useState } from 'react';
-import { formatAlertTime } from '../alertTime';
+import { formatAlertTime, unexpiredAlerts } from '../alertTime';
 import { useNow } from '../hooks/useNow';
 import { useI18n } from '../i18n/I18nProvider';
 import { ChevronIcon } from './ChevronIcon';
@@ -98,14 +98,18 @@ function AlertItem({ alert, timeZone }: { alert: WeatherAlert; timeZone?: string
  * Only the most severe one shows at first, the rest behind "2 more warnings": four cards
  * (red rain and storms today, yellow ones tomorrow) took half a phone screen above the
  * weather. The first is always the most severe and soonest, so nothing urgent is folded.
+ * Expired warnings are dropped by the clock (checked every minute).
  */
 export function WeatherAlerts({ data, timeZone }: { data: AlertsResponse | undefined; timeZone?: string }) {
   const { t } = useI18n();
   const [all, setAll] = useState(false);
   const listId = useId();
-  if (!data?.alerts.length) return null;
-  const hidden = data.alerts.length - 1;
-  const shown = all ? data.alerts : data.alerts.slice(0, 1);
+  // An open page keeps its answer until the next refresh: a warning goes once it is over.
+  const now = useNow().getTime();
+  const alerts = data ? unexpiredAlerts(data.alerts, now) : [];
+  if (!data || !alerts.length) return null;
+  const hidden = alerts.length - 1;
+  const shown = all ? alerts : alerts.slice(0, 1);
 
   return (
     <section className="alerts" aria-labelledby="alerts-title">

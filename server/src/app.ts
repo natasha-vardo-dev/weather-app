@@ -5,12 +5,12 @@ import express, { type ErrorRequestHandler } from 'express';
 import helmet from 'helmet';
 import { AppError, ProviderError } from './errors.js';
 import { requestLogger, silentLogger, type Logger } from './observability/logger.js';
-import type { Metrics } from './observability/metrics.js';
+import { FCM_TOPIC_LIMITS, type Metrics } from './observability/metrics.js';
 import { DEFAULT_RATE_LIMITS, rateLimiters, type RateLimits } from './rateLimits.js';
 import { sameSecret } from './secrets.js';
 import { alertsRouter } from './routes/alerts.js';
 import { placesRouter } from './routes/places.js';
-import { notifyRouter, pushRouter } from './routes/push.js';
+import { DEFAULT_PUSH_GUARD, notifyRouter, pushRouter, type PushGuard } from './routes/push.js';
 import type { AlertBroadcastSource, PushSender } from './providers/types.js';
 import type { AlertNotifier } from './services/alertNotifier.js';
 import { clientErrorsRouter } from './routes/clientErrors.js';
@@ -19,6 +19,12 @@ import type { AlertService } from './services/alertService.js';
 import type { ApproximateLocationService } from './services/approximateService.js';
 import type { PlaceService } from './services/placeService.js';
 import type { WeatherService } from './services/weatherService.js';
+
+/**
+ * How long without a fully successful notifier run before /api/health/notify alerts: six
+ * missed 5-minute runs, so one failed feed or a slow run does not page anyone.
+ */
+export const NOTIFY_STALE_MS = 30 * 60 * 1000;
 
 /** The API versions served (when a new one comes, the old prefix stays here until it is removed). */
 const SERVED_VERSIONS = new Set([API_PREFIX.slice('/api/'.length)]);
@@ -51,6 +57,8 @@ export interface PushSetup {
   sender: PushSender;
   notifier?: AlertNotifier;
   notifySecret?: string;
+  /** Per-token allowance and concurrency of topic changes; the global budget comes from `metrics`. */
+  guard?: Pick<PushGuard, 'perTokenPerHour' | 'concurrency'>;
 }
 
 export interface AppOptions {
@@ -163,6 +171,34 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
     });
   }
 
+  // For an uptime monitor (docs/operations.md): 503 when no notifier run has fully succeeded
+  // (every feed read, nothing refused) for NOTIFY_STALE_MS, or FCM refused messages for good
+  // within it, so a broken scheduler, a feed down for long or a payload FCM rejects reaches
+  // someone instead of looking like "no warnings".
+  // Public like quota: feed codes and times, nothing about users.
+  if (push?.notifier) {
+    const notifier = push.notifier;
+    app.get('/api/health/notify', (_req, res) => {
+      res.set('Cache-Control', 'no-store');
+      const status = notifier.status();
+      const since = Math.max(status.lastSuccessAt ?? 0, startedAt);
+      // A refusal is recorded as sent (retrying fails the same way), so later clean runs would
+      // hide it: it keeps the monitor red for the same window instead.
+      const refusedRecently = status.lastRejectedAt !== null && Date.now() - status.lastRejectedAt <= NOTIFY_STALE_MS;
+      const stale = Date.now() - since > NOTIFY_STALE_MS || refusedRecently;
+      const body = {
+        status: stale ? 'stale' : 'ok',
+        store: status.store,
+        lastRunAt: status.lastRunAt && new Date(status.lastRunAt).toISOString(),
+        lastSuccessAt: status.lastSuccessAt && new Date(status.lastSuccessAt).toISOString(),
+        feedsFailed: status.feedsFailed,
+        rejected: status.rejected,
+        lastRejectedAt: status.lastRejectedAt && new Date(status.lastRejectedAt).toISOString(),
+      };
+      res.status(stale ? 503 : 200).json(body);
+    });
+  }
+
   // Operators only: cache hit rates and provider calls against their limits.
   if (metrics && metricsSecret) {
     app.get('/api/internal/metrics', (req, res) => {
@@ -214,6 +250,7 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
     app.get(`${API_PREFIX}/forecasts`, limit.forecasts);
     app.use(`${API_PREFIX}/places`, limit.places);
     app.use(`${API_PREFIX}/client-errors`, limit.clientErrors);
+    app.use(`${API_PREFIX}/push`, limit.push);
   }
 
   // The contract, under its version (API_PREFIX). A breaking change gets a new prefix served
@@ -222,7 +259,15 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
   app.use(API_PREFIX, clientErrorsRouter(logger, metrics));
   if (places) app.use(API_PREFIX, placesRouter(places, approximate));
   if (alerts) app.use(API_PREFIX, alertsRouter(alerts));
-  if (push) app.use(API_PREFIX, pushRouter(push.source, push.sender));
+  if (push) {
+    const guard: PushGuard = {
+      ...DEFAULT_PUSH_GUARD,
+      ...push.guard,
+      budget: metrics?.budget('fcm-topics'),
+      record: metrics?.provider('fcm-topics', FCM_TOPIC_LIMITS),
+    };
+    app.use(API_PREFIX, pushRouter(push.source, push.sender, guard));
+  }
   // Operations, not the contract: no version, like /api/health.
   if (push?.notifier && push.notifySecret) app.use('/api', notifyRouter(push.notifier, push.notifySecret));
 

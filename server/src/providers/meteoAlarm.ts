@@ -1,6 +1,7 @@
 import { ALERT_LEVELS, ALERT_TYPES, type AlertLevel, type AlertType } from '@weather/shared';
 import { XMLParser } from 'fast-xml-parser';
 import { ProviderError } from '../errors.js';
+import { concurrencyLimit, MAX_BYTES, readText } from './http.js';
 import { TtlCache } from '../services/cache.js';
 import {
   bboxContains,
@@ -17,6 +18,36 @@ import {
 import type { AlertBroadcastSource, AlertText, AlertsProvider, BroadcastWarning, ProviderAlert } from './types.js';
 
 const FEED_URL = 'https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-';
+
+/**
+ * The only hosts documents are fetched from. CAP links come from feed content, so without this
+ * a tampered feed (or a redirect) could make the server request internal addresses (SSRF).
+ * Every CAP link seen in the live feeds is on feeds.meteoalarm.org, and none redirects.
+ */
+const ALLOWED_HOSTS = new Set(['feeds.meteoalarm.org']);
+
+/** Far above the live feeds (Germany's ~420 entries, polygons under 400 points; Oct 2026). */
+export const FEED_LIMITS = { entries: 5000, polygonsPerEntry: 50, pointsPerPolygon: 5000 } as const;
+
+/**
+ * Documents fetched at once. Feeds and CAPs queue apart: the notifier reads every feed each
+ * run, and a page's warning text must not wait behind that fan-out. Feeds: one per country,
+ * all at once as before (the limit only bounds them); CAPs: a few at a time.
+ */
+const MAX_CONCURRENT = { feeds: 40, caps: 10 } as const;
+
+/** The URL as given if it is https on an allowed host with the default port and no credentials, else null. */
+export function allowedUrl(href: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(href);
+  } catch {
+    return null;
+  }
+  const ok =
+    url.protocol === 'https:' && ALLOWED_HOSTS.has(url.hostname) && !url.port && !url.username && !url.password;
+  return ok ? href : null;
+}
 
 /** ISO 3166-1 code → MeteoAlarm feed name. */
 const FEEDS: Record<string, string> = {
@@ -110,7 +141,10 @@ const nodes = (value: unknown): Node[] => (Array.isArray(value) ? (value as Node
 /** CAP polygons are "lat,lon lat,lon …"; GeoJSON order is [lon, lat]. */
 export function parseCapPolygon(value: string): Polygon | null {
   const ring: Point[] = [];
-  for (const pair of value.trim().split(/\s+/)) {
+  const pairs = value.trim().split(/\s+/);
+  // Each point is tested against places and grid cells: an outline this detailed is not a warning area.
+  if (pairs.length > FEED_LIMITS.pointsPerPolygon) return null;
+  for (const pair of pairs) {
     const [lat, lon] = pair.split(',').map(Number);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
     ring.push([lon!, lat!]);
@@ -120,27 +154,32 @@ export function parseCapPolygon(value: string): Polygon | null {
 
 export function parseFeed(body: string): FeedEntry[] {
   const feed = (xml.parse(body) as Node).feed as Node | undefined;
-  return nodes(feed?.entry).flatMap((entry) => {
-    const capUrl = nodes(entry.link).find((link) => link.type === 'application/cap+xml')?.href;
-    if (typeof capUrl !== 'string') return [];
-    return [
-      {
-        capUrl,
-        status: text(entry.status),
-        messageType: text(entry.message_type),
-        severity: text(entry.severity),
-        event: text(entry.event),
-        onset: text(entry.onset) || text(entry.effective),
-        expires: text(entry.expires),
-        regions: nodes(entry.geocode)
-          .filter((geocode) => text(geocode.valueName) === 'EMMA_ID')
-          .map((geocode) => text(geocode.value)),
-        polygons: nodes(entry.polygon)
-          .map((polygon) => parseCapPolygon(text(polygon)))
-          .filter((polygon): polygon is Polygon => polygon !== null),
-      },
-    ];
-  });
+  return nodes(feed?.entry)
+    .slice(0, FEED_LIMITS.entries)
+    .flatMap((entry) => {
+      const href = nodes(entry.link).find((link) => link.type === 'application/cap+xml')?.href;
+      // A link anywhere else is never fetched: the entry is dropped.
+      const capUrl = typeof href === 'string' ? allowedUrl(href) : null;
+      if (!capUrl) return [];
+      return [
+        {
+          capUrl,
+          status: text(entry.status),
+          messageType: text(entry.message_type),
+          severity: text(entry.severity),
+          event: text(entry.event),
+          onset: text(entry.onset) || text(entry.effective),
+          expires: text(entry.expires),
+          regions: nodes(entry.geocode)
+            .filter((geocode) => text(geocode.valueName) === 'EMMA_ID')
+            .map((geocode) => text(geocode.value)),
+          polygons: nodes(entry.polygon)
+            .slice(0, FEED_LIMITS.polygonsPerEntry)
+            .map((polygon) => parseCapPolygon(text(polygon)))
+            .filter((polygon): polygon is Polygon => polygon !== null),
+        },
+      ];
+    });
 }
 
 const SEVERITY_LEVELS: Record<string, AlertLevel> = { Moderate: 'yellow', Severe: 'orange', Extreme: 'red' };
@@ -249,6 +288,8 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
   private readonly fetchFn: typeof fetch;
   private readonly now: () => number;
   private regionIndex: Promise<RegionIndex> | null = null;
+  private readonly feedLimit = concurrencyLimit(MAX_CONCURRENT.feeds);
+  private readonly capLimit = concurrencyLimit(MAX_CONCURRENT.caps);
   /** The feed entry behind each warning of the last listWarnings, for loadWarning. */
   private listed = new Map<string, FeedEntry>();
 
@@ -331,9 +372,9 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
   /**
    * Every warning in force or announced across MeteoAlarm, one per full warning (CAP) with
    * the areas of all its entries. One feed per country, cached like for the page. A failed
-   * feed is skipped: the next run reads it again, and warnings are remembered by the caller.
+   * feed is skipped and named in `failed`: the next run reads it again, and the caller reports it.
    */
-  async listWarnings(): Promise<{ warnings: BroadcastWarning[]; read: string[] }> {
+  async listWarnings(): Promise<{ warnings: BroadcastWarning[]; read: string[]; failed: string[] }> {
     const now = this.now();
     const countries = Object.keys(FEEDS);
     const results = await Promise.allSettled(countries.map((country) => this.feed(country)));
@@ -357,6 +398,7 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
         areas: [...new Set(warning.areas)],
       })),
       read: countries.filter((_, i) => results[i]!.status === 'fulfilled'),
+      failed: countries.filter((_, i) => results[i]!.status === 'rejected'),
     };
   }
 
@@ -371,7 +413,7 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
   async loadWarning(ref: string): Promise<CapAlert | null> {
     const entry = this.listed.get(ref);
     if (!entry) return null;
-    return this.cached(this.caps, ref, async () => parseCap(await this.fetchText(ref), entry));
+    return this.cached(this.caps, ref, async () => parseCap(await this.fetchText(ref, MAX_BYTES.cap), entry));
   }
 
   private regions(): Promise<RegionIndex> {
@@ -386,7 +428,7 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
   /** Cached as a promise, so concurrent requests for one country share a download. */
   private feed(country: string): Promise<FeedEntry[]> {
     return this.cached(this.feeds, country, async () =>
-      parseFeed(await this.fetchText(`${FEED_URL}${FEEDS[country]}`)),
+      parseFeed(await this.fetchText(`${FEED_URL}${FEEDS[country]}`, MAX_BYTES.feed)),
     );
   }
 
@@ -395,20 +437,22 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
    * (type unknown, English event name): showing it beats hiding an official warning.
    */
   private cap(url: string, entry: FeedEntry): Promise<CapAlert | null> {
-    return this.cached(this.caps, url, async () => parseCap(await this.fetchText(url), entry)).catch(() => {
-      const level = SEVERITY_LEVELS[entry.severity];
-      return level
-        ? {
-            id: url,
-            level,
-            type: 'other' as const,
-            onset: entry.onset,
-            expires: entry.expires,
-            texts: [{ language: 'en', event: entry.event }],
-            replaces: [],
-          }
-        : null;
-    });
+    return this.cached(this.caps, url, async () => parseCap(await this.fetchText(url, MAX_BYTES.cap), entry)).catch(
+      () => {
+        const level = SEVERITY_LEVELS[entry.severity];
+        return level
+          ? {
+              id: url,
+              level,
+              type: 'other' as const,
+              onset: entry.onset,
+              expires: entry.expires,
+              texts: [{ language: 'en', event: entry.event }],
+              replaces: [],
+            }
+          : null;
+      },
+    );
   }
 
   private cached<T>(cache: TtlCache<Promise<T>>, key: string, load: () => Promise<T>): Promise<T> {
@@ -423,16 +467,23 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
     return promise;
   }
 
-  private async fetchText(url: string): Promise<string> {
-    let response: Response;
-    try {
-      response = await this.fetchFn(url, { signal: AbortSignal.timeout(this.timeoutMs) });
-    } catch (err) {
-      throw new ProviderError(
-        `${new URL(url).host}: ${(err as Error).name === 'TimeoutError' ? 'timeout' : 'network error'}`,
-      );
-    }
-    if (!response.ok) throw new ProviderError(`${new URL(url).host}: HTTP ${response.status}`);
-    return response.text();
+  /**
+   * A document from an allowed host only, without following redirects (one could lead
+   * anywhere), within `maxBytes`, a limited number at a time (MAX_CONCURRENT).
+   */
+  private fetchText(url: string, maxBytes: number): Promise<string> {
+    if (!allowedUrl(url)) return Promise.reject(new ProviderError('meteoalarm: document URL not allowed'));
+    const host = new URL(url).host;
+    const limit = url.startsWith(FEED_URL) ? this.feedLimit : this.capLimit;
+    return limit(async () => {
+      let response: Response;
+      try {
+        response = await this.fetchFn(url, { redirect: 'error', signal: AbortSignal.timeout(this.timeoutMs) });
+      } catch (err) {
+        throw new ProviderError(`${host}: ${(err as Error).name === 'TimeoutError' ? 'timeout' : 'network error'}`);
+      }
+      if (!response.ok) throw new ProviderError(`${host}: HTTP ${response.status}`);
+      return readText(response, maxBytes, host);
+    });
   }
 }

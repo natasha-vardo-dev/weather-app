@@ -1,4 +1,4 @@
-import { cert, initializeApp, type App } from 'firebase-admin/app';
+import type { App } from 'firebase-admin/app';
 import { getMessaging, type Messaging, type TopicMessage } from 'firebase-admin/messaging';
 import { AppError, ProviderError } from '../errors.js';
 import { ERROR_CODES } from '@weather/shared';
@@ -12,9 +12,9 @@ import type { PushMessage, PushSender } from './types.js';
 export class FcmSender implements PushSender {
   private readonly messaging: Messaging;
 
-  /** `serviceAccount`: the JSON key of a Firebase service account (a secret, from the environment). */
-  constructor(serviceAccount: Record<string, string>, app?: App) {
-    this.messaging = getMessaging(app ?? initializeApp({ credential: cert(serviceAccount) }));
+  /** `app`: initialised with the service account's JSON key (a secret, from the environment). */
+  constructor(app: App) {
+    this.messaging = getMessaging(app);
   }
 
   async subscribe(token: string, topics: string[]): Promise<void> {
@@ -25,7 +25,7 @@ export class FcmSender implements PushSender {
     await manageTopics(topics, (topic) => this.messaging.unsubscribeFromTopic([token], topic), 'unsubscribe');
   }
 
-  async send(messages: PushMessage[]): Promise<number> {
+  async send(messages: PushMessage[]): Promise<{ accepted: number; rejected: number }> {
     return sendMessages(messages, (batch) => this.messaging.sendEach(batch));
   }
 }
@@ -45,14 +45,19 @@ const PERMANENT =
   /invalid-argument|invalid-payload|payload-size-limit-exceeded|invalid-data-payload-key|invalid-options/;
 
 /**
- * Sends in batches of 500 (sendEach's limit) and returns how many were accepted. sendEach
+ * Sends in batches of 500 (sendEach's limit) and returns how many were accepted and how many
+ * refused for good (counted by the caller, never silently treated as sent). sendEach
  * reports per-message failures instead of throwing, so any but a permanent one is turned
  * into an error here: otherwise a warning whose every message was rejected (FCM down, the
  * network, quota) would count as sent and never be retried. A retry resends the warning's accepted
  * messages too; they carry the same tag, so a device replaces the notification quietly.
  */
-export async function sendMessages(messages: PushMessage[], sendEach: SendEach): Promise<number> {
+export async function sendMessages(
+  messages: PushMessage[],
+  sendEach: SendEach,
+): Promise<{ accepted: number; rejected: number }> {
   let accepted = 0;
+  let rejected = 0;
   for (let i = 0; i < messages.length; i += 500) {
     const batch: TopicMessage[] = messages.slice(i, i + 500).map(({ topic, data, ttlSeconds }) => ({
       topic,
@@ -68,8 +73,9 @@ export async function sendMessages(messages: PushMessage[], sendEach: SendEach):
     const retry = response.responses.find((r) => !r.success && !PERMANENT.test(r.error?.code ?? ''));
     if (retry) throw new ProviderError(`FCM send: ${retry.error?.code} ${retry.error?.message}`);
     accepted += response.successCount;
+    rejected += response.responses.filter((r) => !r.success).length;
   }
-  return accepted;
+  return { accepted, rejected };
 }
 
 type TopicCall = (

@@ -14,7 +14,7 @@ function setup(proxySecret?: string) {
     proxySecret,
     // Two proxies trusted, as on Vercel + Render: the case a forged X-Forwarded-For got through.
     trustProxy: 2,
-    rateLimits: { api: 2, forecasts: 1, search: 1, places: 1, clientErrors: 1 },
+    rateLimits: { api: 2, forecasts: 1, search: 1, places: 1, clientErrors: 1, push: 5 },
     metrics: new Metrics(silentLogger),
     metricsSecret: 'metrics-secret-1234567890',
   });

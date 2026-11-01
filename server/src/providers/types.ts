@@ -84,8 +84,8 @@ export interface BroadcastWarning {
 export interface AlertBroadcastSource {
   /** The areas a place belongs to (the first part of its push topics). */
   areasAt(latitude: number, longitude: number): Promise<string[]>;
-  /** Every current warning, and the sources read this time (a failed feed is left out). */
-  listWarnings(): Promise<{ warnings: BroadcastWarning[]; read: string[] }>;
+  /** Every current warning, the sources read this time and the ones that failed (left out). */
+  listWarnings(): Promise<{ warnings: BroadcastWarning[]; read: string[]; failed: string[] }>;
   /** The warning in full; `replaces` names the earlier versions an update supersedes. */
   loadWarning(ref: string): Promise<(ProviderAlert & { replaces: string[] }) | null>;
 }
@@ -104,6 +104,9 @@ export interface PushMessage {
 export interface PushSender {
   subscribe(token: string, topics: string[]): Promise<void>;
   unsubscribe(token: string, topics: string[]): Promise<void>;
-  /** Resolves to how many messages were accepted. */
-  send(messages: PushMessage[]): Promise<number>;
+  /**
+   * Resolves to how many messages were accepted, and how many refused for good (they would
+   * fail the same way again); rejects when a retry could succeed.
+   */
+  send(messages: PushMessage[]): Promise<{ accepted: number; rejected: number }>;
 }

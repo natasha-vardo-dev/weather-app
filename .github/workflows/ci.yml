@@ -12,12 +12,21 @@ on:
   # By hand, from the Actions tab.
   workflow_dispatch:
 
+# Least privilege: the jobs only read the repository. A job that needs more asks for it itself.
+permissions:
+  contents: read
+
+# Actions are pinned to a commit, not a tag: a tag can be moved to other code, a commit can't.
+# The comment names the version; Dependabot (github-actions) updates both.
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The token is not left in .git/config for later steps (npm scripts, tests) to read.
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -44,7 +53,8 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      # Keeps its token: the next step fetches the target branch.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: base
         name: The target branch's description
         run: |
@@ -66,7 +76,7 @@ jobs:
             echo "compare=true" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.base.outputs.compare == 'true'
-        uses: oasdiff/oasdiff-action/breaking@v0.1.21
+        uses: oasdiff/oasdiff-action/breaking@9e56cf8b3aff7edb326d5767d3d23f96127e20c3 # v0.1.21
         with:
           base: openapi-base.json
           revision: docs/openapi.json
@@ -80,15 +90,18 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The token is not left in .git/config for later steps (npm scripts, tests) to read.
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: playwright-report

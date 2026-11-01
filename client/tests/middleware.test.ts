@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import middleware, { config } from '../middleware';
+import middleware, { apiOrigin, config } from '../middleware';
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -57,5 +57,32 @@ describe('Vercel middleware', () => {
     expect(response.status).toBe(500);
     expect(response.headers.has('x-middleware-rewrite')).toBe(false);
     expect((await response.json()).error.message).toBe('API_ORIGIN is not set.');
+  });
+
+  it.each([
+    'http://weather-api.onrender.com',
+    'https://weather-api.onrender.com/api',
+    'https://user:pass@weather-api.onrender.com',
+    'not a url',
+  ])('refuses API_ORIGIN %s instead of sending the secret there', async (origin) => {
+    vi.stubEnv('API_ORIGIN', origin);
+    vi.stubEnv('PROXY_SECRET', 'the-secret');
+    const response = middleware(new Request('https://weather.app/api/forecast'));
+    expect(response.status).toBe(500);
+    expect(response.headers.has('x-middleware-rewrite')).toBe(false);
+    expect((await response.json()).error.message).toBe('API_ORIGIN must be an https:// origin.');
+  });
+
+  it('allows plain http only for a local API', () => {
+    expect(apiOrigin('http://localhost:3001')?.host).toBe('localhost:3001');
+    expect(apiOrigin('https://weather-api.onrender.com/')?.host).toBe('weather-api.onrender.com');
+  });
+
+  it('refuses to forward in production without the proxy secret', async () => {
+    vi.stubEnv('API_ORIGIN', 'https://weather-api.onrender.com');
+    vi.stubEnv('VERCEL_ENV', 'production');
+    const response = middleware(new Request('https://weather.app/api/forecast'));
+    expect(response.status).toBe(500);
+    expect((await response.json()).error.message).toBe('PROXY_SECRET is not set.');
   });
 });

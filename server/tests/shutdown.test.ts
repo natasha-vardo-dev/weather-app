@@ -29,6 +29,37 @@ async function slowServer() {
 }
 
 describe('graceful shutdown', () => {
+  it('waits for the work before exit (saving state), then exits', async () => {
+    const { server } = await slowServer();
+    const exit = vi.fn();
+    let saved = false;
+    const beforeExit = () => new Promise<void>((resolve) => setTimeout(() => ((saved = true), resolve()), 20));
+    gracefulShutdown(server, { logger: silentLogger, exit, beforeExit })('SIGTERM');
+    await vi.waitFor(() => expect(exit).toHaveBeenCalledWith(0));
+    expect(saved).toBe(true);
+  });
+
+  it('exits anyway when the work before exit hangs or fails', async () => {
+    const hung = await slowServer();
+    const exitHung = vi.fn();
+    gracefulShutdown(hung.server, {
+      logger: silentLogger,
+      exit: exitHung,
+      beforeExit: () => new Promise<void>(() => {}),
+      beforeExitMs: 30,
+    })('SIGTERM');
+    await vi.waitFor(() => expect(exitHung).toHaveBeenCalledWith(0));
+
+    const failing = await slowServer();
+    const exitFailing = vi.fn();
+    gracefulShutdown(failing.server, {
+      logger: silentLogger,
+      exit: exitFailing,
+      beforeExit: () => Promise.reject(new Error('Firestore down')),
+    })('SIGTERM');
+    await vi.waitFor(() => expect(exitFailing).toHaveBeenCalledWith(0));
+  });
+
   it('lets a request under way finish, then stops and exits 0', async () => {
     const { server, url, arrived, release } = await slowServer();
     const exit = vi.fn();

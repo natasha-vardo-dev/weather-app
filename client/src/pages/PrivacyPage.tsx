@@ -89,7 +89,8 @@ export function PrivacyPage() {
         Only if you turn them on. Your browser then registers with its push service and with Google&apos;s Firebase
         Cloud Messaging, which gives it a device token and receives your IP address while doing so. Our server
         subscribes that token to topics named after the warning areas of the places you chose (a region, not your
-        position). We do not store the token. Turning notifications off removes the subscriptions.
+        position). We do not store the token; to limit how often one device can change its notifications, our server
+        keeps a one-way hash of it in memory for an hour. Turning notifications off removes the subscriptions.
       </p>
 
       <h2>Who else processes data</h2>

@@ -172,6 +172,29 @@ describe('enableAlerts', () => {
     ]);
   });
 
+  it('renews a token place by place, never as a burst the server would rate-limit', async () => {
+    const places = Array.from({ length: 15 }, (_, i) => ({
+      ...KRAKOW,
+      latitude: 50 + i / 10,
+      group: 'storm',
+      level: 'orange',
+      areas: ['PL1261'],
+    }));
+    stored('token-old', places);
+    let inFlight = 0;
+    let peak = 0;
+    setAlertTopics.mockImplementation(async () => {
+      peak = Math.max(peak, ++inFlight);
+      await Promise.resolve();
+      inFlight--;
+      return { areas: ['PL1261'] };
+    });
+    await renewAlertsToken();
+    expect(peak).toBe(1);
+    expect(setAlertTopics).toHaveBeenCalledTimes(15);
+    expect(getAlertSubscriptions().token).toBe('token-new');
+  });
+
   it('moves the other places to a new token before subscribing this one', async () => {
     stored('token-old', [{ ...WARSAW, group: 'storm', level: 'orange', areas: ['PL1465'] }]);
     await enableAlerts(KRAKOW, { group: 'storm', level: 'orange' });

@@ -53,7 +53,7 @@ function setup() {
   };
   const source: AlertBroadcastSource = {
     areasAt: async () => ['PL1465'],
-    listWarnings: async () => ({ warnings: [], read: [] }),
+    listWarnings: async () => ({ warnings: [], read: [], failed: [] }),
     loadWarning: async () => null,
   };
   const sender: PushSender = { subscribe: vi.fn(async () => {}), unsubscribe: vi.fn(async () => {}), send: vi.fn() };

@@ -225,12 +225,13 @@ export async function renewAlertsToken(): Promise<void> {
 async function moveToToken(token: string): Promise<void> {
   const before = getAlertSubscriptions();
   if (token === before.token) return;
-  const moved = await Promise.all(
-    before.places.map(async (place) => {
-      const { areas } = await api.setAlertTopics(topicsRequest(token, place, place, true));
-      return { ...place, areas };
-    }),
-  );
+  // One at a time, not all at once: the server limits notification changes per address and
+  // per token (routes/push.ts), and a burst for many places would hit the limit midway.
+  const moved: AlertSubscription[] = [];
+  for (const place of before.places) {
+    const { areas } = await api.setAlertTopics(topicsRequest(token, place, place, true));
+    moved.push({ ...place, areas });
+  }
   const now = getAlertSubscriptions();
   const places = now.places.map(
     (place) => moved.find((m) => samePlace(m, place) && m.group === place.group && m.level === place.level) ?? place,

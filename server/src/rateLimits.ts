@@ -24,9 +24,23 @@ export interface RateLimits {
    * is a log line. Ten a minute tells what broke; more only floods the logs.
    */
   clientErrors: number;
+  /**
+   * Notification changes (/push/*): each is a Firebase call per area. A new token re-subscribes
+   * every place with notifications on (the client sends them one by one), so the limit is sized
+   * for that, not for a person's few clicks; the per-token allowance and the global budget that
+   * protect Firebase's quota are in routes/push.ts.
+   */
+  push: number;
 }
 
-export const DEFAULT_RATE_LIMITS: RateLimits = { api: 300, forecasts: 30, search: 60, places: 10, clientErrors: 10 };
+export const DEFAULT_RATE_LIMITS: RateLimits = {
+  api: 300,
+  forecasts: 30,
+  search: 60,
+  places: 10,
+  clientErrors: 10,
+  push: 60,
+};
 
 /**
  * Per-IP limits, in memory (one instance; with several, a Redis store shares the counts).
@@ -62,5 +76,6 @@ export function rateLimiters(limits: RateLimits, logger: Logger, metrics?: Metri
     search: make(limits.search, 'search'),
     places: make(limits.places, 'places'),
     clientErrors: make(limits.clientErrors, 'clientErrors'),
+    push: make(limits.push, 'push'),
   };
 }

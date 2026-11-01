@@ -7,6 +7,12 @@ export interface ShutdownOptions {
   timeoutMs?: number;
   /** Called first: the app starts answering health checks with 503 and closing connections. */
   onStart?: () => void;
+  /**
+   * Awaited after the last request, before the process exits (saving state), for at most
+   * `beforeExitMs`: a hung write must not hold the exit until Render kills the process.
+   */
+  beforeExit?: () => Promise<void>;
+  beforeExitMs?: number;
   exit?: (code: number) => void;
 }
 
@@ -19,7 +25,14 @@ export interface ShutdownOptions {
  * Returns the handler; repeated signals do nothing more.
  */
 export function gracefulShutdown(server: Server, options: ShutdownOptions): (signal: string) => void {
-  const { logger, timeoutMs = 10_000, onStart, exit = (code) => process.exit(code) } = options;
+  const {
+    logger,
+    timeoutMs = 10_000,
+    onStart,
+    beforeExit,
+    beforeExitMs = 5000,
+    exit = (code) => process.exit(code),
+  } = options;
   let started = false;
   return (signal) => {
     if (started) return;
@@ -39,8 +52,27 @@ export function gracefulShutdown(server: Server, options: ShutdownOptions): (sig
       clearTimeout(deadline);
       clearInterval(sweep);
       if (err) logger.error({ err }, 'shutdown failed');
-      else logger.info('stopped');
-      exit(err ? 1 : 0);
+      const finish = () => {
+        if (!err) logger.info('stopped');
+        exit(err ? 1 : 0);
+      };
+      if (!beforeExit) {
+        finish();
+        return;
+      }
+      let cap: NodeJS.Timeout | undefined;
+      const capped = new Promise<void>((resolve) => {
+        cap = setTimeout(() => {
+          logger.warn({ beforeExitMs }, 'work before exit took too long, exiting anyway');
+          resolve();
+        }, beforeExitMs);
+      });
+      void Promise.race([
+        beforeExit().catch((e: unknown) => logger.warn({ err: e }, 'work before exit failed')),
+        capped,
+      ])
+        .finally(() => clearTimeout(cap))
+        .then(finish);
     });
     server.closeIdleConnections();
   };

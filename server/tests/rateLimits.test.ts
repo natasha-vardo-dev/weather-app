@@ -9,7 +9,7 @@ import { createFakeProvider } from './fakeProvider.js';
 function setup(trustProxy: number | false = false) {
   const metrics = new Metrics(silentLogger);
   const app = createApp(new WeatherService(createFakeProvider()), {
-    rateLimits: { api: 5, forecasts: 1, search: 2, places: 1, clientErrors: 2 },
+    rateLimits: { api: 5, forecasts: 1, search: 2, places: 1, clientErrors: 2, push: 5 },
     trustProxy,
     metrics,
   });
@@ -74,7 +74,7 @@ describe('rate limits', () => {
   it('limits batches by places: a batch of new places is up to ten provider calls', async () => {
     const provider = createFakeProvider();
     const app = createApp(new WeatherService(provider), {
-      rateLimits: { api: 100, forecasts: 3, search: 60, places: 10, clientErrors: 10 },
+      rateLimits: { api: 100, forecasts: 3, search: 60, places: 10, clientErrors: 10, push: 5 },
     });
     let n = 0;
     // A script asking for ten new places each time.

@@ -109,6 +109,22 @@ describe('IpWhoIsLocator', () => {
     expect(urls[1]).toMatch(/^https:\/\/ipwho\.is\/\?/);
   });
 
+  it('places nothing without finite numbers for both coordinates', async () => {
+    const answers = [
+      { success: true, latitude: '52', longitude: 21 },
+      { success: true, latitude: Number.NaN, longitude: 21 },
+      null,
+    ];
+    for (const body of answers) {
+      const fetchFn = vi.fn(async () => jsonResponse(body));
+      expect(
+        await new IpWhoIsLocator(fetchFn as unknown as typeof fetch).locate('8.8.8.8').catch(() => 'error'),
+      ).not.toEqual(expect.objectContaining({ latitude: expect.anything() }));
+    }
+    const string = vi.fn(async () => jsonResponse({ success: true, latitude: '52', longitude: 21 }));
+    expect(await new IpWhoIsLocator(string as unknown as typeof fetch).locate('8.8.8.8')).toBeNull();
+  });
+
   it('asks for an IPv6 address too (encoded colons; ipwho.is answers the same as unencoded)', async () => {
     const fetchFn = vi.fn(async () => jsonResponse({ success: true, latitude: 50.11, longitude: 8.68 }));
     const locator = new IpWhoIsLocator(fetchFn as unknown as typeof fetch);
