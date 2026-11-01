@@ -1,6 +1,6 @@
 # 0011. Push notifications through FCM topics, no database
 
-- Status: Accepted (end-to-end delivery not yet verified); keeping what was sent in memory superseded by [0018](0018-durable-operational-state.md)
+- Status: Accepted (end-to-end delivery verified 2026-11-01 on a desktop, Android in Chrome and an iPhone Home Screen app); keeping what was sent in memory superseded by [0018](0018-durable-operational-state.md)
 - Date: 2026-10-31 (recorded)
 
 ## Context

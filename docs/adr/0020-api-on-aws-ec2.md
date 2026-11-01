@@ -1,6 +1,6 @@
 # 0020. The API on AWS EC2 with its own address, free for the first months only
 
-- Status: Accepted (supersedes the host choice of [0019](0019-api-on-oracle-free-vm.md); not yet verified on the VM)
+- Status: Accepted (supersedes the host choice of [0019](0019-api-on-oracle-free-vm.md); deployed and verified on the VM 2026-11-01)
 - Date: 2026-11-01
 
 ## Context
