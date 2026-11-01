@@ -28,3 +28,4 @@ decision changes: a new record supersedes it, and the old one's status says so.
 | [0017](0017-privacy-policy-and-own-font.md) | A privacy policy in English, and the font served by the site |
 | [0018](0018-durable-operational-state.md)   | Operational state in Firestore, caches still in memory       |
 | [0019](0019-api-on-oracle-free-vm.md)       | The API on an Oracle Cloud free VM with its own address      |
+| [0020](0020-api-on-aws-ec2.md)              | The API on AWS EC2 with its own address, free at first only  |

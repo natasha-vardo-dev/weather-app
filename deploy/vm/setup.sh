@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# One-time set-up of a fresh Oracle Cloud VM (Ubuntu 24.04) for the API (ADR 0019):
-# swap, firewall, Node 24, Caddy (HTTPS), a service user, the code, the systemd unit.
-# Safe to run again. Steps around it: docs/deploy-oracle.md.
+# One-time set-up of a fresh Ubuntu 24.04 VM for the API (ADR 0020; AWS EC2, but nothing here
+# depends on the provider): swap, firewall, Node 24, Caddy (HTTPS), users, the code, the unit.
+# Safe to run again. Steps around it: docs/deploy-aws.md.
 #
-# Usage: sudo bash setup.sh <api-host>     e.g. sudo bash setup.sh 158-101-1-2.sslip.io
+# Usage: sudo bash setup.sh <api-host>     e.g. sudo bash setup.sh 13-48-1-2.sslip.io
 set -euo pipefail
 
 API_HOST=${1:?usage: sudo bash setup.sh <api-host>}
@@ -56,7 +56,8 @@ printf '[Journal]\nMaxRetentionSec=12day\nMaxFileSec=1day\nForwardToSyslog=no\n'
 systemctl restart systemd-journald
 
 echo "== Firewall: HTTP and HTTPS"
-# Oracle's Ubuntu images reject all but SSH in iptables, on top of the VCN's security list.
+# Some providers' Ubuntu images (Oracle's) reject all but SSH in iptables; on AWS the security
+# group does the filtering and this changes nothing.
 for port in 80 443; do
   rule=(INPUT -p tcp -m state --state NEW --dport "$port" -j ACCEPT)
   iptables -C "${rule[@]}" 2>/dev/null || iptables -I "${rule[@]}"
@@ -109,13 +110,13 @@ fi
 
 echo "== Settings"
 if [[ ! -f $ENV_FILE ]]; then
-  install -m 600 -o root -g root "$APP_DIR/deploy/oracle/api.env.example" "$ENV_FILE"
+  install -m 600 -o root -g root "$APP_DIR/deploy/vm/api.env.example" "$ENV_FILE"
 fi
 
 echo "== systemd unit"
 # Only the first time: after that deploy.sh installs the unit of the build it deploys.
 if [[ ! -f /etc/systemd/system/weather-api.service ]]; then
-  install -m 644 "$APP_DIR/deploy/oracle/weather-api.service" /etc/systemd/system/weather-api.service
+  install -m 644 "$APP_DIR/deploy/vm/weather-api.service" /etc/systemd/system/weather-api.service
 fi
 systemctl daemon-reload
 systemctl enable weather-api >/dev/null
@@ -124,6 +125,6 @@ cat <<EOF
 
 Done. Next:
   1. sudo nano $ENV_FILE        (PROXY_SECRET and the rest; see the comments there)
-  2. sudo bash $APP_DIR/deploy/oracle/deploy.sh
+  2. sudo bash $APP_DIR/deploy/vm/deploy.sh
   3. curl https://$API_HOST/api/health
 EOF

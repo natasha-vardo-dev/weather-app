@@ -1,7 +1,7 @@
 import { rewrite } from '@vercel/functions/middleware';
 
 /**
- * Vercel Routing Middleware: sends /api/* to the API server (API_ORIGIN, the VM of ADR 0019) with
+ * Vercel Routing Middleware: sends /api/* to the API server (API_ORIGIN, the VM of ADR 0020) with
  * two headers the server trusts only together:
  * - X-Proxy-Secret (PROXY_SECRET, the same on both): the API refuses requests without it,
  *   so nobody can call the API host directly with a forged X-Forwarded-For;

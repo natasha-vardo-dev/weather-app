@@ -73,7 +73,7 @@ the user, or new data kept, means editing the page. As built:
 - the server sees places and searches (and passes them to Open-Meteo and Nominatim as itself, so those never see the
   user), the IP address for rate limiting (memory, a minute; not in logs), and browser error reports (message, stack,
   page kind, user agent), the last two in the logs, which journald on the VM keeps 14 days (`MaxRetentionSec`, set by
-  `deploy/oracle/setup.sh`; the policy states it);
+  `deploy/vm/setup.sh`; the policy states it);
 - the IP goes to ipwho.is only when the locate button was pressed and the browser could not find a position; the
   position found is cached a day in memory under a keyed hash of the address (`ipFingerprint`, a random key per
   process), not the address, which a plain hash would not protect (all IPv4 addresses can be hashed);
@@ -244,7 +244,7 @@ in the code.
 
 ## API versions
 
-The contract between the server and its clients is versioned in the path: `/api/v1/...` (`API_PREFIX` in `@weather/shared`). Operations endpoints (`/api/health`, `/api/internal/*`) are not part of it and have no version. Why: clients are not updated together with the server. The client (Vercel) and the server (the Oracle VM) deploy separately, an open tab runs its old code until reloaded, the browser's HTTP cache and the service worker keep answers for up to a day, and a mobile app would run old code for months. This already broke once: after the shape of the reverse-geocoding answer changed, a day-old cached answer without coordinates crashed the page, and moving the endpoint to a new URL was what fixed it.
+The contract between the server and its clients is versioned in the path: `/api/v1/...` (`API_PREFIX` in `@weather/shared`). Operations endpoints (`/api/health`, `/api/internal/*`) are not part of it and have no version. Why: clients are not updated together with the server. The client (Vercel) and the server (a VM on AWS) deploy separately, an open tab runs its old code until reloaded, the browser's HTTP cache and the service worker keep answers for up to a day, and a mobile app would run old code for months. This already broke once: after the shape of the reverse-geocoding answer changed, a day-old cached answer without coordinates crashed the page, and moving the endpoint to a new URL was what fixed it.
 
 - **Version in the path, not a header:** the path is the key of every cache (browser, service worker, CDN), so a new version never sees answers of the old shape. A version in `Accept` would need `Vary` and makes caching worse.
 - **Rules within a version:** compatible changes only, an optional field, a new endpoint, a new error code (clients show an unknown one as a general error). A field removed, renamed or retyped, a required one added, a parameter changed: a new version.

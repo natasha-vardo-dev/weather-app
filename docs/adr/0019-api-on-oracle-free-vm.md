@@ -1,6 +1,6 @@
 # 0019. The API on an Oracle Cloud free VM with its own address, not Render
 
-- Status: Accepted (supersedes the Render part of [0005](0005-hosting-same-origin-proxy.md); not yet verified on the VM)
+- Status: Superseded by [0020](0020-api-on-aws-ec2.md) (the host; the VM set-up stays, scripts now in `deploy/vm`)
 - Date: 2026-11-01
 
 ## Context
@@ -26,7 +26,7 @@ quality still answered (they are separate services with their own counters), but
 - `deploy/oracle/setup.sh` prepares a fresh VM once (swap, firewall, Node, Caddy, a service user, the unit);
   `deploy/oracle/deploy.sh` builds a commit in a directory of its own and switches to it, so a failed build leaves the
   running server alone, and an earlier build can be deployed again at once (a rollback). Steps:
-  [docs/deploy-oracle.md](../deploy-oracle.md).
+  docs/deploy-oracle.md (since replaced by [docs/deploy-aws.md](../deploy-aws.md)).
 
 ## Consequences
 
