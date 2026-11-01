@@ -27,3 +27,4 @@ decision changes: a new record supersedes it, and the old one's status says so.
 | [0016](0016-fewer-languages.md)             | Eight interface languages instead of nineteen                |
 | [0017](0017-privacy-policy-and-own-font.md) | A privacy policy in English, and the font served by the site |
 | [0018](0018-durable-operational-state.md)   | Operational state in Firestore, caches still in memory       |
+| [0019](0019-api-on-oracle-free-vm.md)       | The API on an Oracle Cloud free VM with its own address      |

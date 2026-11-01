@@ -30,7 +30,7 @@ export function ipFingerprint(ip: string, key: Buffer): string {
  * city with its id, like the crosshair's answer.
  *
  * The client's IP comes from Express (`req.ip`, which respects `trust proxy`). Behind
- * Vercel and Render it is in X-Forwarded-For, so TRUST_PROXY must be set there. A private
+ * Vercel and Caddy it is in X-Forwarded-For, so TRUST_PROXY must be set there. A private
  * address means the request did not come from the internet: in development that is the
  * developer's own machine, so the service's own public address is looked up instead
  * (allowSelfLookup, opt-in with IP_SELF_LOOKUP=1). On a server that would locate the data

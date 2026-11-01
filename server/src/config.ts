@@ -11,6 +11,8 @@ export const MIN_SECRET_LENGTH = 32;
 export interface Config {
   production: boolean;
   port: number;
+  /** Address to listen on; all interfaces when unset. */
+  host?: string;
   forecastTtlSeconds: number;
   corsOrigins: string[];
   nominatimUserAgent: string;
@@ -27,8 +29,9 @@ export interface Config {
 type Env = Record<string, string | undefined>;
 
 /**
- * Production is NODE_ENV=production, or Render (which sets RENDER=true): the host is enough,
- * so a deploy where nobody set NODE_ENV is still checked.
+ * Production is NODE_ENV=production (set by the systemd unit in deploy/oracle), or Render
+ * (which sets RENDER=true): the host is enough, so a deploy where nobody set NODE_ENV is
+ * still checked.
  */
 export function isProduction(env: Env): boolean {
   return env.NODE_ENV?.trim() === 'production' || env.RENDER?.trim() === 'true';
@@ -83,12 +86,14 @@ export function loadConfig(env: Env): Config {
   const config: Config = {
     production,
     port: positiveNumber(env, 'PORT', 3001),
+    // On the VM only Caddy, on the same machine, should reach the server (deploy/oracle).
+    host: value(env, 'LISTEN_HOST'),
     forecastTtlSeconds: positiveNumber(env, 'FORECAST_CACHE_TTL', 900),
     corsOrigins,
     // Nominatim's policy asks for an identifying User-Agent with a way to reach the app's author.
     nominatimUserAgent:
       value(env, 'NOMINATIM_USER_AGENT') ?? 'weather-app/1.0 (+https://github.com/natasha-vardo-dev/weather-app)',
-    // Proxies in front of the server that may set X-Forwarded-For (Vercel and Render: 2).
+    // Proxies in front of the server that may set X-Forwarded-For (Caddy on the VM: 1).
     // Only these are trusted; otherwise anyone could fake their address in the header.
     trustProxy: value(env, 'TRUST_PROXY') ? positiveNumber(env, 'TRUST_PROXY', 1) : false,
     proxySecret: value(env, 'PROXY_SECRET'),
@@ -96,7 +101,8 @@ export function loadConfig(env: Env): Config {
     firebaseAccount: serviceAccount(value(env, 'FIREBASE_SERVICE_ACCOUNT')),
     notifySecret: value(env, 'ALERTS_NOTIFY_SECRET'),
     metricsSecret: value(env, 'METRICS_SECRET'),
-    version: value(env, 'RENDER_GIT_COMMIT')?.slice(0, 7),
+    // Written by deploy/oracle/deploy.sh; Render sets its own.
+    version: (value(env, 'GIT_COMMIT') ?? value(env, 'RENDER_GIT_COMMIT'))?.slice(0, 7),
   };
 
   const problems: string[] = [];
@@ -111,8 +117,7 @@ export function loadConfig(env: Env): Config {
     // Without the secret anyone can call the API host directly with a forged address and get a
     // fresh per-IP allowance with every request (app.ts, proxySecret).
     secret('PROXY_SECRET', config.proxySecret, true);
-    if (config.trustProxy === false)
-      problems.push('TRUST_PROXY is required in production (2 behind Vercel and Render)');
+    if (config.trustProxy === false) problems.push('TRUST_PROXY is required in production (1 behind Caddy on the VM)');
     // Local development only: on a server it would offer the data centre's city to everyone.
     if (config.ipSelfLookup) problems.push('IP_SELF_LOOKUP=1 is for local development only');
     // Push on but no scheduler secret: devices could subscribe, and nothing would ever be sent.

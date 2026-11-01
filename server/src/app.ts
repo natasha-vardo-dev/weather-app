@@ -86,11 +86,11 @@ export interface AppOptions {
    * came through the proxy. Otherwise anyone could call the API host directly with a forged
    * X-Forwarded-For, which the trusted proxies pass on, and get a new "IP" (and a fresh
    * per-IP allowance) with every request. Without it (local development, tests) every
-   * request is served. Health and /internal/* stay open: Render and the scheduler call them
+   * request is served. Health and /internal/* stay open: monitors and the scheduler call them
    * directly, and /internal/* has its own secret.
    */
   proxySecret?: string;
-  /** Shown by /api/health, to tell which build is running (Render sets RENDER_GIT_COMMIT). */
+  /** Shown by /api/health, to tell which build is running (GIT_COMMIT, from deploy/oracle/deploy.sh). */
   version?: string;
   /**
    * True once the server is shutting down (shutdown.ts): health answers 503, so the host stops
@@ -139,13 +139,13 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
   }
   app.use(cors({ origin: corsOrigins.length ? corsOrigins : false }));
 
-  // Render's health check (every few seconds): is the process up and answering. Deliberately
-  // does not call the weather provider: its outage is not ours, and failing here would make
-  // Render restart or stop routing to an instance that still serves cached forecasts.
+  // The health check (uptime monitor, deploy.sh): is the process up and answering. Deliberately
+  // does not call the weather provider: its outage is not ours, and failing here would page
+  // someone, or fail a deploy, for an instance that still serves cached forecasts.
   // Before the rate limits, so checks never use up anyone's allowance.
   // With a proxy secret, health also says whether this request carried it (`proxied`): health
   // itself is open, so an uptime monitor calling it through the site would stay green with the
-  // secrets different on Vercel and Render, while every other API call got 404 (found by
+  // secrets different on Vercel and the API host, while every other API call got 404 (found by
   // roborev). The monitor checks for `"proxied":true` (docs/operations.md). Says nothing of the secret.
   app.get('/api/health', (req, res) => {
     res.set('Cache-Control', 'no-store');
@@ -161,7 +161,7 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
   // more, so the monitor's alert reaches someone; the same moment only logs a warning otherwise.
   // Public and without a secret, like health (free monitors cannot send headers): it tells how
   // busy the providers are, nothing about users. Not the health check: nearing a limit is no
-  // reason for Render to restart an instance that serves cached forecasts.
+  // reason to restart an instance that serves cached forecasts.
   if (metrics) {
     app.get('/api/health/quota', (_req, res) => {
       res.set('Cache-Control', 'no-store');

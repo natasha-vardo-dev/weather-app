@@ -2,7 +2,7 @@ import { usePageMeta } from '../hooks/usePageMeta';
 
 /** Where to reach the person responsible (GDPR art. 13): the project's public issue tracker. */
 const CONTACT_URL = 'https://github.com/natasha-vardo-dev/weather-app/issues';
-const UPDATED = '31 October 2026';
+const UPDATED = '1 November 2026';
 
 /**
  * The privacy policy, in English only (a legal text in 8 draft translations would be worse
@@ -71,7 +71,9 @@ export function PrivacyPage() {
       </ul>
       <p>
         Our logs record each request&apos;s method, path (without the place or search words), status and duration, and
-        are kept by our host for its usual short period. We keep no database of users.
+        are kept for 14 days. Error reports from your browser (the error message and where in our code it happened, the
+        kind of page, the app&apos;s version and your browser&apos;s user agent) are kept the same way. We keep no
+        database of users.
       </p>
 
       <h2>Your location</h2>
@@ -95,14 +97,17 @@ export function PrivacyPage() {
 
       <h2>Who else processes data</h2>
       <ul>
-        <li>Vercel (hosting of the site) and Render (hosting of our server): requests, including IP addresses.</li>
+        <li>
+          Vercel (hosting of the site) and Oracle Cloud (hosting of our server, in the EU): requests, including IP
+          addresses.
+        </li>
         <li>Open-Meteo: places and searches, from our server.</li>
         <li>OpenStreetMap Foundation (Nominatim): rounded positions, from our server.</li>
         <li>ipwho.is: your IP address, only in the case described above.</li>
         <li>Google (Firebase Cloud Messaging) and your browser&apos;s push service: only with notifications on.</li>
       </ul>
       <p>
-        Vercel, Render and Google may process data in the United States, under the EU–US Data Privacy Framework or the
+        Vercel, Oracle and Google may process data in the United States, under the EU–US Data Privacy Framework or the
         European Commission&apos;s standard contractual clauses.
       </p>
 

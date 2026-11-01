@@ -4,7 +4,7 @@ import { pino, type Logger } from 'pino';
 export type { Logger };
 
 /**
- * JSON lines on stdout: Render (and any log service) keeps and searches them by field.
+ * JSON lines on stdout: journald on the VM (and any log service) keeps and searches them by field.
  * `npm run dev` pipes them through pino-pretty. LOG_LEVEL: debug shows each provider call.
  */
 export function createLogger(level = process.env.LOG_LEVEL?.trim() || 'info'): Logger {

@@ -18,7 +18,7 @@ Nothing in the code depends on the service; the account is set up by hand.
 
 All go through the site. The notify monitor exists only with push configured (Firebase); without it the path is 404,
 so leave the monitor out. `/api/health` and `/api/health/quota` need no secret and are not rate limited, so a
-plain status check of health would stay green even with `PROXY_SECRET` different on Vercel and Render, while every other
+plain status check of health would stay green even with `PROXY_SECRET` different on Vercel and the VM, while every other
 API call got 404. Health therefore says whether the request carried the right secret (`"proxied":true`), and the API
 monitor is a keyword check for exactly that text, alerting when it is missing: one check covers the middleware,
 `API_ORIGIN`, the API being up and the secret matching.
@@ -30,8 +30,8 @@ Set up:
    keyword `"proxied":true`, alert when the keyword is _not_ present.
 3. For the site monitor, a keyword check for `Weather forecast` (the page title) also catches an empty page.
 
-The monitors' requests keep the free Render instance awake, as the notification scheduler does. Both together still
-fit in Render's free hours for one service.
+The API runs on an Oracle Cloud VM ([docs/deploy-oracle.md](deploy-oracle.md), [ADR 0019](adr/0019-api-on-oracle-free-vm.md)): it
+does not sleep, so nothing needs to keep it awake.
 
 ## What an alert means
 
@@ -39,9 +39,10 @@ fit in Render's free hours for one service.
 - **API alert:** open `https://<site>/api/health` and read the answer:
   - `500` with `API_ORIGIN is not set.`: the variable is missing on Vercel;
   - a 404 or another host's error page: `API_ORIGIN` points to the wrong place;
-  - `"proxied":false`: `PROXY_SECRET` differs between Vercel and Render (every other API call gets 404);
-  - no answer, `5xx` or `"status":"draining"` for long: Render's logs and events (a crash, a failed deploy, the
-    instance not starting).
+  - `"proxied":false`: `PROXY_SECRET` differs between Vercel and the VM (every other API call gets 404);
+  - no answer, `5xx` or `"status":"draining"` for long: on the VM, `systemctl status weather-api` and
+    `journalctl -u weather-api -n 100` (a crash, a failed deploy, the server not starting), `journalctl -u caddy` (the
+    certificate), and Oracle's console (the instance stopped or reclaimed).
 - **Quota:** the body names the provider, window (`perMinute`, `perHour`, `perDay`) and share used. At 90% the server
   itself refuses new calls to that provider (cached answers still go out, the rest gets `503 SERVICE_BUSY`), so the
   alert is the time to look: `GET /api/internal/metrics` with `Authorization: Bearer <METRICS_SECRET>` shows cache hit
@@ -55,7 +56,7 @@ The start's log line `operational state store` says which (`"store":"firestore"`
 
 - **Notify:** open `https://<site>/api/health/notify`:
   - `lastRunAt` old or missing: the scheduler stopped calling (cron-job.org's job history), or every call failed: its
-    answer and Render's log line `notifier run failed` say why;
+    answer and the log line `notifier run failed` (`journalctl -u weather-api`) say why;
   - `feedsFailed` lists the same countries for long: MeteoAlarm's feed for them is down or changed (open
     `https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-<country>`); warnings there are not pushed meanwhile;
   - `lastRejectedAt` within the last 30 minutes: FCM refused messages for good (log line `FCM refused messages for good` names the warning);
@@ -63,8 +64,10 @@ The start's log line `operational state store` says which (`"store":"firestore"`
   - `PERMISSION_DENIED` or `NOT_FOUND` from Firestore in the log: the database is not created or the service account
     lacks **Cloud Datastore User** (README, "Deployment"). Runs fail until fixed, rather than forgetting what was sent.
 
-A server refusing to start with `Invalid configuration:` lists every setting to fix (`server/src/config.ts`); Render
-keeps the previous deploy running meanwhile.
+A server refusing to start with `Invalid configuration:` lists every setting to fix (`server/src/config.ts`) in
+`journalctl -u weather-api`. `deploy.sh` switches back to the previous build by itself when the new one does not
+answer within 30 s, and fails, so the new commit's problem is still to fix. A problem in `/etc/weather-api.env` (shared
+by all builds) stops the previous build too; the log says which setting.
 
 ## Notification scheduler
 
@@ -77,23 +80,24 @@ answers 200 (the rest was sent); the notify monitor catches those when they last
 
 Warnings are the only thing an open page asks for by itself: once every 4 minutes per place shown, while the tab is
 visible (`client/src/hooks/useAlerts.ts`). A start page with ten favourites left open in view is about 3,600 requests a
-day through Vercel to Render, each answered from the server's feed cache (no MeteoAlarm call of its own). Forecasts and
+day through Vercel to the API, each answered from the server's feed cache (no MeteoAlarm call of its own). Forecasts and
 air quality are not refreshed on an open page (the outdated-forecast notice covers that).
 
 ## Secrets
 
-| Secret                     | Where             | Rotate                                                                      |
-| -------------------------- | ----------------- | --------------------------------------------------------------------------- |
-| `PROXY_SECRET`             | Vercel and Render | set the new value on Render and Vercel together, redeploy both              |
-| `ALERTS_NOTIFY_SECRET`     | Render, cron-job  | new value on Render, then in the cron-job.org job's header                  |
-| `METRICS_SECRET`           | Render            | new value on Render                                                         |
-| `FIREBASE_SERVICE_ACCOUNT` | Render            | new key in Google Cloud IAM, set it on Render, redeploy, delete the old key |
+| Secret                     | Where         | Rotate                                                                     |
+| -------------------------- | ------------- | -------------------------------------------------------------------------- |
+| `PROXY_SECRET`             | Vercel and VM | set the new value on the VM and Vercel together, restart and redeploy      |
+| `ALERTS_NOTIFY_SECRET`     | VM, cron-job  | new value on the VM, then in the cron-job.org job's header                 |
+| `METRICS_SECRET`           | VM            | new value on the VM                                                        |
+| `FIREBASE_SERVICE_ACCOUNT` | VM            | new key in Google Cloud IAM, set it on the VM, restart, delete the old key |
 
 All are at least 32 random characters (`openssl rand -base64 32`); the server refuses shorter ones in production.
 Rotate after anyone who knew one leaves, after a leak, and once a year. A leaked Firebase key is revoked by deleting it
 in Google Cloud Console → IAM → Service accounts → Keys; the service account needs only **Firebase Cloud Messaging API
-Admin** and **Cloud Datastore User**, nothing project-wide. Logs never print a secret; Render keeps them for its plan's
-retention (7 days on the free plan) and only the project's members can read them.
+Admin** and **Cloud Datastore User**, nothing project-wide. On the VM they are in `/etc/weather-api.env` (root only); after editing it,
+`sudo systemctl restart weather-api`. Logs never print a secret; journald on the VM keeps them 14 days (setup.sh; the privacy
+policy states it), and only users with SSH access to the VM can read them.
 
 ## Dependency audit
 

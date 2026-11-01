@@ -5,7 +5,7 @@ const SECRET = 'a'.repeat(32);
 const ACCOUNT = JSON.stringify({ project_id: 'demo', client_email: 'x@demo.iam', private_key: 'k' });
 
 /** A production setup that passes: what README's "Deployment" asks for. */
-const PRODUCTION = { RENDER: 'true', PROXY_SECRET: SECRET, TRUST_PROXY: '2' };
+const PRODUCTION = { NODE_ENV: 'production', PROXY_SECRET: SECRET, TRUST_PROXY: '1' };
 
 describe('loadConfig', () => {
   it('keeps every setting optional locally', () => {
@@ -15,6 +15,11 @@ describe('loadConfig', () => {
     expect(config.trustProxy).toBe(false);
     expect(config.ipSelfLookup).toBe(true);
     expect(config.corsOrigins).toEqual(['http://localhost:5173']);
+    expect(config.host).toBeUndefined();
+  });
+
+  it('listens on the given address only', () => {
+    expect(loadConfig({ LISTEN_HOST: '127.0.0.1' }).host).toBe('127.0.0.1');
   });
 
   it('treats Render or NODE_ENV=production as production', () => {
@@ -26,8 +31,14 @@ describe('loadConfig', () => {
   it('accepts a complete production setup, with no CORS origins by default', () => {
     const config = loadConfig(PRODUCTION);
     expect(config.production).toBe(true);
-    expect(config.trustProxy).toBe(2);
+    expect(config.trustProxy).toBe(1);
     expect(config.corsOrigins).toEqual([]);
+  });
+
+  it('reports the deployed commit from the deploy script, else from Render', () => {
+    expect(loadConfig({ GIT_COMMIT: 'abcdef1234567890' }).version).toBe('abcdef1');
+    expect(loadConfig({ RENDER_GIT_COMMIT: '1234567890abcdef' }).version).toBe('1234567');
+    expect(loadConfig({}).version).toBeUndefined();
   });
 
   it.each([
