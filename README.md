@@ -80,6 +80,17 @@ Free: Firebase Cloud Messaging keeps the subscriptions (topics), an external sch
 
 Notifications need the production build (the service worker is off in `npm run dev`): `npm run build && npm run preview -w client`. On iPhone they work only from the app added to the Home Screen (iOS 16.4+).
 
+To check delivery without waiting for a real warning, send a test one ("Test warning", gone in an hour) with the server's `FIREBASE_SERVICE_ACCOUNT` from `server/.env`, which must be of the same Firebase project as the site:
+
+```bash
+npm run push:test -w server -- --token <token>          # one device; its token, in the page's console after turning the bell on:
+                                                        # JSON.parse(localStorage.getItem('alert-notifications:v1')).token
+npm run push:test -w server -- 52.23 21.01 --dry-run    # the place's areas and topics, nothing sent
+npm run push:test -w server -- 52.23 21.01 --everyone   # every device subscribed to that place, real users included
+```
+
+The token mode checks FCM and the service worker; the topic mode also checks the subscription itself (the only way on an iPhone, which has no console), but reaches everyone subscribed there.
+
 ### Dependencies
 
 Dependabot (`.github/dependabot.yml`) opens weekly pull requests into `dev`: minor and patch updates grouped (production and development apart), each major version alone, Firebase alone (its tests use a fake, so check push notifications live before merging), GitHub Actions monthly. CI also runs every Monday with no change at all, so a newly published vulnerability (the production audit fails on high ones) or a test that depends on the date shows up anyway. In the repository's settings (Code security), turn on Dependabot alerts and security updates: those pull requests come as soon as an advisory is out. Not automated: the Node version in `.nvmrc` (once a year, at a new LTS) and the `@grpc/grpc-js` override in `package.json` (drop it once `firebase` updates grpc itself).
