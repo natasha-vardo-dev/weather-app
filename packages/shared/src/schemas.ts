@@ -131,3 +131,5 @@ export type LocationByIdQuery = z.infer<typeof locationByIdSchema>;
 
 /** Re-exported so the server checks errors against the same zod instance the schemas use. */
 export { ZodError } from 'zod';
+/** For the server's checks of provider answers against these schemas; a type, so nothing joins a bundle. */
+export type { ZodType } from 'zod';

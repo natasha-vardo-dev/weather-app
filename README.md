@@ -54,7 +54,7 @@ docs/              Architecture notes
 
 ## Getting started
 
-Requires Node.js 24 (24.15 or later; `.nvmrc` pins the major version, so `nvm use` picks it). CI and Render read the same `.nvmrc`, so all three run one version.
+Requires Node.js 24 (24.22.2 or later, below 25: `engines` in `package.json`, and npm warns otherwise; `.nvmrc` pins the major version, so `nvm use` picks it). CI and Render read the same `.nvmrc` and install the latest 24.x, so security releases arrive with the next deploy; the server logs its `process.version` at start (`API listening`) to check what runs.
 
 ```bash
 npm install
@@ -69,12 +69,13 @@ The API restarts when its code changes (`tsx watch`), and for that moment the fr
 
 ### Push notifications (optional)
 
-Free, no database: Firebase Cloud Messaging keeps the subscriptions (topics), an external scheduler runs the check.
+Free: Firebase Cloud Messaging keeps the subscriptions (topics), an external scheduler runs the check, and Firestore in the same project keeps what was sent ([ADR 0018](docs/adr/0018-durable-operational-state.md)).
 
 1. Create a project in the [Firebase Console](https://console.firebase.google.com) (free Spark plan) and add a web app.
 2. Client (`client/.env`, see `client/.env.example`): the web app's config and the Web Push key (Project settings → Cloud Messaging → Web Push certificates). Public values.
 3. Server (`server/.env`): `FIREBASE_SERVICE_ACCOUNT` (Project settings → Service accounts → Generate new private key; the JSON as one line or base64) and `ALERTS_NOTIFY_SECRET` (a long random string). Secrets: never commit them.
-   Then give that service account (`firebase-adminsdk-…@<project>.iam.gserviceaccount.com`) the role **Firebase Cloud Messaging API Admin** in the Google Cloud Console (IAM → edit the account → Add another role). `firebase-admin` 14 manages topic subscriptions through the FCM v1 API, which needs it; without it, turning notifications on or off fails with a 502.
+   Then give that service account (`firebase-adminsdk-…@<project>.iam.gserviceaccount.com`) the roles **Firebase Cloud Messaging API Admin** and **Cloud Datastore User** in the Google Cloud Console (IAM → edit the account → Add another role). `firebase-admin` 14 manages topic subscriptions through the FCM v1 API, which needs the first; without it, turning notifications on or off fails with a 502. The second lets the server keep its state in Firestore.
+   Create the Firestore database: Firebase Console → Build → Firestore Database → Create database, production mode, a European location (no client reads it; the default rules that deny everything are right, the server's service account is not bound by them). Without it every notifier run fails (visible in the scheduler and on `/api/health/notify`) instead of forgetting what was sent.
 4. After deploying: a job on [cron-job.org](https://cron-job.org) every 5 minutes, `POST https://<api>/api/internal/alerts/notify` with the header `Authorization: Bearer <ALERTS_NOTIFY_SECRET>`. It also keeps a free Render instance awake.
 
 Notifications need the production build (the service worker is off in `npm run dev`): `npm run build && npm run preview -w client`. On iPhone they work only from the app added to the Home Screen (iOS 16.4+).
@@ -112,18 +113,20 @@ The contract is versioned in the path (`/api/v1`); health and internal endpoints
 | POST   | `/api/v1/push/topics`                                | Subscribe or unsubscribe a device's push token to warnings for a place (only with Firebase configured)                         |
 | POST   | `/api/internal/alerts/notify`                        | Push new warnings; called every 5 minutes by an external scheduler, needs `Authorization: Bearer <ALERTS_NOTIFY_SECRET>`       |
 | GET    | `/api/health`                                        | Health check for Render: the process answers (does not call the weather provider)                                              |
+| GET    | `/api/health/quota`                                  | 503 while a provider limit is used to 80% or more (for an uptime monitor)                                                      |
+| GET    | `/api/health/notify`                                 | 503 when no notifier run has fully succeeded for 30 minutes (only with Firebase configured; for an uptime monitor)             |
 | GET    | `/api/internal/metrics`                              | Cache hit rates, provider calls against their limits, rate-limited requests; needs `Authorization: Bearer <METRICS_SECRET>`    |
 
 Errors use one format: `{ "error": { "code": "INVALID_REQUEST", "message": "..." } }`.
 
-Requests are limited per IP address (a minute's window): 300 for the API as a whole, 30 batches for `/api/v1/forecasts` (up to 10 places each), 60 for city search, 10 for `/api/v1/places/*`. Over the limit: `429` with code `RATE_LIMITED` and the standard `RateLimit` and `Retry-After` headers.
+Requests are limited per IP address (a minute's window): 300 for the API as a whole, 30 batches for `/api/v1/forecasts` (up to 10 places each), 60 for city search, 10 for `/api/v1/places/*`, 60 for `/api/v1/push/*` (plus 120 changes an hour per push token). Over the limit: `429` with code `RATE_LIMITED` and the standard `RateLimit` and `Retry-After` headers.
 
 ## Deployment
 
 - Frontend: Vercel, root directory `client`. `client/middleware.ts` (Vercel Routing Middleware) forwards `/api/*` to the backend; `client/vercel.json` serves `index.html` for all other paths, so client-side routes survive a refresh. Environment variables on Vercel: `API_ORIGIN` (the backend's URL, e.g. `https://weather-api.onrender.com`), `PROXY_SECRET` (a long random string, the same as on Render), and the `VITE_FIREBASE_*` values for push notifications.
-- Backend: Render, root directory `server`, health check path `/api/health`. Do not set `IP_SELF_LOOKUP` there (it is for local development). Set `PROXY_SECRET` (the same value as on Vercel): the API then answers only requests that came through the frontend's proxy and takes the user's IP from it (`X-Client-IP`), so rate limits and the approximate location cannot be fooled by a forged `X-Forwarded-For` sent straight to Render. After deploying, check: turning notifications on and off works (the Content-Security-Policy allows the Firebase hosts push uses; tests cannot exercise push); the site works; a request straight to `https://<api>.onrender.com/api/v1/forecast?lat=52.23&lon=21.01` gets 404; "Looks like you're in …" (the approximate location) names your own city, so the user's address reaches the API; and a page opened while Render is asleep waits for it instead of failing. Set `TRUST_PROXY=2` as well (used only when a request carries no `X-Client-IP`). Optional: `METRICS_SECRET` (enables `/api/internal/metrics`), `LOG_LEVEL` (`info` by default; `debug` logs every provider call).
+- Backend: Render, root directory `server`, health check path `/api/health`. On Render (`RENDER=true`) or with `NODE_ENV=production` the server checks its settings at start and refuses to start, listing every problem, without `PROXY_SECRET` (32+ characters) or `TRUST_PROXY`, with `IP_SELF_LOOKUP`, with Firebase but no `ALERTS_NOTIFY_SECRET`, or with a short secret ([architecture notes](docs/architecture.md#reliability-and-security)). Do not set `IP_SELF_LOOKUP` there (it is for local development), nor `CORS_ORIGIN` (the site calls the API through its own origin). Set `PROXY_SECRET` (the same value as on Vercel): the API then answers only requests that came through the frontend's proxy and takes the user's IP from it (`X-Client-IP`), so rate limits and the approximate location cannot be fooled by a forged `X-Forwarded-For` sent straight to Render. After deploying, check: turning notifications on and off works (the Content-Security-Policy allows the Firebase hosts push uses; tests cannot exercise push); the site works; a request straight to `https://<api>.onrender.com/api/v1/forecast?lat=52.23&lon=21.01` gets 404; "Looks like you're in …" (the approximate location) names your own city, so the user's address reaches the API; and a page opened while Render is asleep waits for it instead of failing. Set `TRUST_PROXY=2` as well (used only when a request carries no `X-Client-IP`). Optional: `METRICS_SECRET` (enables `/api/internal/metrics`), `LOG_LEVEL` (`info` by default; `debug` logs every provider call).
 - Logs are JSON lines on stdout (pino), which Render keeps and searches by field; every 15 minutes a `metrics` line records cache hit rates and provider usage, and a warning is logged when a provider's usage passes 80% of a limit.
-- Monitoring: an uptime monitor (UptimeRobot or Better Stack, free) on the site, `/api/health` and `/api/health/quota` (503 at 80% of a provider limit), with email alerts. Set-up and what each alert means: [docs/operations.md](docs/operations.md).
+- Monitoring: an uptime monitor (UptimeRobot or Better Stack, free) on the site, `/api/health`, `/api/health/quota` (503 at 80% of a provider limit) and, with push, `/api/health/notify`, with email alerts. Set-up and what each alert means: [docs/operations.md](docs/operations.md).
 
 Serving the API from the frontend's domain avoids CORS and keeps future auth cookies first-party.
 
@@ -134,7 +137,9 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 - [Only temperature has a unit switch (°C/°F); wind stays in km/h]
 - [UI translations for 8 languages are machine-quality drafts: they need a review by native speakers before a real release]
 - [Weather warnings cover Europe only (MeteoAlarm's ~38 countries). No banner means no warning was found, not a promise of calm weather; elsewhere there are none yet (the US National Weather Service would be the next source)]
-- [Push notifications: a warning issued while the server was down (deploy, restart) is not pushed; it still shows on the page]
+- [Push notifications: a warning issued while the server was down (deploy, restart) is pushed on the first run after it, thanks to the state in Firestore; without Firestore (local development) it is not, but it still shows on the page]
+- [Availability is best effort: the API runs on Render's free plan, which Render itself does not recommend for production (it sleeps and restarts). That is the price of staying free (ADR 0004, ADR 0005); what must not be lost on a restart (notifications sent, provider usage) is kept in Firestore, and an always-on paid instance is the step if an availability target ever requires it]
+- [One server instance: per-IP rate limits are counted in its memory, so during a deploy's short overlap each instance counts on its own]
 
 ## Trade-offs and decisions
 

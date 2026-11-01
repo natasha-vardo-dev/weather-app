@@ -322,6 +322,119 @@ describe('OpenMeteoProvider', () => {
   });
 });
 
+/** A small, valid forecast answer from Open-Meteo, to break one part at a time. */
+function validForecast() {
+  return {
+    latitude: 52.25,
+    longitude: 21,
+    timezone: 'Europe/Warsaw',
+    current_units: { temperature_2m: '°C' },
+    hourly_units: { wind_speed_10m: 'km/h' },
+    current: { time: '2026-10-15T12:00', temperature_2m: 12, apparent_temperature: 10, weather_code: 61 },
+    hourly: {
+      time: ['2026-10-15T12:00', '2026-10-15T13:00'],
+      temperature_2m: [12, 13],
+      relative_humidity_2m: [80, 75],
+      wind_speed_10m: [14, 16.2],
+      weather_code: [61, 3],
+      precipitation_probability: [80, null],
+      is_day: [1, 1],
+    },
+    daily: {
+      time: ['2026-10-15'],
+      weather_code: [61],
+      temperature_2m_max: [14],
+      temperature_2m_min: [7],
+      precipitation_probability_max: [80],
+    },
+  };
+}
+
+describe('OpenMeteoProvider answers are checked before use', () => {
+  const forecastFrom = (body: unknown, init?: ResponseInit) =>
+    new OpenMeteoProvider(
+      (async () => new Response(JSON.stringify(body), init)) as unknown as typeof fetch,
+    ).getForecast(52.23, 21.01, 1);
+
+  it('passes a valid answer', async () => {
+    await expect(forecastFrom(validForecast())).resolves.toMatchObject({ timezone: 'Europe/Warsaw' });
+  });
+
+  it.each([
+    ['a shorter hourly array', (b: ReturnType<typeof validForecast>) => (b.hourly.temperature_2m = [12])],
+    [
+      'a string in an hourly array',
+      (b: ReturnType<typeof validForecast>) => ((b.hourly.wind_speed_10m as unknown[]) = ['x', 1]),
+    ],
+    ['no hourly data at all', (b: ReturnType<typeof validForecast>) => delete (b as Partial<typeof b>).hourly],
+    ['empty hourly data', (b: ReturnType<typeof validForecast>) => (b.hourly.time = [])],
+    ['a longer daily array', (b: ReturnType<typeof validForecast>) => (b.daily.weather_code = [61, 3])],
+    ['a missing daily maximum', (b: ReturnType<typeof validForecast>) => (b.daily.temperature_2m_max = [])],
+    ['no current weather', (b: ReturnType<typeof validForecast>) => delete (b as Partial<typeof b>).current],
+  ])('turns %s into a ProviderError (so a stale copy is served)', async (_name, breakIt) => {
+    const body = validForecast();
+    breakIt(body);
+    await expect(forecastFrom(body)).rejects.toBeInstanceOf(ProviderError);
+  });
+
+  it('refuses broken JSON as a provider error', async () => {
+    const provider = new OpenMeteoProvider((async () => new Response('{"latitude": 5')) as unknown as typeof fetch);
+    await expect(provider.getForecast(52.23, 21.01, 1)).rejects.toMatchObject({
+      detail: expect.stringMatching(/invalid JSON/),
+    });
+  });
+
+  it('stops reading an answer over the size limit', async () => {
+    const huge = new ReadableStream({
+      pull(controller) {
+        controller.enqueue(new Uint8Array(1024 * 1024).fill(32));
+      },
+    });
+    const provider = new OpenMeteoProvider((async () => new Response(huge)) as unknown as typeof fetch);
+    await expect(provider.getForecast(52.23, 21.01, 1)).rejects.toMatchObject({
+      detail: expect.stringMatching(/response over/),
+    });
+  });
+
+  it('refuses a declared length over the limit without reading it', async () => {
+    const provider = new OpenMeteoProvider(
+      (async () =>
+        new Response('{}', { headers: { 'Content-Length': String(50 * 1024 * 1024) } })) as unknown as typeof fetch,
+    );
+    await expect(provider.getForecast(52.23, 21.01, 1)).rejects.toMatchObject({
+      detail: expect.stringMatching(/response over/),
+    });
+  });
+
+  it('reads at most 64 KB of a failed answer for the log', async () => {
+    let pulled = 0;
+    const huge = new ReadableStream({
+      pull(controller) {
+        pulled += 1024 * 1024;
+        controller.enqueue(new Uint8Array(1024 * 1024).fill(65));
+      },
+    });
+    const provider = new OpenMeteoProvider(
+      (async () => new Response(huge, { status: 500 })) as unknown as typeof fetch,
+    );
+    await expect(provider.getForecast(52.23, 21.01, 1)).rejects.toMatchObject({
+      detail: expect.stringMatching(/HTTP 500/),
+    });
+    expect(pulled).toBeLessThan(8 * 1024 * 1024);
+  });
+
+  it('checks air quality and places too', async () => {
+    const provider = new OpenMeteoProvider(
+      (async () =>
+        new Response(
+          JSON.stringify({ timezone: 'UTC', current: { time: 5 }, results: [{ id: 'x' }] }),
+        )) as unknown as typeof fetch,
+    );
+    await expect(provider.getAirQuality(52.23, 21.01)).rejects.toBeInstanceOf(ProviderError);
+    await expect(provider.searchLocations('Warsaw', 5, 'en')).rejects.toBeInstanceOf(ProviderError);
+  });
+});
+
 describe('isDaytime', () => {
   const today = { sunrise: '2026-10-31T06:40', sunset: '2026-10-31T16:20' };
   it('is exact to the minute around sunrise and sunset, whatever the hour says', () => {

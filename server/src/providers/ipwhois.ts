@@ -1,4 +1,5 @@
 import { ProviderError } from '../errors.js';
+import { MAX_BYTES, readErrorText, readJson } from './http.js';
 import type { IpLocator } from './types.js';
 
 const BASE_URL = 'https://ipwho.is/';
@@ -40,15 +41,15 @@ export class IpWhoIsLocator implements IpLocator {
       throw new ProviderError(`${where}: ${String(err)}`);
     }
     if (!response.ok) {
-      const body = await response.text().catch(() => '');
+      const body = await readErrorText(response, where);
       throw new ProviderError(`${where}: HTTP ${response.status} ${body.slice(0, 200)}`.trim());
     }
-    const data = (await response.json()) as IpWhoIs;
+    const data = ((await readJson(response, MAX_BYTES.json, where)) ?? {}) as IpWhoIs;
     if (!data.success) {
       if (UNPLACEABLE.test(data.message ?? '')) return null;
       throw new ProviderError(`${where}: ${data.message ?? 'unknown failure'}`);
     }
-    if (typeof data.latitude !== 'number' || typeof data.longitude !== 'number') return null;
-    return { latitude: data.latitude, longitude: data.longitude };
+    if (!Number.isFinite(data.latitude) || !Number.isFinite(data.longitude)) return null;
+    return { latitude: data.latitude!, longitude: data.longitude! };
   }
 }

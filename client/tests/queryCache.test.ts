@@ -50,4 +50,31 @@ describe('createQueryCache', () => {
     await cache.load('a', fetcher);
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
+
+  it('tells the age of a stored value, expired or not', async () => {
+    let time = 0;
+    const cache = createQueryCache<string>({ ttlMs: 1000, now: () => time });
+    expect(cache.age('a')).toBeUndefined();
+    await cache.load('a', async () => 'value');
+    time = 400;
+    expect(cache.age('a')).toBe(400);
+    time = 1001;
+    expect(cache.age('a')).toBe(1001);
+    expect(cache.get('a')).toBeUndefined();
+  });
+
+  it('tells subscribers which key got a new value, until they unsubscribe', async () => {
+    const cache = createQueryCache<string>({ ttlMs: 1000, keep: (v) => v !== 'fallback' });
+    const listener = vi.fn();
+    const unsubscribe = cache.subscribe(listener);
+
+    await cache.load('a', async () => 'value');
+    await cache.load('a', async () => 'cached, not loaded');
+    await cache.load('b', async () => 'fallback');
+    expect(listener.mock.calls).toEqual([['a']]);
+
+    unsubscribe();
+    await cache.load('c', async () => 'value');
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
 });

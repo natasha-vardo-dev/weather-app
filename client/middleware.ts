@@ -27,13 +27,39 @@ export const config = { matcher: '/api/:path*' };
 /** Forged by a client, or for the platform: never passed on as they came. */
 const DROPPED = ['host', 'x-proxy-secret', 'x-client-ip'];
 
+function misconfigured(message: string): Response {
+  return Response.json(
+    { error: { code: 'INTERNAL', message } },
+    { status: 500, headers: { 'Cache-Control': 'no-store' } },
+  );
+}
+
+/**
+ * API_ORIGIN as a bare https origin, or null. The secret and the user's address travel to it,
+ * so a typo (http://, a path, credentials in the URL) fails closed instead of sending them
+ * in the clear or somewhere unexpected. Plain http only for a local server.
+ */
+export function apiOrigin(raw: string | undefined): URL | null {
+  if (!raw) return null;
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return null;
+  }
+  const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  const secure = url.protocol === 'https:' || (local && url.protocol === 'http:');
+  const bare = url.pathname === '/' && !url.search && !url.hash && !url.username && !url.password;
+  return secure && bare ? url : null;
+}
+
 export default function middleware(request: Request): Response {
-  const origin = process.env.API_ORIGIN;
-  if (!origin) {
-    return Response.json(
-      { error: { code: 'INTERNAL', message: 'API_ORIGIN is not set.' } },
-      { status: 500, headers: { 'Cache-Control': 'no-store' } },
-    );
+  if (!process.env.API_ORIGIN) return misconfigured('API_ORIGIN is not set.');
+  const origin = apiOrigin(process.env.API_ORIGIN);
+  if (!origin) return misconfigured('API_ORIGIN must be an https:// origin.');
+  // The API refuses requests without the secret in production; say why here instead.
+  if (process.env.VERCEL_ENV === 'production' && !process.env.PROXY_SECRET) {
+    return misconfigured('PROXY_SECRET is not set.');
   }
   const url = new URL(request.url);
   const target = new URL(url.pathname + url.search, origin);

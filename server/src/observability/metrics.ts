@@ -50,6 +50,13 @@ export function openMeteoWeight(url: URL): number {
  */
 export const IPWHOIS_LIMITS: ProviderLimits = { perMinute: 30, perDay: 1000 };
 
+/**
+ * Not a published limit: our own cap on Firebase topic changes (POST /api/v1/push/topics), one
+ * call per area. FCM allows far more per project; the cap is for a script with many tokens or
+ * addresses, so it can't spend the project's quota or get it throttled for everyone.
+ */
+export const FCM_TOPIC_LIMITS: ProviderLimits = { perMinute: 300, perDay: 20_000 };
+
 /** Share of a limit after which a warning is logged (once per window) and /api/health/quota alerts. */
 export const WARN_AT = 0.8;
 
@@ -150,6 +157,23 @@ class ProviderCounter {
     };
   }
 
+  /** The last day's buckets: [minute, calls, errors]. */
+  exportBuckets(): [number, number, number][] {
+    return [...this.calls].map(([minute, { calls, errors }]) => [minute, calls, errors]);
+  }
+
+  /** Adds saved buckets from the last day (a restart's counts join what came since the start). */
+  restoreBuckets(buckets: [number, number, number][], now: number): void {
+    const oldest = Math.floor(now / MINUTE) - DAY / MINUTE;
+    for (const [minute, calls, errors] of buckets) {
+      if (minute <= oldest || minute > Math.floor(now / MINUTE)) continue;
+      const bucket = this.calls.get(minute) ?? { calls: 0, errors: 0 };
+      bucket.calls += calls;
+      bucket.errors += errors;
+      this.calls.set(minute, bucket);
+    }
+  }
+
   /** Throws BusyError when a limit is at BUDGET_SHARE; logged at most once a minute. */
   checkBudget(now: number, logger: Logger): void {
     const { share } = this.usage(now);
@@ -237,6 +261,25 @@ export class Metrics {
    */
   budget(name: string): () => void {
     return () => this.providers.get(name)?.checkBudget(this.now(), this.logger);
+  }
+
+  /**
+   * Provider usage to save (StateStore), so a restart or a deploy does not reset the counts the
+   * budget refuses calls by: otherwise each restart would hand out a fresh daily allowance.
+   */
+  exportUsage(): Record<string, [number, number, number][]> {
+    return Object.fromEntries([...this.providers].map(([name, counter]) => [name, counter.exportBuckets()]));
+  }
+
+  /** Saved usage back into the registered providers; anything malformed is skipped (stored input). */
+  restoreUsage(saved: unknown): void {
+    if (!saved || typeof saved !== 'object') return;
+    const valid = (b: unknown): b is [number, number, number] =>
+      Array.isArray(b) && b.length === 3 && b.every((n) => typeof n === 'number' && Number.isFinite(n) && n >= 0);
+    for (const [name, buckets] of Object.entries(saved)) {
+      const counter = this.providers.get(name);
+      if (counter && Array.isArray(buckets)) counter.restoreBuckets(buckets.filter(valid), this.now());
+    }
   }
 
   /** Reports a cache's stats under `name` (read when a snapshot is taken). */

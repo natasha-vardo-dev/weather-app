@@ -26,3 +26,4 @@ decision changes: a new record supersedes it, and the old one's status says so.
 | [0015](0015-testing-strategy.md)            | Tests against fakes; end-to-end on the production build      |
 | [0016](0016-fewer-languages.md)             | Eight interface languages instead of nineteen                |
 | [0017](0017-privacy-policy-and-own-font.md) | A privacy policy in English, and the font served by the site |
+| [0018](0018-durable-operational-state.md)   | Operational state in Firestore, caches still in memory       |

@@ -1,6 +1,8 @@
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
-import { createApp } from '../src/app.js';
+import { createApp, NOTIFY_STALE_MS } from '../src/app.js';
+import { silentLogger } from '../src/observability/logger.js';
+import { FCM_TOPIC_LIMITS, Metrics } from '../src/observability/metrics.js';
 import { manageTopics, sendMessages } from '../src/providers/fcm.js';
 import type {
   AlertBroadcastSource,
@@ -9,7 +11,8 @@ import type {
   PushMessage,
   PushSender,
 } from '../src/providers/types.js';
-import { AlertNotifier, topicsForWarning } from '../src/services/alertNotifier.js';
+import { AlertNotifier, fitPayload, MAX_PAYLOAD_BYTES, topicsForWarning } from '../src/services/alertNotifier.js';
+import { MemoryStateStore, persistUsage } from '../src/services/stateStore.js';
 import { cellKey, cellsCovering } from '../src/services/regions.js';
 import { WeatherService } from '../src/services/weatherService.js';
 import { createFakeProvider } from './fakeProvider.js';
@@ -25,7 +28,7 @@ function fakeSender() {
     unsubscribe: vi.fn(async () => {}),
     send: vi.fn(async (messages: PushMessage[]) => {
       sent.push(...messages);
-      return messages.length;
+      return { accepted: messages.length, rejected: 0 };
     }),
   };
   return sender;
@@ -54,6 +57,7 @@ function fakeSource(initial: [BroadcastWarning, Full][] = []) {
     listWarnings: async () => ({
       warnings: [...warnings.values()].map(({ w }) => w).filter((w) => !source.down.has(w.source)),
       read: ['PL', 'NO'].filter((country) => !source.down.has(country)),
+      failed: ['PL', 'NO'].filter((country) => source.down.has(country)),
     }),
     loadWarning: async (ref) => warnings.get(ref)?.a ?? null,
     set(list) {
@@ -206,6 +210,397 @@ describe('AlertNotifier when parts fail', () => {
   });
 });
 
+describe('AlertNotifier recovery and status', () => {
+  it('after a restart with saved state, pushes warnings issued while it was down, and nothing twice', async () => {
+    const store = new MemoryStateStore(() => NOW);
+    const source = fakeSource([[warning('a'), alert('A', 'orange')]]);
+    const first = new AlertNotifier(source, fakeSender(), () => NOW, { store });
+    await first.run();
+
+    // Down: a new warning is issued; a new instance starts with the saved state.
+    source.set([
+      [warning('a'), alert('A', 'orange')],
+      [warning('b'), alert('B', 'red')],
+    ]);
+    const sender = fakeSender();
+    const restarted = new AlertNotifier(source, sender, () => NOW, { store });
+    expect(await restarted.run()).toMatchObject({ warmUp: false, notified: 1 });
+    expect(new Set(sender.sent.map((m) => m.data.key))).toEqual(new Set(['B']));
+  });
+
+  it('fails the run when every feed failed, instead of reporting no warnings', async () => {
+    const source = fakeSource();
+    const notifier = new AlertNotifier(source, fakeSender(), () => NOW);
+    await notifier.run();
+    source.down.add('PL').add('NO');
+    await expect(notifier.run()).rejects.toThrow(/warning feed failed/);
+    expect(notifier.status().lastError).toMatch(/all 2 feeds failed/);
+  });
+
+  it('reports a partial feed outage without counting the run as a success', async () => {
+    let now = NOW;
+    const source = fakeSource();
+    const notifier = new AlertNotifier(source, fakeSender(), () => now);
+    await notifier.run();
+    expect(notifier.status().lastSuccessAt).toBe(NOW);
+    now += 5 * 60_000;
+    source.down.add('NO');
+    expect(await notifier.run()).toMatchObject({ feedsRead: 1, feedsFailed: ['NO'] });
+    expect(notifier.status()).toMatchObject({ lastSuccessAt: NOW, feedsFailed: ['NO'], lastRunAt: now });
+  });
+
+  it('counts messages FCM refused for good, records the warning and does not call it a success', async () => {
+    const source = fakeSource();
+    const sender = fakeSender();
+    const notifier = new AlertNotifier(source, sender, () => NOW);
+    await notifier.run();
+    const before = notifier.status().lastSuccessAt;
+    source.set([[warning('a'), alert('A', 'red')]]);
+    sender.send = vi.fn(async (messages: PushMessage[]) => ({ accepted: 0, rejected: messages.length }));
+    expect(await notifier.run()).toMatchObject({ notified: 1, rejected: 6 });
+    expect(notifier.status()).toMatchObject({ rejected: 6, lastSuccessAt: before });
+    // Not retried: it would be refused again.
+    expect(await notifier.run()).toMatchObject({ notified: 0 });
+  });
+
+  it('skips a run while another instance holds the lease', async () => {
+    const store = new MemoryStateStore(() => NOW);
+    await store.lease('alert-notifier', 'other-instance', 60_000);
+    const sender = fakeSender();
+    const notifier = new AlertNotifier(fakeSource([[warning('a'), alert('A', 'red')]]), sender, () => NOW, { store });
+    expect(await notifier.run()).toMatchObject({ skipped: true });
+    expect(sender.send).not.toHaveBeenCalled();
+  });
+
+  it('never overwrites saved state when it could not read it', async () => {
+    const store = new MemoryStateStore(() => NOW);
+    await store.put('alert-notifier', {
+      version: 1,
+      seen: [],
+      notified: [],
+      warmed: ['PL'],
+      quiet: [],
+      lastSuccessAt: 1,
+    });
+    const failing = Object.assign(Object.create(store) as MemoryStateStore, {
+      get: async () => {
+        throw new Error('Firestore unavailable');
+      },
+      put: vi.fn(async () => {}),
+    });
+    const notifier = new AlertNotifier(fakeSource(), fakeSender(), () => NOW, { store: failing });
+    await expect(notifier.run()).rejects.toThrow('Firestore unavailable');
+    expect(failing.put).not.toHaveBeenCalled();
+  });
+
+  it('starts with a warm-up when the saved state is unreadable', async () => {
+    const store = new MemoryStateStore(() => NOW);
+    await store.put('alert-notifier', { version: 1, seen: 'broken' });
+    const sender = fakeSender();
+    const notifier = new AlertNotifier(fakeSource([[warning('a'), alert('A', 'red')]]), sender, () => NOW, { store });
+    expect(await notifier.run()).toMatchObject({ warmUp: true, notified: 0 });
+  });
+});
+
+describe('AlertNotifier across instances', () => {
+  it('reads the saved state before every run, so instances taking turns never push twice', async () => {
+    const store = new MemoryStateStore(() => NOW);
+    const source = fakeSource();
+    const senderA = fakeSender();
+    const senderB = fakeSender();
+    const a = new AlertNotifier(source, senderA, () => NOW, { store });
+    const b = new AlertNotifier(source, senderB, () => NOW, { store });
+    await a.run();
+    source.set([[warning('w'), alert('W', 'red')]]);
+    expect(await b.run()).toMatchObject({ notified: 1 });
+    // The old instance gets the next call: it must know W was sent.
+    expect(await a.run()).toMatchObject({ notified: 0 });
+    expect(senderA.send).not.toHaveBeenCalled();
+  });
+});
+
+describe('AlertNotifier cut midway', () => {
+  it('has saved each warning as soon as it was sent, so a cut run repeats nothing', async () => {
+    const store = new MemoryStateStore(() => NOW);
+    const source = fakeSource();
+    const sender = fakeSender();
+    const notifier = new AlertNotifier(source, sender, () => NOW, { store });
+    await notifier.run();
+    source.set([
+      [warning('a'), alert('A', 'red')],
+      [warning('b'), alert('B', 'red')],
+    ]);
+    let calls = 0;
+    sender.send = vi.fn(async (messages: PushMessage[]) => {
+      // The second warning never finishes: the process is stopped there.
+      if (++calls === 2) await new Promise(() => {});
+      return { accepted: messages.length, rejected: 0 };
+    });
+    void notifier.run();
+    await vi.waitFor(() => expect(calls).toBe(2));
+
+    // A new instance, once the cut run's lease has run out.
+    const later = NOW + 5 * 60_000;
+    const next = fakeSender();
+    const restarted = new AlertNotifier(source, next, () => later, {
+      store: Object.assign(Object.create(store) as MemoryStateStore, {
+        lease: (name: string, holder: string, ttl: number) =>
+          new MemoryStateStore(() => later).lease(name, holder, ttl),
+      }),
+    });
+    expect(await restarted.run()).toMatchObject({ notified: 1 });
+    expect(new Set(next.sent.map((m) => m.data.key))).toEqual(new Set(['B']));
+  });
+
+  it('lets shutdown wait for a run under way', async () => {
+    const source = fakeSource();
+    const sender = fakeSender();
+    let finish!: () => void;
+    source.listWarnings = () =>
+      new Promise((resolve) => (finish = () => resolve({ warnings: [], read: ['PL'], failed: [] })));
+    const notifier = new AlertNotifier(source, sender, () => NOW);
+    const run = notifier.run();
+    let idle = false;
+    void notifier.idle().then(() => (idle = true));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(idle).toBe(false);
+    finish();
+    await run;
+    await vi.waitFor(() => expect(idle).toBe(true));
+  });
+});
+
+describe('AlertNotifier when saving fails', () => {
+  it('keeps what it sent when the save failed, so reading the older record never pushes it again', async () => {
+    const store = new MemoryStateStore(() => NOW);
+    const source = fakeSource();
+    const sender = fakeSender();
+    const notifier = new AlertNotifier(source, sender, () => NOW, { store });
+    await notifier.run();
+
+    source.set([[warning('w'), alert('W', 'red')]]);
+    const put = store.put.bind(store);
+    let failPuts = 2; // the save right after sending, and the run's own
+    store.put = async (name, value) => {
+      if (failPuts-- > 0) throw new Error('Firestore write failed');
+      return put(name, value);
+    };
+    await expect(notifier.run()).rejects.toThrow(/Could not save the record/);
+    expect(await notifier.run()).toMatchObject({ notified: 0 });
+    expect(sender.send).toHaveBeenCalledTimes(1);
+    expect(await store.get('alert-notifier')).toMatchObject({ seen: [['w', expect.any(Number)]] });
+  });
+
+  it('merges with what another instance saved meanwhile, pushing neither warning again', async () => {
+    const store = new MemoryStateStore(() => NOW);
+    const source = fakeSource();
+    const senderA = fakeSender();
+    const senderB = fakeSender();
+    const a = new AlertNotifier(source, senderA, () => NOW, { store });
+    const b = new AlertNotifier(source, senderB, () => NOW, { store });
+    await a.run();
+
+    // A sends X but cannot save it.
+    source.set([[warning('x'), alert('X', 'red')]]);
+    const put = store.put.bind(store);
+    let failPuts = 2;
+    store.put = async (name, value) => {
+      if (failPuts-- > 0) throw new Error('Firestore write failed');
+      return put(name, value);
+    };
+    await expect(a.run()).rejects.toThrow();
+
+    // B (which never heard of X from the store) runs next and sends W, and X again: the
+    // overlap price A's failed save leaves. Then A must push neither.
+    source.set([
+      [warning('x'), alert('X', 'red')],
+      [warning('w'), alert('W', 'red')],
+    ]);
+    await b.run();
+    expect(await a.run()).toMatchObject({ notified: 0 });
+    expect(senderA.send).toHaveBeenCalledTimes(1);
+    expect(await b.run()).toMatchObject({ notified: 0 });
+  });
+});
+
+describe('persistUsage', () => {
+  const failingOnce = () => {
+    const store = new MemoryStateStore(() => NOW);
+    let fail = true;
+    const get = store.get.bind(store);
+    store.get = async <T>(name: string) => {
+      if (fail) {
+        fail = false;
+        throw new Error('Firestore unavailable');
+      }
+      return get<T>(name);
+    };
+    return store;
+  };
+
+  it('adds the saved counts back once, even when the first read outlasts a tick', async () => {
+    vi.useFakeTimers({ now: NOW });
+    try {
+      const store = new MemoryStateStore(() => NOW);
+      const before = new Metrics(silentLogger, () => NOW);
+      before.provider('open-meteo', { perDay: 100 })(true, 40);
+      await store.put('provider-usage', before.exportUsage());
+      const get = store.get.bind(store);
+      store.get = <T>(name: string) =>
+        new Promise<T | null>((resolve) => setTimeout(() => resolve(get<T>(name)), 150_000));
+      const metrics = new Metrics(silentLogger, () => Date.now());
+      metrics.provider('open-meteo', { perDay: 100 });
+      const usage = persistUsage(store, metrics, silentLogger, 60_000);
+      await vi.advanceTimersByTimeAsync(200_000);
+      expect(metrics.snapshot().providers['open-meteo']!.lastDay).toBe(40);
+      usage.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('never saves before the saved counts were read back, and retries reading them', async () => {
+    vi.useFakeTimers({ now: NOW });
+    try {
+      const store = failingOnce();
+      // A previous instance's counts.
+      const before = new Metrics(silentLogger, () => NOW);
+      before.provider('open-meteo', { perDay: 100 })(true, 80);
+      await store.put('provider-usage', before.exportUsage());
+
+      const metrics = new Metrics(silentLogger, () => Date.now());
+      metrics.provider('open-meteo', { perDay: 100 })(true, 1);
+      const usage = persistUsage(store, metrics, silentLogger, 60_000);
+      await usage.ready;
+      await usage.save();
+      // The failed read did not let a save replace the 80 saved calls with this instance's 1.
+      expect((await store.get<Record<string, unknown[]>>('provider-usage'))!['open-meteo']).toHaveLength(1);
+      expect(metrics.snapshot().providers['open-meteo']!.lastDay).toBe(1);
+
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(metrics.snapshot().providers['open-meteo']!.lastDay).toBe(81);
+      await usage.save();
+      const saved = new Metrics(silentLogger, () => Date.now());
+      saved.provider('open-meteo', { perDay: 100 });
+      saved.restoreUsage(await store.get('provider-usage'));
+      expect(saved.snapshot().providers['open-meteo']!.lastDay).toBe(81);
+      usage.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('fitPayload', () => {
+  const base = {
+    key: 'k',
+    level: 'orange' as const,
+    type: 'wind' as const,
+    onset: '2026-10-28T10:00:00Z',
+    expires: LATER,
+    areas: JSON.stringify(Array.from({ length: 60 }, (_, i) => `UA${1000 + i}`)),
+  };
+
+  it('keeps a payload that fits as it is', () => {
+    const data = { ...base, texts: JSON.stringify({ en: { event: 'Wind', headline: 'Strong wind' } }) };
+    expect(fitPayload(data)).toBe(data);
+  });
+
+  it("drops headlines, then areas, then extra languages, to stay under FCM's limit in any script", () => {
+    const headline = 'Сильний вітер з поривами до 25 м/с'.repeat(5).slice(0, 160);
+    const languages = ['uk', 'en', 'ru', 'pl', 'de', 'fr', 'es', 'it', 'ro', 'hu'];
+    const texts = Object.fromEntries(languages.map((l) => [l, { event: 'Вітер '.repeat(20), headline }]));
+    const fitted = fitPayload({ ...base, texts: JSON.stringify(texts) });
+    const bytes = Object.entries(fitted).reduce((n, [k, v]) => n + Buffer.byteLength(k) + Buffer.byteLength(v), 0);
+    expect(bytes).toBeLessThanOrEqual(MAX_PAYLOAD_BYTES);
+    expect(Object.values(JSON.parse(fitted.texts)).every((t) => !(t as { headline?: string }).headline)).toBe(true);
+  });
+});
+
+describe('GET /api/health/notify', () => {
+  it('is ok after a successful run and stale (503) once runs stop succeeding for long', async () => {
+    vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
+    try {
+      const source = fakeSource();
+      const notifier = new AlertNotifier(source, fakeSender(), () => Date.now());
+      const server = createApp(new WeatherService(createFakeProvider()), {
+        push: { source, sender: fakeSender(), notifier, notifySecret: 'secret-1234567890' },
+      });
+      await notifier.run();
+      const ok = await request(server).get('/api/health/notify');
+      expect(ok.status).toBe(200);
+      expect(ok.body).toMatchObject({ status: 'ok', store: 'memory', feedsFailed: [], rejected: 0 });
+      expect(ok.headers['cache-control']).toBe('no-store');
+
+      source.down.add('NO');
+      vi.setSystemTime(NOW + NOTIFY_STALE_MS + 60_000);
+      await notifier.run();
+      const stale = await request(server).get('/api/health/notify');
+      expect(stale.status).toBe(503);
+      expect(stale.body).toMatchObject({ status: 'stale', feedsFailed: ['NO'] });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('GET /api/health/notify after refused messages', () => {
+  it('stays 503 for the window after FCM refused messages, even when later runs are clean', async () => {
+    vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
+    try {
+      const store = new MemoryStateStore(() => Date.now());
+      const source = fakeSource();
+      const sender = fakeSender();
+      const notifier = new AlertNotifier(source, sender, () => Date.now(), { store });
+      const server = createApp(new WeatherService(createFakeProvider()), {
+        push: { source, sender, notifier, notifySecret: 'secret-1234567890' },
+      });
+      await notifier.run();
+      source.set([[warning('a'), alert('A', 'red')]]);
+      sender.send = vi.fn(async (messages: PushMessage[]) => ({ accepted: 0, rejected: messages.length }));
+      await notifier.run();
+      vi.setSystemTime(NOW + 5 * 60_000);
+      await notifier.run(); // clean: nothing new
+      const res = await request(server).get('/api/health/notify');
+      expect(res.status).toBe(503);
+      expect(res.body.lastRejectedAt).toBe(new Date(NOW).toISOString());
+      // Kept across a restart.
+      const restarted = new AlertNotifier(source, fakeSender(), () => Date.now(), { store });
+      await restarted.run();
+      expect(restarted.status().lastRejectedAt).toBe(NOW);
+
+      vi.setSystemTime(NOW + NOTIFY_STALE_MS + 60_000);
+      await notifier.run();
+      expect((await request(server).get('/api/health/notify')).status).toBe(200);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('provider usage across restarts', () => {
+  it('restores the last day of counts, so a restart does not reset the budget', () => {
+    let now = NOW;
+    const before = new Metrics(silentLogger, () => now);
+    before.provider('open-meteo', { perDay: 100 })(true, 95);
+    const saved = JSON.parse(JSON.stringify(before.exportUsage()));
+    now += 60_000;
+    const after = new Metrics(silentLogger, () => now);
+    after.provider('open-meteo', { perDay: 100 });
+    after.restoreUsage(saved);
+    expect(after.snapshot().providers['open-meteo']!.lastDay).toBe(95);
+    expect(() => after.budget('open-meteo')()).toThrow();
+    // Malformed or older than a day: ignored.
+    after.restoreUsage({
+      'open-meteo': [
+        ['x', 1, 0],
+        [Math.floor(now / 60_000) - 2000, 50, 0],
+      ],
+    });
+    expect(after.snapshot().providers['open-meteo']!.lastDay).toBe(95);
+  });
+});
+
 describe('sendMessages', () => {
   const message: PushMessage = { topic: 'PL1261.all.yellow', data: { key: 'A' }, ttlSeconds: 60 };
   const answer =
@@ -216,7 +611,7 @@ describe('sendMessages', () => {
     });
 
   it('counts the accepted messages', async () => {
-    expect(await sendMessages([message, message], answer(null, null))).toBe(2);
+    expect(await sendMessages([message, message], answer(null, null))).toEqual({ accepted: 2, rejected: 0 });
   });
 
   it('fails on a transient rejection, so the warning is retried, even though sendEach resolved', async () => {
@@ -230,7 +625,7 @@ describe('sendMessages', () => {
   });
 
   it('does not retry a message that would fail the same way every run', async () => {
-    expect(await sendMessages([message], answer('messaging/invalid-argument'))).toBe(0);
+    expect(await sendMessages([message], answer('messaging/invalid-argument'))).toEqual({ accepted: 0, rejected: 1 });
   });
 });
 
@@ -313,5 +708,139 @@ describe('push routes', () => {
       .set('Authorization', 'Bearer secret-1234567890');
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ warmUp: true });
+  });
+
+  describe('abuse limits', () => {
+    function guarded(guard: { perTokenPerHour: number; concurrency: number }, metrics?: Metrics) {
+      const sender = fakeSender();
+      const server = createApp(new WeatherService(createFakeProvider()), {
+        push: { source: fakeSource(), sender, guard },
+        metrics,
+        rateLimits: false,
+      });
+      return { server, sender };
+    }
+
+    it('limits changes per token, whatever address they come from', async () => {
+      const { server, sender } = guarded({ perTokenPerHour: 2, concurrency: 4 });
+      expect((await request(server).post('/api/v1/push/topics').send(body)).status).toBe(200);
+      expect(
+        (
+          await request(server)
+            .post('/api/v1/push/topics')
+            .send({ ...body, level: 'red' })
+        ).status,
+      ).toBe(200);
+      const third = await request(server).post('/api/v1/push/topics').send(body);
+      expect(third.status).toBe(429);
+      expect(third.body.error.code).toBe('RATE_LIMITED');
+      expect(Number(third.headers['retry-after'])).toBeGreaterThan(0);
+      // Another device is not affected.
+      expect(
+        (
+          await request(server)
+            .post('/api/v1/push/topics')
+            .send({ ...body, token: 'y'.repeat(40) })
+        ).status,
+      ).toBe(200);
+      expect(sender.subscribe).toHaveBeenCalledTimes(3);
+    });
+
+    it('joins the same change already under way instead of repeating it', async () => {
+      const { server, sender } = guarded({ perTokenPerHour: 10, concurrency: 4 });
+      let release!: () => void;
+      vi.mocked(sender.subscribe).mockImplementationOnce(() => new Promise<void>((resolve) => (release = resolve)));
+      const first = request(server)
+        .post('/api/v1/push/topics')
+        .send(body)
+        .then((r) => r.status);
+      const second = request(server)
+        .post('/api/v1/push/topics')
+        .send(body)
+        .then((r) => r.status);
+      await vi.waitFor(() => expect(sender.subscribe).toHaveBeenCalled());
+      // Give the second request time to arrive and join.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      release();
+      expect(await Promise.all([first, second])).toEqual([200, 200]);
+      expect(sender.subscribe).toHaveBeenCalledTimes(1);
+    });
+
+    it('refuses new changes once the global Firebase budget is spent (503)', async () => {
+      let now = NOW;
+      const metrics = new Metrics(silentLogger, () => now);
+      const { server, sender } = guarded({ perTokenPerHour: 10_000, concurrency: 4 }, metrics);
+      // Spend 90% of the per-minute cap, as other devices would.
+      const record = metrics.provider('fcm-topics', FCM_TOPIC_LIMITS);
+      record(true, FCM_TOPIC_LIMITS.perMinute! * 0.9);
+      const res = await request(server).post('/api/v1/push/topics').send(body);
+      expect(res.status).toBe(503);
+      expect(res.body.error.code).toBe('SERVICE_BUSY');
+      expect(sender.subscribe).not.toHaveBeenCalled();
+      now += 2 * 60_000;
+      expect((await request(server).post('/api/v1/push/topics').send(body)).status).toBe(200);
+      expect(metrics.snapshot().providers['fcm-topics']!.lastMinute).toBe(1);
+    });
+
+    it('always lets a device turn notifications off, budget spent or token busy', async () => {
+      const metrics = new Metrics(silentLogger, () => NOW);
+      const { server, sender } = guarded({ perTokenPerHour: 1, concurrency: 4 }, metrics);
+      expect((await request(server).post('/api/v1/push/topics').send(body)).status).toBe(200);
+      metrics.provider('fcm-topics', FCM_TOPIC_LIMITS)(true, FCM_TOPIC_LIMITS.perMinute!);
+      expect((await request(server).post('/api/v1/push/topics').send(body)).status).toBe(429);
+      const off = await request(server)
+        .post('/api/v1/push/topics')
+        .send({ ...body, subscribe: false });
+      expect(off.status).toBe(200);
+      expect(sender.unsubscribe).toHaveBeenCalledTimes(1);
+    });
+
+    it('refuses a queued change once the budget is spent by the calls ahead of it', async () => {
+      const metrics = new Metrics(silentLogger, () => NOW);
+      const record = metrics.provider('fcm-topics', FCM_TOPIC_LIMITS);
+      const { server, sender } = guarded({ perTokenPerHour: 100, concurrency: 1 }, metrics);
+      let release!: () => void;
+      vi.mocked(sender.subscribe).mockImplementationOnce(async () => {
+        await new Promise<void>((resolve) => (release = resolve));
+        // The call ahead spends the rest of the budget.
+        record(true, FCM_TOPIC_LIMITS.perMinute!);
+      });
+      const first = request(server)
+        .post('/api/v1/push/topics')
+        .send(body)
+        .then((r) => r.status);
+      await vi.waitFor(() => expect(sender.subscribe).toHaveBeenCalledTimes(1));
+      const queued = request(server)
+        .post('/api/v1/push/topics')
+        .send({ ...body, token: 'q'.repeat(40) })
+        .then((r) => r.status);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      release();
+      expect(await Promise.all([first, queued])).toEqual([200, 503]);
+      expect(sender.subscribe).toHaveBeenCalledTimes(1);
+    });
+
+    it('gives the slot back when a change did not take effect', async () => {
+      const { server, sender } = guarded({ perTokenPerHour: 1, concurrency: 4 });
+      vi.mocked(sender.subscribe).mockRejectedValueOnce(new Error('FCM down'));
+      expect((await request(server).post('/api/v1/push/topics').send(body)).status).toBe(500);
+      expect((await request(server).post('/api/v1/push/topics').send(body)).status).toBe(200);
+      expect((await request(server).post('/api/v1/push/topics').send(body)).status).toBe(429);
+    });
+
+    it('has a per-IP limit of its own', async () => {
+      const server = createApp(new WeatherService(createFakeProvider()), {
+        push: { source: fakeSource(), sender: fakeSender() },
+        rateLimits: { api: 100, forecasts: 10, search: 10, places: 10, clientErrors: 10, push: 1 },
+      });
+      expect((await request(server).post('/api/v1/push/topics').send(body)).status).toBe(200);
+      expect(
+        (
+          await request(server)
+            .post('/api/v1/push/topics')
+            .send({ ...body, token: 'z'.repeat(40) })
+        ).status,
+      ).toBe(429);
+    });
   });
 });

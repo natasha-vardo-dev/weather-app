@@ -1,5 +1,6 @@
-import { FORECAST_HOURS } from '@weather/shared';
+import { airQualitySchema, FORECAST_HOURS, forecastSchema, locationSchema, type ZodType } from '@weather/shared';
 import { ProviderError } from '../errors.js';
+import { MAX_BYTES, readErrorText, readJson } from './http.js';
 import type { AirQuality, Forecast, Location, WeatherProvider } from './types.js';
 
 const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
@@ -131,7 +132,7 @@ export class OpenMeteoProvider implements WeatherProvider {
     url.searchParams.set('format', 'json');
 
     const data = await this.request<GeocodingResponse>(url);
-    return (data.results ?? []).map(toLocation);
+    return checked(url, locationSchema.array(), () => (data.results ?? []).map(toLocation));
   }
 
   /** Used to show a saved place's name in the current language. */
@@ -145,7 +146,7 @@ export class OpenMeteoProvider implements WeatherProvider {
     const data = await this.request<GeocodingResult>(url, {
       isNotFound: (status, body) => status === 400 && /location id not found/i.test(body),
     });
-    return data ? toLocation(data) : null;
+    return data ? checked(url, locationSchema, () => toLocation(data)) : null;
   }
 
   async getForecast(latitude: number, longitude: number, days: number): Promise<Forecast> {
@@ -174,66 +175,7 @@ export class OpenMeteoProvider implements WeatherProvider {
     url.searchParams.set('past_days', '1');
 
     const data = await this.request<ForecastResponse>(url);
-    const { current, hourly, daily } = data;
-    // Hourly data starts at the current hour (forecast_hours), so its first entry is "now".
-    const thisHour = 0;
-
-    const allDays = daily.time.map((date, i) => ({
-      date,
-      weatherCode: daily.weather_code[i],
-      tempMax: daily.temperature_2m_max[i],
-      tempMin: daily.temperature_2m_min[i],
-      precipitationProbability: daily.precipitation_probability_max[i] ?? null,
-      // Empty in polar day or night: no sunrise that day.
-      sunrise: daily.sunrise?.[i] || null,
-      sunset: daily.sunset?.[i] || null,
-    }));
-    // Dates are local to the place (timezone=auto), so its "today" comes from the current time.
-    const today = current.time.slice(0, 10);
-    const pastDays = allDays.filter((day) => day.date < today);
-
-    return {
-      latitude: data.latitude,
-      longitude: data.longitude,
-      timezone: data.timezone,
-      units: {
-        temperature: data.current_units.temperature_2m,
-        windSpeed: data.hourly_units.wind_speed_10m,
-        precipitation: data.hourly_units.precipitation ?? 'mm',
-      },
-      current: {
-        time: current.time,
-        temperature: current.temperature_2m,
-        apparentTemperature: current.apparent_temperature,
-        humidity: hourly.relative_humidity_2m[thisHour]!,
-        windSpeed: hourly.wind_speed_10m[thisHour]!,
-        windGusts: hourly.wind_gusts_10m?.[thisHour] ?? null,
-        windDirection: current.wind_direction_10m ?? null,
-        weatherCode: current.weather_code,
-        isDay: isDaytime(
-          current.time,
-          allDays.find((day) => day.date === today),
-          hourly.is_day[thisHour] === 1,
-        ),
-      },
-      hourly: hourly.time.map((time, i) => ({
-        time,
-        temperature: hourly.temperature_2m[i],
-        humidity: hourly.relative_humidity_2m[i],
-        windSpeed: hourly.wind_speed_10m[i],
-        windGusts: hourly.wind_gusts_10m?.[i] ?? null,
-        weatherCode: hourly.weather_code[i],
-        precipitationProbability: hourly.precipitation_probability[i] ?? null,
-        precipitation: hourly.precipitation?.[i] ?? null,
-        uvIndex: hourly.uv_index?.[i] ?? null,
-        pressure: hourly.pressure_msl?.[i] ?? null,
-        visibility: hourly.visibility?.[i] ?? null,
-        dewPoint: hourly.dew_point_2m?.[i] ?? null,
-        isDay: hourly.is_day[i] === 1,
-      })),
-      yesterday: pastDays.at(-1) ?? null,
-      daily: allDays.filter((day) => day.date >= today),
-    };
+    return checked(url, forecastSchema, () => toForecast(data));
   }
 
   /** A separate Open-Meteo API (other host), so it is a separate call with its own cache. */
@@ -246,19 +188,21 @@ export class OpenMeteoProvider implements WeatherProvider {
     url.searchParams.set('timezone', 'auto');
 
     const data = await this.request<AirQualityResponse>(url, { timeoutMs: this.airQualityTimeoutMs });
-    const { current } = data;
-    return {
-      time: current.time,
-      timezone: data.timezone,
-      europeanAqi: current.european_aqi ?? null,
-      usAqi: current.us_aqi ?? null,
-      pollutants: {
-        pm2_5: current.pm2_5 ?? null,
-        pm10: current.pm10 ?? null,
-        ozone: current.ozone ?? null,
-        nitrogenDioxide: current.nitrogen_dioxide ?? null,
-      },
-    };
+    return checked(url, airQualitySchema, () => {
+      const { current } = data;
+      return {
+        time: current.time,
+        timezone: data.timezone,
+        europeanAqi: current.european_aqi ?? null,
+        usAqi: current.us_aqi ?? null,
+        pollutants: {
+          pm2_5: current.pm2_5 ?? null,
+          pm10: current.pm10 ?? null,
+          ozone: current.ozone ?? null,
+          nitrogenDioxide: current.nitrogen_dioxide ?? null,
+        },
+      };
+    });
   }
 
   /**
@@ -285,12 +229,110 @@ export class OpenMeteoProvider implements WeatherProvider {
     }
     if (!response.ok) {
       // Open-Meteo explains failures in {"reason": "..."}, e.g. "Minutely API request limit exceeded".
-      const body = await response.text().catch(() => '');
+      const body = await readErrorText(response, where);
       if (options?.isNotFound?.(response.status, body)) return null;
       throw new ProviderError(`${where}: HTTP ${response.status} ${body.slice(0, 200)}`.trim());
     }
-    return (await response.json()) as T;
+    return (await readJson(response, MAX_BYTES.json, where)) as T;
   }
+}
+
+/**
+ * The answer mapped and checked against the API's own schema before anyone caches it. The
+ * provider's JSON is only cast to its interface, so a missing array or a changed field would
+ * otherwise go out as a forecast that breaks its contract (and replace a good cached one).
+ * Any failure is a ProviderError: the stale copy is served instead (stale-if-error).
+ */
+function checked<T>(url: URL, schema: ZodType<T>, map: () => T): T {
+  const where = `${url.host}${url.pathname}`;
+  let value: T;
+  try {
+    value = map();
+  } catch {
+    throw new ProviderError(`${where}: unexpected response shape`);
+  }
+  const result = schema.safeParse(value);
+  if (!result.success) {
+    const issue = result.error.issues[0];
+    throw new ProviderError(`${where}: invalid response at ${issue?.path.join('.') || '(root)'}: ${issue?.message}`);
+  }
+  return result.data;
+}
+
+/** The provider's answer in the API's shape; checked against the contract by the caller. */
+function toForecast(data: ForecastResponse): Forecast {
+  const { current, hourly, daily } = data;
+  // Parallel arrays, one entry per hour or day: a shorter one would shift or drop values.
+  // Optional variables may be missing, but not shorter; at least the current hour and today.
+  for (const [name, series] of [
+    ['hourly', hourly],
+    ['daily', daily],
+  ] as const) {
+    const length = series.time.length;
+    if (length === 0) throw new Error(`${name}: empty`);
+    for (const values of Object.values(series)) {
+      if (!Array.isArray(values) || values.length !== length) throw new Error(`${name}: arrays differ in length`);
+    }
+  }
+  // Hourly data starts at the current hour (forecast_hours), so its first entry is "now".
+  const thisHour = 0;
+
+  const allDays = daily.time.map((date, i) => ({
+    date,
+    weatherCode: daily.weather_code[i],
+    tempMax: daily.temperature_2m_max[i],
+    tempMin: daily.temperature_2m_min[i],
+    precipitationProbability: daily.precipitation_probability_max[i] ?? null,
+    // Empty in polar day or night: no sunrise that day.
+    sunrise: daily.sunrise?.[i] || null,
+    sunset: daily.sunset?.[i] || null,
+  }));
+  // Dates are local to the place (timezone=auto), so its "today" comes from the current time.
+  const today = current.time.slice(0, 10);
+  const pastDays = allDays.filter((day) => day.date < today);
+
+  return {
+    latitude: data.latitude,
+    longitude: data.longitude,
+    timezone: data.timezone,
+    units: {
+      temperature: data.current_units.temperature_2m,
+      windSpeed: data.hourly_units.wind_speed_10m,
+      precipitation: data.hourly_units.precipitation ?? 'mm',
+    },
+    current: {
+      time: current.time,
+      temperature: current.temperature_2m,
+      apparentTemperature: current.apparent_temperature,
+      humidity: hourly.relative_humidity_2m[thisHour]!,
+      windSpeed: hourly.wind_speed_10m[thisHour]!,
+      windGusts: hourly.wind_gusts_10m?.[thisHour] ?? null,
+      windDirection: current.wind_direction_10m ?? null,
+      weatherCode: current.weather_code,
+      isDay: isDaytime(
+        current.time,
+        allDays.find((day) => day.date === today),
+        hourly.is_day[thisHour] === 1,
+      ),
+    },
+    hourly: hourly.time.map((time, i) => ({
+      time,
+      temperature: hourly.temperature_2m[i],
+      humidity: hourly.relative_humidity_2m[i],
+      windSpeed: hourly.wind_speed_10m[i],
+      windGusts: hourly.wind_gusts_10m?.[i] ?? null,
+      weatherCode: hourly.weather_code[i],
+      precipitationProbability: hourly.precipitation_probability[i] ?? null,
+      precipitation: hourly.precipitation?.[i] ?? null,
+      uvIndex: hourly.uv_index?.[i] ?? null,
+      pressure: hourly.pressure_msl?.[i] ?? null,
+      visibility: hourly.visibility?.[i] ?? null,
+      dewPoint: hourly.dew_point_2m?.[i] ?? null,
+      isDay: hourly.is_day[i] === 1,
+    })),
+    yesterday: pastDays.at(-1) ?? null,
+    daily: allDays.filter((day) => day.date >= today),
+  };
 }
 
 /**

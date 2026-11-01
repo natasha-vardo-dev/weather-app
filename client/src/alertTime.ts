@@ -41,3 +41,12 @@ export function formatAlertTime(
       : new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone }).format(instant);
   return `${day} ${time}`;
 }
+
+/**
+ * The warnings not yet over at `now`. The feed keeps expired warnings for a while, and an open
+ * page keeps a loaded answer, so the clock decides. A warning whose end can't be read stays:
+ * hiding an official warning is worse than showing one too long.
+ */
+export function unexpiredAlerts<T extends { expires: string }>(alerts: readonly T[], now: number): T[] {
+  return alerts.filter((alert) => !(Date.parse(alert.expires) <= now));
+}

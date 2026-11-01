@@ -42,6 +42,20 @@ describe('NominatimGeocoder', () => {
     expect((init.headers as Record<string, string>)['User-Agent']).toBe('weather-app-test/1.0');
   });
 
+  it('takes only non-empty strings from the answer (cast, not trusted)', async () => {
+    const odd = vi.fn(async () => jsonResponse({ address: { city: 5, town: 'Ełk', country: ['PL'] } }));
+    expect(await geocoder(odd).reverse(53.83, 22.36, 'pl')).toEqual({ name: 'Ełk' });
+    const empty = vi.fn(async () => jsonResponse(null));
+    expect(await geocoder(empty).reverse(53.83, 22.36, 'pl')).toBeNull();
+  });
+
+  it('refuses broken JSON as a provider error', async () => {
+    const broken = vi.fn(async () => new Response('{"address":'));
+    await expect(geocoder(broken).reverse(53.83, 22.36, 'pl')).rejects.toMatchObject({
+      detail: expect.stringMatching(/invalid JSON/),
+    });
+  });
+
   it('falls back from city to smaller and larger units', async () => {
     const fetchFn = vi.fn(async () => jsonResponse(moskenes));
     expect(await geocoder(fetchFn).reverse(67.93, 13.09, 'en')).toEqual({ name: 'Moskenes', country: 'Norway' });

@@ -1,5 +1,6 @@
 import type { PlaceName } from '@weather/shared';
 import { ProviderError } from '../errors.js';
+import { MAX_BYTES, readErrorText, readJson } from './http.js';
 import type { ReverseGeocoder } from './types.js';
 
 const REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
@@ -82,16 +83,27 @@ export class NominatimGeocoder implements ReverseGeocoder {
       throw new ProviderError(`${where}: ${String(err)}`);
     }
     if (!response.ok) {
-      const body = await response.text().catch(() => '');
+      const body = await readErrorText(response, where);
       throw new ProviderError(`${where}: HTTP ${response.status} ${body.slice(0, 200)}`.trim());
     }
 
-    const data = (await response.json()) as NominatimReverse;
+    const data = ((await readJson(response, MAX_BYTES.json, where)) ?? {}) as NominatimReverse;
     if (data.error) return null;
-    const a = data.address ?? {};
-    const name = a.city ?? a.town ?? a.village ?? a.hamlet ?? a.municipality ?? a.county ?? a.state ?? data.name;
+    // Cast, not checked by the type: only strings go out as names.
+    const a = (typeof data.address === 'object' && data.address) || {};
+    const text = (value: unknown) => (typeof value === 'string' && value ? value : undefined);
+    const name =
+      text(a.city) ??
+      text(a.town) ??
+      text(a.village) ??
+      text(a.hamlet) ??
+      text(a.municipality) ??
+      text(a.county) ??
+      text(a.state) ??
+      text(data.name);
     if (!name) return null;
-    return { name, ...(a.country ? { country: a.country } : {}) };
+    const country = text(a.country);
+    return { name, ...(country ? { country } : {}) };
   }
 
   /** Spaces requests at least minIntervalMs apart, in arrival order; refuses a too long wait. */

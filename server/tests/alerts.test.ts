@@ -3,7 +3,15 @@ import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
 import { ProviderError } from '../src/errors.js';
-import { MeteoAlarmProvider, parseCap, parseCapPolygon, parseFeed } from '../src/providers/meteoAlarm.js';
+import { concurrencyLimit, MAX_BYTES } from '../src/providers/http.js';
+import {
+  allowedUrl,
+  FEED_LIMITS,
+  MeteoAlarmProvider,
+  parseCap,
+  parseCapPolygon,
+  parseFeed,
+} from '../src/providers/meteoAlarm.js';
 import type { AlertsProvider, ProviderAlert } from '../src/providers/types.js';
 import { AlertService, pickText } from '../src/services/alertService.js';
 import { cellKey, polygonContains, polygonsNear, RegionIndex, type Region } from '../src/services/regions.js';
@@ -260,6 +268,115 @@ describe('MeteoAlarmProvider', () => {
       type: 'other',
       texts: [{ language: 'en', event: 'Yellow Fog warning' }],
     });
+  });
+});
+
+describe('MeteoAlarm outbound requests', () => {
+  /** Norway's feed with its warning link pointed elsewhere. */
+  const feedLinkingTo = (href: string) =>
+    norwayFeed.replaceAll(
+      'href="https://feeds.meteoalarm.org/api/v1/warnings/feeds-norway/6c9fad39-8f09-43c7-8e35-e0279aa9d21b"',
+      `href="${href}"`,
+    );
+
+  it.each([
+    'http://127.0.0.1:9999/internal',
+    'http://feeds.meteoalarm.org/api/v1/warnings/x',
+    'https://feeds.meteoalarm.org:8443/api/v1/warnings/x',
+    'https://user:pass@feeds.meteoalarm.org/api/v1/warnings/x',
+    'https://evil.example/api/v1/warnings/x',
+    'https://feeds.meteoalarm.org.evil.example/x',
+    'not a url',
+  ])('never fetches a warning link to %s', async (href) => {
+    expect(allowedUrl(href)).toBeNull();
+    const fetchFn = fakeFetch({ 'legacy-atom-norway': () => new Response(feedLinkingTo(href)) });
+    const p = provider(fetchFn);
+    await p.getAlerts(63.43, 10.39);
+    const { warnings } = await p.listWarnings();
+    const requested = fetchFn.mock.calls.map(([url]) => String(url));
+    expect(requested.every((url) => url.startsWith('https://feeds.meteoalarm.org/'))).toBe(true);
+    expect(warnings.some((w) => w.ref === href)).toBe(false);
+  });
+
+  it('does not follow redirects', async () => {
+    const fetchFn = fakeFetch();
+    await provider(fetchFn).getAlerts(63.43, 10.39);
+    expect(fetchFn.mock.calls.length).toBeGreaterThan(0);
+    for (const [, init] of fetchFn.mock.calls as unknown as [string, RequestInit][])
+      expect(init.redirect).toBe('error');
+  });
+
+  it('fails a feed over the size limit like any provider error', async () => {
+    const huge = () => new Response('x', { headers: { 'Content-Length': String(MAX_BYTES.feed + 1) } });
+    await expect(
+      provider(fakeFetch({ 'legacy-atom-poland': huge })).getAlerts(WEGORZEWO.lat, WEGORZEWO.lon),
+    ).rejects.toBeInstanceOf(ProviderError);
+  });
+
+  it('drops outlines with more points than a warning area has', () => {
+    const points = Array.from({ length: FEED_LIMITS.pointsPerPolygon + 1 }, (_, i) => `60,${(i % 300) / 100}`).join(
+      ' ',
+    );
+    expect(parseCapPolygon(points)).toBeNull();
+    expect(parseCapPolygon('60,1 61,1 61,2 60,1')).not.toBeNull();
+  });
+
+  it('reads at most the entry limit of a feed', () => {
+    const entry = norwayFeed.slice(norwayFeed.indexOf('<entry>'), norwayFeed.indexOf('</entry>') + '</entry>'.length);
+    const big = `<feed xmlns="http://www.w3.org/2005/Atom" xmlns:cap="urn:oasis:names:tc:emergency:cap:1.2">${entry.repeat(FEED_LIMITS.entries + 10)}</feed>`;
+    expect(parseFeed(big)).toHaveLength(FEED_LIMITS.entries);
+  });
+});
+
+describe('MeteoAlarm fetch queues', () => {
+  it('does not make a warning text wait behind every feed', async () => {
+    const pending: (() => void)[] = [];
+    let capFetched = false;
+    const fetchFn = vi.fn(async (url: string | URL) => {
+      const href = String(url);
+      if (href.includes('legacy-atom-')) {
+        // Every feed hangs until released, as on a slow MeteoAlarm.
+        await new Promise<void>((resolve) => pending.push(resolve));
+        return new Response('<feed xmlns="http://www.w3.org/2005/Atom"></feed>');
+      }
+      capFetched = true;
+      return new Response(fogCap);
+    });
+    const p = provider(fetchFn);
+    const run = p.listWarnings();
+    await vi.waitFor(() => expect(pending.length).toBeGreaterThan(10));
+    const cap = await (p as unknown as { fetchText(url: string, maxBytes: number): Promise<string> }).fetchText(
+      'https://feeds.meteoalarm.org/api/v1/warnings/feeds-poland/6b0b72c3',
+      MAX_BYTES.cap,
+    );
+    expect(capFetched).toBe(true);
+    expect(cap).toContain('<alert');
+    for (const release of pending.splice(0)) release();
+    await run;
+  });
+});
+
+describe('concurrencyLimit', () => {
+  it('never runs more than the limit at once, and runs everything', async () => {
+    const limit = concurrencyLimit(3);
+    let running = 0;
+    let peak = 0;
+    const task = async (i: number) => {
+      running++;
+      peak = Math.max(peak, running);
+      await new Promise((resolve) => setTimeout(resolve, i % 2));
+      running--;
+      return i;
+    };
+    const results = await Promise.all(Array.from({ length: 20 }, (_, i) => limit(() => task(i))));
+    expect(results).toEqual(Array.from({ length: 20 }, (_, i) => i));
+    expect(peak).toBe(3);
+  });
+
+  it('frees the slot when a task fails', async () => {
+    const limit = concurrencyLimit(1);
+    await expect(limit(() => Promise.reject(new Error('x')))).rejects.toThrow('x');
+    await expect(limit(async () => 'next')).resolves.toBe('next');
   });
 });
 
