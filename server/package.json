@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "openapi": "tsx scripts/openapi.ts",
-    "openapi:check": "tsx scripts/openapi.ts --check"
+    "openapi:check": "tsx scripts/openapi.ts --check",
+    "push:test": "tsx scripts/sendTestPush.ts"
   },
   "dependencies": {
     "@weather/shared": "*",

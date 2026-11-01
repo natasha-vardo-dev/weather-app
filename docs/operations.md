@@ -79,6 +79,10 @@ job's settings, turn on "Notify on failure", so a failing run (FCM failing, ever
 unavailable, the API down) reaches the same inbox. A run where only some feeds failed or FCM refused messages for good
 answers 200 (the rest was sent); the notify monitor catches those when they last.
 
+To tell whether push itself works (after a Firebase update, or when nobody gets notifications while warnings are in
+force), send a test notification to your own device: `npm run push:test -w server -- --token <token>` (README, "Push
+notifications"). It goes through FCM, not through the scheduler or the API.
+
 ## Request budget of an open page
 
 Warnings are the only thing an open page asks for by itself: once every 4 minutes per place shown, while the tab is
