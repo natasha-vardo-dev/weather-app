@@ -463,7 +463,10 @@ succeeded (every feed read, nothing refused) for 30 minutes, or FCM refused mess
 - Messages are data-only: level, type, times, areas, the issuer's texts.
 - The service worker writes the notification in the user's language, reading from IndexedDB the user's places and the
   strings the page stored for the current language.
-- Title "Orange warning: Thunderstorms · Kraków"; body the time and the issuer's headline. A tap opens the city page.
+- Title "Orange warning: Thunderstorms · Kraków"; body the time and the issuer's headline. A tap opens the city page:
+  with no window of the app open, a new one; with one open, the worker focuses it and asks its page to open the city
+  (`open-place` message, `useOpenFromNotification`, the app's router, no reload), and navigates the window itself
+  (`WindowClient.navigate`) only when the page does not confirm within a second, a new window as the last resort.
 - Every push shows a notification. If writing the full one throws (stored state of an older format, IndexedDB
   unavailable, an invalid locale), a plainer one with the same tag is shown from the message alone (the issuer's event
   and headline in the browser's language, else "Weather warning"), and the error goes to the worker's console.

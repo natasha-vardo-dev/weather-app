@@ -164,36 +164,64 @@ describe('notification click', () => {
   }
   const URL_ = 'https://weather.example/weather/50.06,19.94';
 
-  it('opens the place in a window of the app, or a new one', async () => {
-    const sw = loadServiceWorker(state);
-    const focus = vi.fn(async () => ({}));
-    const navigate = vi.fn(async () => ({ focus }));
-    sw.clients.matchAll.mockResolvedValueOnce([{ navigate }] as never);
-    await click(sw);
-    expect(navigate).toHaveBeenCalledWith(URL_);
-    expect(focus).toHaveBeenCalled();
+  /** An open window of the app; `answers`: its page runs useOpenFromNotification. */
+  function openWindow({ answers, navigate }: { answers: boolean; navigate?: () => Promise<unknown> }) {
+    const messages: unknown[] = [];
+    return {
+      messages,
+      focus: vi.fn(async () => Promise.reject(new Error('no user activation'))),
+      navigate: vi.fn(navigate ?? (async () => ({}))),
+      postMessage: vi.fn((message: unknown, ports: MessagePort[]) => {
+        messages.push(message);
+        if (answers) ports[0]!.postMessage('opened');
+      }),
+    };
+  }
 
-    await click(sw); // no window open
-    expect(sw.clients.openWindow).toHaveBeenCalledWith(URL_);
-  });
-
-  it('does not open a second window when only focusing fails after navigating', async () => {
+  it('asks the open page to show the place itself, without navigating it', async () => {
     const sw = loadServiceWorker(state);
-    const navigate = vi.fn(async () => ({ focus: async () => Promise.reject(new Error('no user activation')) }));
-    sw.clients.matchAll.mockResolvedValueOnce([{ navigate }] as never);
+    const window = openWindow({ answers: true });
+    sw.clients.matchAll.mockResolvedValueOnce([window] as never);
     await click(sw);
-    expect(navigate).toHaveBeenCalled();
+    expect(window.focus).toHaveBeenCalled();
+    expect(window.messages).toEqual([{ type: 'open-place', path: '/weather/50.06,19.94' }]);
+    expect(window.navigate).not.toHaveBeenCalled();
     expect(sw.clients.openWindow).not.toHaveBeenCalled();
   });
 
-  it('opens a new window when the open one cannot be navigated', async () => {
+  // An iPhone resumed the app on the page it showed before: the reason for asking the page.
+  it('navigates the window itself when its page does not answer', async () => {
+    vi.useFakeTimers();
+    try {
+      const sw = loadServiceWorker(state);
+      const window = openWindow({ answers: false });
+      sw.clients.matchAll.mockResolvedValueOnce([window] as never);
+      const done = click(sw);
+      await vi.advanceTimersByTimeAsync(1000);
+      await done;
+      expect(window.navigate).toHaveBeenCalledWith(URL_);
+      expect(sw.clients.openWindow).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('opens a new window when none is open, or the open one cannot be navigated', async () => {
     const sw = loadServiceWorker(state);
-    const navigate = vi.fn(async () => {
-      throw new TypeError('not controlled');
-    });
-    sw.clients.matchAll.mockResolvedValueOnce([{ navigate }] as never);
-    await click(sw);
+    await click(sw); // no window open
     expect(sw.clients.openWindow).toHaveBeenCalledWith(URL_);
+
+    // Neither answering nor navigable (no postMessage: an old page, a window not this worker's).
+    const stuck = {
+      focus: vi.fn(async () => ({})),
+      navigate: vi.fn(async () => {
+        throw new TypeError('not controlled');
+      }),
+    };
+    sw.clients.matchAll.mockResolvedValueOnce([stuck] as never);
+    await click(sw);
+    expect(stuck.navigate).toHaveBeenCalled();
+    expect(sw.clients.openWindow).toHaveBeenCalledTimes(2);
   });
 
   it('closes its database connection after reading, so the database can be upgraded later', async () => {

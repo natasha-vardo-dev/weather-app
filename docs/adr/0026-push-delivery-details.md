@@ -76,6 +76,12 @@ The forces:
   service worker, instead of failing on the switch.
 - **The Firebase SDK loads on demand** (~19 KB gzip), never in the main bundle.
 
+- **A tap asks the open page to show the city** (added 2026-11-02): on an iPhone, with the app resumed from the
+  background, `WindowClient.navigate()` left it on the city it showed before (Rhodes stayed open after tapping a
+  warning for Warsaw). The page now gets a message and opens the city with its own router, then confirms; the
+  worker navigates the window only without a confirmation within a second (an older page), and opens a new window
+  last. Not yet seen working on the iPhone itself.
+
 ## Consequences
 
 - Delivery problems surface in the scheduler (a failed run) and in `/api/health/notify` (503), not only in logs.
@@ -90,6 +96,10 @@ The forces:
 
 ## Alternatives considered
 
+- **`WindowClient.navigate()` only** (the first version): standard and enough on a desktop, but it did nothing on an
+  iPhone for a resumed app.
+- **Always a new window (`openWindow`)**: an installed app on a phone would stack copies of itself, or open the browser
+  instead.
 - **Time windows on the warning's `sent` time** (stateless): MeteoAlarm lists a warning minutes after `sent`, so a fixed
   window would miss it.
 - **Dropping a repeated warning on the device:** not possible; Chrome shows its own notification for a push that shows
