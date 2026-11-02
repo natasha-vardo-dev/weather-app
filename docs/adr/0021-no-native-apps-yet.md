@@ -5,8 +5,8 @@
 
 ## Context
 
-The owner asked for iOS and Android apps. What mattered most was warning notifications on phones. On 1 November
-2026 web push was verified end to end ([0011](0011-push-via-fcm-topics.md)) on a desktop (Chrome, Safari, Firefox),
+iOS and Android apps were requested, mainly for warning notifications on phones. Web push works
+end to end ([0011](0011-push-via-fcm-topics.md)) on a desktop (Chrome, Safari, Firefox),
 on Android in a Chrome tab, and on an iPhone from the Home Screen app (iOS 16.4+), together with the scheduler and
 a tap opening the city page. So the site already does on phones what the apps were wanted for.
 
@@ -15,7 +15,7 @@ Native apps would cost:
 - Money: $99 a year for the Apple Developer Program and $25 once for Google Play, a second exception to "free only"
   after [0020](0020-api-on-aws-ec2.md). Without them an Android APK can be installed by hand, but an iOS build runs
   only on the developer's own phone, for 7 days, and without push (push needs the paid program).
-- Work: a second interface (about 20 screens and components, the chart included) with its own tests; the 8 languages
+- Work: a second interface (the screens, components and the chart) with its own tests; the 8 languages
   could be shared ([0016](0016-fewer-languages.md)), as could `@weather/shared` ([0002](0002-monorepo-shared-contract.md)).
 - Server changes for push: an APNs key in Firebase, and `apns`/`android` fields with localization keys, since iOS
   does not show a data-only message while the app is closed (the web keeps data-only messages).
@@ -30,7 +30,7 @@ stores where people look for weather apps, and installation without the iPhone's
 
 - No native apps for now. Phones use the installable site: push in the browser on Android, from the Home Screen on
   iOS (the start page explains it, [0009](0009-offline-pwa.md)).
-- Measure first: the cookie-free analytics in the backlog should show the share of iPhone visitors, how many install
+- Measure first: the cookie-free analytics in the backlog are to show the share of iPhone visitors, how many install
   the site and how many turn notifications on.
 - Reconsider when one of these holds: users ask for widgets; many iPhone visitors but few installs; the stores are
   needed to reach people. Then the plan is React Native with Expo, reusing `shared` and the translations, the API
@@ -41,7 +41,7 @@ stores where people look for weather apps, and installation without the iPhone's
 ## Consequences
 
 - No new costs, no second interface to keep in step, no app versions to support.
-- iPhone users must add the site to the Home Screen themselves to get notifications; some will not.
+- iPhone users must add the site to the Home Screen themselves to get notifications.
 - No widgets, and no listing in the App Store or Google Play.
 - `shared` keeps its rule of running unchanged in React Native, so the door stays open.
 

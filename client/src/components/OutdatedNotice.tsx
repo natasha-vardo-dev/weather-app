@@ -20,10 +20,10 @@ export function OutdatedNotice({ forecast }: { forecast: Forecast | null }) {
   const now = useNow();
   const age = forecast ? forecastAgeMinutes(forecast.current.time, forecast.timezone, now) : 0;
   // The data's own instant, not one rebuilt from the age: that is rounded to the minute, and
-  // with the seconds of now it showed 14:14 for 14:15 half the time. (Found by roborev.)
+  // with the seconds of now it showed 14:14 for 14:15 half the time.
   const instant = forecast ? placeTimeToInstant(forecast.current.time, forecast.timezone) : null;
   // With the day when it is not today: a tab left open overnight would otherwise read
-  // "2:15 PM" for yesterday's. (Found by roborev.)
+  // "2:15 PM" for yesterday's.
   const since =
     forecast && instant !== null && !offline && age > FORECAST_OUTDATED_MINUTES
       ? formatAlertTime(new Date(instant).toISOString(), {

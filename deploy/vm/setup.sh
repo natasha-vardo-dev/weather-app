@@ -3,7 +3,7 @@
 # depends on the provider): swap, firewall, Node 24, Caddy (HTTPS), users, the code, the unit.
 # Safe to run again. Steps around it: docs/deploy-aws.md.
 #
-# Usage: sudo bash setup.sh <api-host>     e.g. sudo bash setup.sh 13-48-1-2.sslip.io
+# Usage: sudo bash setup.sh <api-host>     e.g. sudo bash setup.sh 203-0-113-10.sslip.io
 set -euo pipefail
 
 API_HOST=${1:?usage: sudo bash setup.sh <api-host>}

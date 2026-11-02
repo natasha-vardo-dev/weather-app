@@ -29,7 +29,7 @@ export const OPEN_METEO_LIMITS: ProviderLimits = { perMinute: 600, perHour: 5000
  * the duplicates with the hourly data were dropped; a test checks the adapter's own URL), so
  * counting requests only, the budget would let through more than twice the limit. Requests
  * without variables (geocoding) count as 1. Whether air quality is weighted the same way is
- * not stated; it is counted the same, the safe side. (Found by roborev.)
+ * not stated; it is counted the same, the safe side.
  */
 export function openMeteoWeight(url: URL): number {
   const variables = ['current', 'hourly', 'daily', 'minutely_15']
@@ -128,7 +128,6 @@ class ProviderCounter {
     // A sliding window over minute buckets: the minute the window starts in counts by the share
     // of it still inside. Counting whole buckets only, "the last minute" dropped to zero at each
     // new minute, and a burst across the boundary (400 calls at :50, 400 at :10) never warned.
-    // (Found by roborev.)
     const count = (ms: number, field: 'calls' | 'errors') => {
       const start = now - ms;
       const first = Math.floor(start / MINUTE);
@@ -361,7 +360,7 @@ export function instrumentFetch(
     const where = { provider: name, host: url.host, path: url.pathname };
     // Counted when sent, not when answered: the budget is checked before each call, and calls
     // still under way must count, or a burst near the limit would all pass the check together.
-    // A failure adds an error only. (Found by roborev.)
+    // A failure adds an error only.
     record(true, weigh(url));
     try {
       const response = await fetchFn(input, init);

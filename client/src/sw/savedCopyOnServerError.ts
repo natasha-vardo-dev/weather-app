@@ -14,7 +14,7 @@
  * is older than the route's maxAgeSeconds (a day, `DAY_SECONDS` in vite.config.ts; repeated
  * here, see below), and such copies stay in the cache until its next cleanup. Failing the answer
  * for one of them left the page nothing at all: "Check your internet" instead of the server's
- * own error. (Found by roborev.)
+ * own error.
  *
  * Remembers in Workbox's per-request plugin `state` that the server failed, for
  * `markServerErrorCopy` in the same plugin.

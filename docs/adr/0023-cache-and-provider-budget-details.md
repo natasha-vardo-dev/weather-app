@@ -7,9 +7,8 @@
 
 [0003](0003-in-memory-cache.md) chose an in-memory cache with coalescing and stale data; [0004](0004-provider-limits.md)
 made the free providers' limits requirements. Open-Meteo's free tier (600 calls a minute, 5,000 an hour, 10,000 a day,
-per server IP) is the bottleneck, not our server. Many smaller choices followed, each refined after use and reviews
-(roborev, the production review). This ADR records, after the fact, the reasoning that used to live in
-`architecture.md` (sections "Caching" and "Protecting the provider's limits"), which now describes only how it works.
+per server IP) is the bottleneck, not our server. This record holds the smaller choices that followed; `architecture.md`
+(sections "Caching" and "Protecting the provider's limits") describes only how they work.
 
 ## Decision
 
@@ -34,7 +33,7 @@ per server IP) is the bottleneck, not our server. Many smaller choices followed,
   have no colour because the two indices use different thresholds. Without pollutant data the value is not a button, so
   it never opens an empty box.
 - **Byte budgets, LRU.** A popular city is not evicted before a rare one just because it was stored earlier. Measured
-  as JSON size, so the real memory use is roughly 2–3 times the budget.
+  as JSON size, so the real memory use is higher than the budget.
 - **TTL jitter, shortening only.** Entries stored together (a batch of favourites, the burst after a restart) do not
   all expire, and call the provider, in the same second. Jitter only shortens because a TTL can be a promise to a source
   (MeteoAlarm's 10-minute delay limit).
@@ -55,31 +54,30 @@ per server IP) is the bottleneck, not our server. Many smaller choices followed,
   (each place uses the `/forecast` cache); the gain is requests to our API and its rate limit, and round trips on a
   phone. One failing place does not fail the others.
 - **The city page's own forecast never joins a batch.** In a batch it would wait for the slowest saved city, and the
-  service worker would keep it only inside that batch, not as the city's own copy for offline use (found by roborev).
+  service worker would keep it only inside that batch, not as the city's own copy for offline use.
 - **The service worker splits batches into per-city copies.** Offline, a saved city seen only as a card must still
-  open. The copies are written outside Workbox's expiration bookkeeping, so the same function cleans them up (found by
-  roborev). Unit-tested against the API client's own URLs; checked in a production build: a city opened offline from
+  open. The copies are written outside Workbox's expiration bookkeeping, so the same function cleans them up. Unit-tested against the API client's own URLs; checked in a production build: a city opened offline from
   its card shows its forecast with the offline banner.
 - **Fallback to single requests.** Client and server deploy separately, so the batch endpoint may be missing. On a
   network failure the service worker has a batch only under its exact list of places, which changes with the
   favourites (or the city page went out with the strip), but may have each city's own `/forecast`.
 - **Partial batches are `no-store`, and the service worker honours it,** so one failed city does not replace the last
-  complete copy (found by roborev).
+  complete copy.
 - **Per-IP request limits, generous on purpose.** They stop scripts, not people; an office or a VPN puts many people
   behind one address. Search is 60 because a long tail of queries misses the cache, so search spends quota fastest;
   `/places/*` is 10 because Nominatim allows one call a second for the whole server.
 - **Batches limited by places** (30 × 10 = 300, as many as single forecasts). Under the general limit alone a script
-  sending batches of new places could cause ten times as many provider calls (found by roborev). Worst case one address
+  sending batches of new places could cause ten times as many provider calls. Worst case one address
   reaches 600 places a minute, the provider's minute limit for the whole server; per-IP limits cannot protect that
   against many addresses anyway, which is what the cache, the budget and the 80% warning are for.
 - **The client address comes from the proxy, proven by a secret** ([0005](0005-hosting-same-origin-proxy.md)).
   Trusting `X-Forwarded-For` from anyone would let a client claim a new address per request. Trusting only the proxies
-  in front (`TRUST_PROXY`) was not enough (found by roborev): the API host is public (Render then, the VM now), and a
+  in front (`TRUST_PROXY`) was not enough: the API host is public (Render then, the VM now), and a
   direct call with a forged `X-Forwarded-For` was passed on by the host's proxy. Vercel sets `x-real-ip` and overwrites
   `x-forwarded-for`, so a client cannot fake the address there; `X-Client-IP` with the secret replaces counting proxies
   in `X-Forwarded-For`, whose handling on a forwarded request Vercel does not document. The middleware uses `rewrite`,
   so Vercel's router proxies: a `fetch` of its own would hold each request, and the Edge runtime gives up after about
-  25 s, less than a free Render instance took to wake (found by roborev). Health and `/internal/*` stay open because
+  25 s, less than a free Render instance took to wake. Health and `/internal/*` stay open because
   monitors and the scheduler call them directly. Without the variable nothing changes until it is set on both sides.
 - **Provider calls per address** (`LoadLimiter`). Request limits count requests, not their cost: within them one address
   could ask for ~300 new places a minute (coordinates a hundredth of a degree apart all miss the cache) and spend the
@@ -92,8 +90,7 @@ per server IP) is the bottleneck, not our server. Many smaller choices followed,
 - **Empty coordinates are 400.** `z.coerce.number()` alone read them as 0, a place in the Gulf of Guinea, a provider
   call each.
 - **A server-wide budget in Open-Meteo's own units.** A request with more than 10 variables or 2 weeks counts as several
-  calls (Open-Meteo's pricing FAQ); counted per request, the budget would have allowed more than twice the limit (found
-  by roborev). Per-IP limits stop one address, not many or a crowd of real users. Refusing at 90% leaves 10% for calls
+  calls (Open-Meteo's pricing FAQ); counted per request, the budget would have allowed more than twice the limit. Per-IP limits stop one address, not many or a crowd of real users. Refusing at 90% leaves 10% for calls
   already under way. `503 SERVICE_BUSY`, not `RATE_LIMITED`, whose text blames the user's network. ipwho.is gets a cap
   of our own because it only asks for "low traffic"; Nominatim's queue already enforces its limit.
 - **Fewer forecast variables.** "Now" no longer asks again for what the hourly data has (humidity, wind and gusts are

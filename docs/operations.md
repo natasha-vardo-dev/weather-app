@@ -1,7 +1,7 @@
 # Operations
 
-How the running app is watched, and what to do when an alert comes. Deployment itself is in the
-[README](../README.md#deployment).
+How the running app is watched, and what to do when an alert comes. Deployment itself is in
+[deploy-aws.md](deploy-aws.md).
 
 ## Uptime monitoring and alerts
 
@@ -49,8 +49,8 @@ zero-spend budget only warns of charges after an upgrade.
 - **Quota:** the body names the provider, window (`perMinute`, `perHour`, `perDay`) and share used. At 90% the server
   itself refuses new calls to that provider (cached answers still go out, the rest gets `503 SERVICE_BUSY`), so the
   alert is the time to look: `GET /api/internal/metrics` with `Authorization: Bearer <METRICS_SECRET>` shows cache hit
-  rates and calls per provider. A per-minute alert usually clears by itself; a daily one that repeats means the app has
-  outgrown the free tier (see [ADR 0004](adr/0004-provider-limits.md)).
+  rates and calls per provider. A per-minute alert ends when the minute window moves on; a daily one that repeats means the daily
+  limit is reached (see [ADR 0004](adr/0004-provider-limits.md)).
 
 With push configured, the quota counters are saved to Firestore once a minute and restored at start
 ([ADR 0018](adr/0018-durable-operational-state.md)), so a restart loses at most a minute of counts. Without Firebase they
@@ -63,11 +63,11 @@ The start's log line `operational state store` says which (`"store":"firestore"`
   - `feedsFailed` lists the same countries for long: MeteoAlarm's feed for them is down or changed (open
     `https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-<country>`); warnings there are not pushed meanwhile;
   - `lastRejectedAt` within the last 30 minutes: FCM refused messages for good (log line `FCM refused messages for good` names the warning);
-    usually a payload problem, a code fix;
+    a payload problem, fixed in code;
   - `lastError` says `lease lost mid-run`: a run outlived its lease (stalled sending) and another instance took over;
     it sends what is left, nothing to do unless it repeats (then FCM or Firestore is slow: their status pages);
   - `PERMISSION_DENIED` or `NOT_FOUND` from Firestore in the log: the database is not created or the service account
-    lacks **Cloud Datastore User** (README, "Deployment"). Runs fail until fixed, rather than forgetting what was sent.
+    lacks **Cloud Datastore User** ([CONTRIBUTING, "Push notifications"](../CONTRIBUTING.md#push-notifications-optional)). Runs fail until fixed, rather than forgetting what was sent.
 
 A server refusing to start with `Invalid configuration:` lists every setting to fix (`server/src/config.ts`) in
 `journalctl -u weather-api`. `deploy.sh` switches back to the previous build by itself when the new one does not
@@ -86,20 +86,20 @@ through the server's adapters; GitHub emails a failed scheduled run. The log nam
   warnings are neither shown nor pushed meanwhile. One country failing is not reported here; the notify monitor
   catches it when it lasts.
 - **skipped** (HTTP 429): the runner's shared address was over Open-Meteo's limit, nothing to do; run it again by hand
-  later if in doubt. Our own server is not affected.
+  later. Our own server is not affected.
 
 Locally: `npm run providers:check -w server`.
 
 ## Notification scheduler
 
-[cron-job.org](https://cron-job.org) calls `POST /api/internal/alerts/notify` every 5 minutes (see the README). In the
+[cron-job.org](https://cron-job.org) calls `POST /api/internal/alerts/notify` every 5 minutes ([CONTRIBUTING, "Push notifications"](../CONTRIBUTING.md#push-notifications-optional)). In the
 job's settings, turn on "Notify on failure", so a failing run (FCM failing, every feed down, the state store
 unavailable, the API down) reaches the same inbox. A run where only some feeds failed or FCM refused messages for good
 answers 200 (the rest was sent); the notify monitor catches those when they last.
 
 To tell whether push itself works (after a Firebase update, or when nobody gets notifications while warnings are in
-force), send a test notification to your own device: `npm run push:test -w server -- --token <token>` (README, "Push
-notifications"). It goes through FCM, not through the scheduler or the API.
+force), send a test notification to your own device: `npm run push:test -w server -- --token <token>`
+([CONTRIBUTING, "Push notifications"](../CONTRIBUTING.md#push-notifications-optional)). It goes through FCM, not through the scheduler or the API.
 
 ## Request budget of an open page
 
@@ -125,6 +125,17 @@ in Google Cloud Console → IAM → Service accounts → Keys; the service accou
 Admin** and **Cloud Datastore User**, nothing project-wide. On the VM they are in `/etc/weather-api.env` (root only); after editing it,
 `sudo systemctl restart weather-api`. Logs never print a secret; journald on the VM keeps them 14 days (setup.sh; the privacy
 policy states it), and only users with SSH access to the VM can read them.
+
+## Security reports
+
+[SECURITY.md](../SECURITY.md) points reporters to GitHub's private vulnerability reporting, which must be turned on
+once in the repository's settings (Code security → Private vulnerability reporting); reports arrive under the Security
+tab and email the owner. Answer within 7 days, fix and deploy before the advisory is published, then rotate any secret
+the report touched (above).
+
+## Dependency updates
+
+Dependabot (`.github/dependabot.yml`) opens weekly pull requests into `main` ([ADR 0032](adr/0032-dependabot-into-main.md)): minor and patch updates grouped (production and development apart), each major version alone, Firebase alone (its tests use a fake, so check push notifications live before merging), GitHub Actions monthly. CI also runs every Monday with no change at all, so a newly published vulnerability (the production audit fails on high ones) or a test that depends on the date shows up anyway. In the repository's settings (Code security), turn on Dependabot alerts and security updates: those pull requests come as soon as an advisory is out. Not automated: the Node version in `.nvmrc` (once a year, at a new LTS) and the `@grpc/grpc-js` override in `package.json` (drop it once `firebase` updates grpc itself).
 
 ## Dependency audit
 

@@ -5,10 +5,8 @@
 
 ## Context
 
-[ADR 0009](0009-offline-pwa.md) chose an installable app that shows the last forecast offline. Many smaller choices
-followed, each after a concrete failure, mostly found in code review with roborev. This ADR records, after the fact,
-the reasoning that used to live in `docs/architecture.md` ("Installable app (PWA)"); that section now describes only
-how the parts work.
+[ADR 0009](0009-offline-pwa.md) chose an installable app that shows the last forecast offline. This record holds the
+smaller choices that followed; `docs/architecture.md` ("Installable app (PWA)") describes only how the parts work.
 
 ## Decision
 
@@ -19,7 +17,7 @@ how the parts work.
   `Cache-Control` and the in-memory caches decide freshness as without a service worker. The saved copy is only a
   fallback.
 - **A 6-second network timeout:** without it, a stalled request on a weak signal hung for tens of seconds before the
-  copy showed (found by roborev). 6 seconds is above a normal slow-3G answer, so a working network still wins. The same
+  copy showed. 6 seconds is above a normal slow-3G answer, so a working network still wins. The same
   timeout covers a backend that is slow or restarting: returning users see their last forecast with the banner after 6
   seconds instead of a skeleton; new users wait as before.
 - **A server error counts as a failed network when a saved copy exists:** with the API down, the site's proxy answers
@@ -47,7 +45,7 @@ how the parts work.
   stays open, or a tab that is only reloaded, kept the old code and the API version it calls indefinitely (found while
   moving the API to `/api/v1`).
 - **Privacy policy opened with a full page load:** its lazily loaded chunk may be gone after a deploy; a full load
-  always brings the current build (found by roborev). The Firebase chunk keeps the same risk; the panel shows its
+  always brings the current build. The Firebase chunk keeps the same risk; the panel shows its
   usual error and a reload fixes it.
 - **An install hint on iOS only:** Chrome, Edge and Android offer installation themselves; iOS never does, so users
   would not know the app can go on the Home Screen. Every iOS browser can add to the Home Screen from Share since iOS
@@ -83,9 +81,8 @@ how the parts work.
   at the worst moment, and racy; the service worker already knows why it used the copy.
 - **One neutral text for both** ("Showing the last loaded forecast…" without a cause): true in both cases but tells
   the offline user nothing to do, the common case on phones.
-- **Banner from `navigator.onLine` only** (first version): no warning on Wi-Fi without internet (found by roborev).
-- **One global flag set by the last response** (second version): a parallel fresh answer hid an old forecast (found
-  by roborev).
+- **Banner from `navigator.onLine` only** (first version): no warning on Wi-Fi without internet.
+- **One global flag set by the last response** (second version): a parallel fresh answer hid an old forecast.
 - **Tracking cached URLs** (third version): the warning outlived old data no longer shown; a known trade-off, replaced
   by tying the banner to what is on screen.
 - **A per-forecast "updated at" stamp:** a second state in every view.

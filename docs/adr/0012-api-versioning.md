@@ -25,7 +25,7 @@ the fix was to move the endpoint.
 
 ## Consequences
 
-- More generated and checked files; the oasdiff step has not run yet (no pull request since it was added).
+- More generated and checked files.
 
 ## Alternatives considered
 

@@ -8,10 +8,9 @@
 The API is one small instance on a VM ([0020](0020-api-on-aws-ec2.md)) with no paid monitoring, behind a Vercel proxy
 ([0005](0005-hosting-same-origin-proxy.md)), for a European audience under the GDPR
 ([0017](0017-privacy-policy-and-own-font.md)). It fetches data from several external providers and pushes through
-Firebase. Many smaller choices about logs, metrics, health checks, configuration, outbound requests, provider answers,
-push limits, shutdown, browser errors and security headers were made and refined after reviews (roborev, the production
-review). This ADR records, after the fact, the reasoning that used to live in `architecture.md` (sections
-"Observability", "Privacy" and "Reliability and security"), which now describes only how it works.
+Firebase. This record holds the smaller choices about logs, metrics, health checks, configuration, outbound requests,
+provider answers, push limits, shutdown, browser errors and security headers; `architecture.md` (sections
+"Observability", "Privacy" and "Reliability and security") describes only how they work.
 
 ## Decision
 
@@ -26,7 +25,7 @@ review). This ADR records, after the fact, the reasoning that used to live in `a
 - **Health does not call the provider.** An Open-Meteo outage is not a reason to restart an instance that still serves
   cached forecasts.
 - **Health reports `proxied`.** Health itself stays open, so a plain status check would not notice that the secrets
-  differ on Vercel and the VM; the uptime monitor calls it through the site and does (found by roborev).
+  differ on Vercel and the VM; the uptime monitor calls it through the site and does.
 - **A privacy policy that follows the code.** It describes what the code does, so it changes with it. The service
   worker's cache of the last forecasts and place names is a record of places viewed, so the policy lists it. The
   server calls Open-Meteo and Nominatim as itself, so those never see the user. The log retention (14 days) is set
@@ -35,7 +34,7 @@ review). This ADR records, after the fact, the reasoning that used to live in `a
   protect the address: all IPv4 addresses can be hashed.
 - **Push tokens are not stored;** only a SHA-256 for an hour, to limit changes per device.
 - **Configuration fails closed in production.** An instance that does not start is noticed at once; one serving without
-  its proxy check is not (found by the production review: with no secret and `TRUST_PROXY` counting proxies, a forged
+  its proxy check is not (with no secret and `TRUST_PROXY` counting proxies, a forged
   `X-Forwarded-For` got a fresh rate limit per request). Firebase without `ALERTS_NOTIFY_SECRET` is refused because
   devices could subscribe and nothing would ever be sent. No `CORS_ORIGIN` is needed in production: the site calls the
   API through its own origin. Problems are listed all at once, never with a secret's value.
@@ -63,7 +62,7 @@ review). This ADR records, after the fact, the reasoning that used to live in `a
   way fits inside systemd's 30 s.
 - **Error boundaries at two levels.** A render error no longer leaves a blank screen and the header keeps working. The
   outer boundary's message is plain English because the providers themselves may be what failed.
-- **Browser errors to our own endpoint, not Sentry** (the owner's choice, [0014](0014-client-error-reporting.md)):
+- **Browser errors to our own endpoint, not Sentry** ([0014](0014-client-error-reporting.md)):
   nothing leaves our hosts. The path has places replaced because a link to a place without an id holds its coordinates.
 - **Security headers in one file, also served by `vite preview`,** so the end-to-end tests run under the real policy;
   failing on any console error makes every scenario check the policy.

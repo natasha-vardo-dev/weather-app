@@ -5,7 +5,7 @@
 
 ## Context
 
-A production review (31 October 2026) found that two kinds of server state change behaviour when they are lost:
+Two kinds of server state change behaviour when they are lost:
 
 - **What the notifier has sent.** Kept in memory, it was lost on every restart and deploy. The first run after a
   start recorded the warnings in force without pushing them, so a warning issued while the server was down (a deploy,
@@ -27,8 +27,7 @@ A small `StateStore` (`server/src/services/stateStore.ts`): JSON documents by na
   sent and after every run, even a failed one, so a run cut by a deploy has recorded what it sent. Every run, not once
   per process: during a deploy two instances can take turns, and one working from its own memory would push again
   what the other sent. Merged, not replaced: after a failed save, memory holds what this instance sent and the store
-  does not, and the store may meanwhile hold what the other instance sent; replacing either way pushes something again
-  (both found by roborev). Entries leave only when their warning expires, so a union loses nothing. If reading fails,
+  does not, and the store may meanwhile hold what the other instance sent; replacing either way pushes something again. Entries leave only when their warning expires, so a union loses nothing. If reading fails,
   the run fails: starting empty would warm up silently and then overwrite what was saved. Unreadable saved state
   (another version, a damaged document) is ignored with a warning; a fresh process then warms up once, and its next
   save replaces the document.
@@ -36,8 +35,7 @@ A small `StateStore` (`server/src/services/stateStore.ts`): JSON documents by na
   does not hold it skips the run.
 - Provider usage (the per-minute buckets of the last day) is added back at start, then saved once a minute and at
   shutdown (awaited, at most 5 seconds, before the process exits). Nothing is saved until the saved counts were read
-  back, retried every minute: a save before that would replace the last day's counts with the few since the start
-  (found by roborev).
+  back, retried every minute: a save before that would replace the last day's counts with the few since the start.
 - Nothing about users is stored: warning identifiers, times, counts. Tokens stay in FCM's topics (ADR 0011).
 
 ## Consequences
@@ -45,7 +43,7 @@ A small `StateStore` (`server/src/services/stateStore.ts`): JSON documents by na
 - Warnings issued while the server was down are pushed on the next run; nothing is pushed twice after a restart.
 - A restart no longer resets the provider budget.
 - Firestore must be created in the Firebase project, and the service account needs the **Cloud Datastore User** role
-  (README, "Deployment"). Verified live 2026-11-01 (`/api/health/notify` reports `"store":"firestore"`).
+  ([CONTRIBUTING, "Push notifications"](../../CONTRIBUTING.md#push-notifications-optional)). `/api/health/notify` reports which store is in use (`"store":"firestore"`).
 - About 2,600 writes (plus one per warning pushed) and 900 reads a day, within Firestore's free tier (20,000 writes, 50,000 reads).
 - Rate limits per IP are still per instance and in memory: during a deploy's overlap each instance counts on its own.
   Acceptable with one instance; several instances would need a shared store (Redis, backlog).

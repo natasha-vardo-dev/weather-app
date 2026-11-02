@@ -25,7 +25,7 @@ attribution and at most 10 minutes of delay.
 
 ## Consequences
 
-- Warnings only in Europe (not Belarus, Russia and a few others); the next source would be NWS for the US.
+- Warnings only in Europe (not Belarus, Russia and a few others).
 - The border file must be rebuilt when MeteoAlarm publishes a new one.
 - About 25 MB of memory once the borders are loaded.
 

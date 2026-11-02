@@ -1,5 +1,5 @@
-# Weekly dependency updates as pull requests into dev, where work happens (by default they
-# would go to main). CI runs on each: tests, e2e, the production audit.
+# Weekly dependency updates as pull requests into main, the default branch, so CI checks them
+# against the code that is deployed: tests, e2e, the production audit (ADR 0032).
 #
 # Grouped, or there would be a pull request per package (about a hundred): minor and patch
 # updates come together, production and development apart; a major version comes alone,
@@ -14,7 +14,6 @@ version: 2
 updates:
   - package-ecosystem: npm
     directory: /
-    target-branch: dev
     schedule:
       interval: weekly
       day: monday
@@ -43,7 +42,6 @@ updates:
 
   - package-ecosystem: github-actions
     directory: /
-    target-branch: dev
     schedule:
       interval: monthly
     labels: [dependencies]

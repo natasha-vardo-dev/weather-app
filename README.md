@@ -1,36 +1,47 @@
 # Weather Forecast App
 
-A web application that shows the current weather and a 10-day forecast for a selected city.
+[![CI](https://github.com/natasha-vardo-dev/weather-app/actions/workflows/ci.yml/badge.svg)](https://github.com/natasha-vardo-dev/weather-app/actions/workflows/ci.yml)
+[![Providers](https://github.com/natasha-vardo-dev/weather-app/actions/workflows/providers.yml/badge.svg)](https://github.com/natasha-vardo-dev/weather-app/actions/workflows/providers.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Live demo:** [link to deployed app]
+Current weather, the next 24 hours and a 10-day forecast for any place, with official European weather warnings, in 8
+languages, installable and usable offline.
+
+**Live demo:** <https://weather-app-three-rho-21.vercel.app>
+
+<p>
+  <img src="docs/images/city-desktop.png" alt="The Warsaw page on a desktop: current weather, next 24 hours and 10 days" width="68%">
+  <img src="docs/images/city-phone-dark.png" alt="The same page on a phone in the dark theme" width="24%">
+</p>
 
 ## Features
 
-- City search with autocomplete and keyboard navigation
-- Shareable links for each place, the same in every language, e.g. `/weather/756135-warsaw` (a place without a city, found by location: `/weather/52.25,21.05?name=…`); back/forward and refresh work
-- Current conditions: temperature, condition, feels like, high and low; the hourly strip shows the chance of rain in likely hours, and sunrise and sunset
-- Details as tiles below the 10-day forecast, each with a short explanation: precipitation (chance, millimetres in the next 24 hours), wind (direction, gusts), humidity (dew point and how the air feels), air quality (European AQI for places in Europe, US AQI elsewhere), UV index (WHO level, when sun protection is needed), sunrise and sunset (whichever comes next), pressure (rising or falling in the next 3 hours), visibility. Tiles with hourly data open below the grid: a 24-hour chart (precipitation, wind, humidity, UV, pressure) or the pollutants (PM2.5, PM10, ozone, NO₂) as bars against the WHO daily guidelines
-- 10-day forecast with temperature range bars and rain probability
-- Favourite cities (up to 10), saved in the browser: shown as cards with current weather, condition and today's high/low on the start page, and as a strip of tiles on city pages
-- Loading, empty and error states with retry
-- 8 interface languages (English, German, French, Spanish, Italian, Polish, Ukrainian, Russian), picked from the system language by default, with a switcher; dates, times, numbers and units follow the locale
-- °C or °F: Fahrenheit by default only when both the browser locale and the time zone are of the US or a few other regions, Celsius otherwise; a switcher in the header remembers the choice
-- Weather for your location: a crosshair in the search field (the browser asks for permission only when it is pressed). If the browser can't tell the position, the message offers "Try again" and the city guessed from the IP address ("Looks like you're in Warsaw"), marked as approximate. Place names come from OpenStreetMap
-- Push notifications about storms (optional, needs a free Firebase project): a bell on the city page turns them on for that place; one notification per warning, a closed one does not come back, only a raised level notifies again
-- Installable as an app (PWA): opens offline with the last loaded forecasts and a banner saying they may be out of date; on iPhone and iPad the start page explains how to add it to the Home Screen
-- Official weather warnings in Europe (national weather services via MeteoAlarm): level, type and when on the city page, the issuer's own text on demand
-- Responsive layout, light/dark mode, accessible combobox
-- Privacy: no accounts, cookies, analytics or ads; the font is served from the site, not Google Fonts; a privacy policy at `/privacy` (linked in the footer) says what goes where ([docs/architecture.md](docs/architecture.md#privacy))
+- City search with autocomplete and keyboard navigation; shareable links that are the same in every language
+  (`/weather/756135-warsaw`)
+- Current conditions, an hourly strip with the chance of rain, a 10-day forecast with temperature range bars
+- Detail tiles with 24-hour charts: precipitation, wind, humidity, air quality, UV, sunrise and sunset, pressure,
+  visibility
+- Official weather warnings for Europe (MeteoAlarm), in the issuer's own words
+- Push notifications about warnings for chosen places (optional, Firebase)
+- Up to 10 favourite cities, saved in the browser
+- Weather at your location, with a city guessed from the IP address as a fallback
+- 8 languages (en, de, fr, es, it, pl, uk, ru); °C or °F; light and dark themes
+- Installable PWA that opens offline with the last loaded forecasts
+- Accessible (WCAG 2.1 AA checked by axe) and private: no accounts, cookies, analytics or ads; a policy at `/privacy`
 
 ## Tech stack
 
-| Layer    | Technology                                                                                |
-| -------- | ----------------------------------------------------------------------------------------- |
-| Frontend | React 19, React Router 8, TypeScript, Vite 8                                              |
-| Backend  | Node.js 24, Express 5, TypeScript, Zod                                                    |
-| Weather  | Open-Meteo (forecast + geocoding)                                                         |
-| Testing  | Vitest, Testing Library, Supertest, Playwright, axe-core, ESLint, Prettier                |
-| CI       | GitHub Actions (audit, format, lint, typecheck, test, build; e2e), weekly too; Dependabot |
+| Layer    | Technology                                                                                    |
+| -------- | --------------------------------------------------------------------------------------------- |
+| Frontend | React 19, React Router 8, TypeScript, Vite 8, Workbox (PWA)                                   |
+| Backend  | Node.js 24, Express 5, TypeScript, Zod                                                        |
+| Data     | Open-Meteo (forecast, air quality, search), MeteoAlarm, Nominatim, ipwho.is                   |
+| Push     | Firebase Cloud Messaging, Firestore (operational state), cron-job.org (scheduler)             |
+| Hosting  | Vercel (site and `/api` proxy), AWS EC2 (API under systemd behind Caddy)                      |
+| Quality  | Vitest, Testing Library, Supertest, Playwright, axe-core, ESLint, Prettier; GitHub Actions CI |
+
+Data sources are credited where their terms ask: Open-Meteo and © OpenStreetMap in the footer, MeteoAlarm under the
+warnings ([ADR 0004](docs/adr/0004-provider-limits.md)).
 
 ## Architecture
 
@@ -41,22 +52,31 @@ flowchart LR
   api --> fcm[("Firebase: push, state")] --> browser
 ```
 
-How each part works, with the full diagrams and the [key parameters](docs/architecture.md#key-parameters):
-[docs/architecture.md](docs/architecture.md). Why it is so, and what was rejected: [docs/adr/](docs/adr/README.md).
-First change: [CONTRIBUTING.md](CONTRIBUTING.md).
+The browser talks only to our API (backend for frontend), which caches provider answers and guards their free limits.
+
+| Read                                         | For                                             |
+| -------------------------------------------- | ----------------------------------------------- |
+| [docs/architecture.md](docs/architecture.md) | how each part works, and the key parameters     |
+| [docs/adr/](docs/adr/README.md)              | why it is built this way, and what was rejected |
+| [CONTRIBUTING.md](CONTRIBUTING.md)           | set-up, checks, code rules, push set-up         |
+| [docs/operations.md](docs/operations.md)     | monitoring, alerts, secrets, dependency updates |
+| [docs/deploy-aws.md](docs/deploy-aws.md)     | deploying the API, updates and rollback         |
+| [docs/backlog.md](docs/backlog.md)           | what comes next, in order                       |
+| [SECURITY.md](SECURITY.md)                   | reporting a vulnerability                       |
 
 ## Project structure
 
 ```
 packages/shared/   API contract and shared logic (@weather/shared)
-server/            Express BFF: routes → services → providers
-client/            React web app
-docs/              Architecture notes
+server/            Express API: routes → services → providers
+client/            React web app, service worker, Vercel middleware; e2e tests in client/e2e
+deploy/vm/         The API's VM: setup.sh, deploy.sh, systemd unit
+docs/              architecture, decision records, operations, deployment, openapi.json
 ```
 
 ## Getting started
 
-Requires Node.js 24 (24.22.2 or later, below 25: `engines` in `package.json`, and npm warns otherwise; `.nvmrc` pins the major version, so `nvm use` picks it). CI reads the same `.nvmrc` and installs the latest 24.x; on the VM Node 24 comes from NodeSource's apt repository, which `deploy/vm/setup.sh` adds to Ubuntu's automatic updates (with Caddy's), restarting the API after an upgrade; the server logs its `process.version` at start (`API listening`) to check what runs.
+Requires Node.js 24.22.2 or later, below 25 (`.nvmrc`; `nvm use`).
 
 ```bash
 npm install
@@ -67,103 +87,116 @@ npm run dev
 - Frontend: http://localhost:5173
 - API: http://localhost:3001/api/health
 
-The API restarts when its code changes (`tsx watch`), and for that moment the frontend gets `502 Bad Gateway` from Vite's proxy for API calls (`http proxy error` in the terminal): reload, nothing is broken. Builds of `@weather/shared` that change nothing (`npm test` and `npm run typecheck` build it first) no longer cause a restart: the build is incremental and writes nothing then.
+Push notifications are optional and need a free Firebase project:
+[CONTRIBUTING.md](CONTRIBUTING.md#push-notifications-optional).
 
-### Push notifications (optional)
+### Configuration
 
-Free: Firebase Cloud Messaging keeps the subscriptions (topics), an external scheduler runs the check, and Firestore in the same project keeps what was sent ([ADR 0018](docs/adr/0018-durable-operational-state.md)).
+The server reads `server/.env` (on the VM `/etc/weather-api.env`); every setting is explained in
+[`server/.env.example`](server/.env.example). In production the server refuses to start with a missing or unsafe one.
 
-1. Create a project in the [Firebase Console](https://console.firebase.google.com) (free Spark plan) and add a web app.
-2. Client (`client/.env`, see `client/.env.example`): the web app's config and the Web Push key (Project settings → Cloud Messaging → Web Push certificates). Public values.
-3. Server (`server/.env`): `FIREBASE_SERVICE_ACCOUNT` (Project settings → Service accounts → Generate new private key; the JSON as one line or base64) and `ALERTS_NOTIFY_SECRET` (a long random string). Secrets: never commit them.
-   Then give that service account (`firebase-adminsdk-…@<project>.iam.gserviceaccount.com`) the roles **Firebase Cloud Messaging API Admin** and **Cloud Datastore User** in the Google Cloud Console (IAM → edit the account → Add another role). `firebase-admin` 14 manages topic subscriptions through the FCM v1 API, which needs the first; without it, turning notifications on or off fails with a 502. The second lets the server keep its state in Firestore.
-   Create the Firestore database: Firebase Console → Build → Firestore Database → Create database, production mode, a European location (no client reads it; the default rules that deny everything are right, the server's service account is not bound by them). Without it every notifier run fails (visible in the scheduler and on `/api/health/notify`) instead of forgetting what was sent.
-4. After deploying: a job on [cron-job.org](https://cron-job.org) every 5 minutes, `POST https://<api>/api/internal/alerts/notify` with the header `Authorization: Bearer <ALERTS_NOTIFY_SECRET>`.
+| Variable                                           | Required    | What                                                                                                             |
+| -------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| `PORT`, `LISTEN_HOST`                              | no          | `3001`; all interfaces, `127.0.0.1` behind Caddy                                                                 |
+| `CORS_ORIGIN`                                      | no          | origins allowed in development, default `http://localhost:5173`; unset in production (same origin via the proxy) |
+| `FORECAST_CACHE_TTL`                               | no          | seconds a forecast is cached, `900`                                                                              |
+| `NOMINATIM_USER_AGENT`                             | no          | identifies the app to Nominatim, as its policy requires; the default names this repository, a fork sets its own  |
+| `PROXY_SECRET`                                     | production  | shared with the Vercel middleware; requests without it get 404                                                   |
+| `TRUST_PROXY`                                      | production  | proxies in front that set `X-Forwarded-For` (`1` on the VM)                                                      |
+| `IP_SELF_LOOKUP`                                   | development | look up this machine's own address for the approximate location; never in production                             |
+| `FIREBASE_SERVICE_ACCOUNT`, `ALERTS_NOTIFY_SECRET` | with push   | the Firebase key (JSON or base64) and the scheduler's bearer secret                                              |
+| `METRICS_SECRET`                                   | no          | enables `GET /api/internal/metrics`                                                                              |
+| `LOG_LEVEL`                                        | no          | `info`; `debug` logs every provider call                                                                         |
 
-Notifications need the production build (the service worker is off in `npm run dev`): `npm run build && npm run preview -w client`. On iPhone they work only from the app added to the Home Screen (iOS 16.4+).
-
-To check delivery without waiting for a real warning, send a test one ("Test warning", gone in an hour) with the server's `FIREBASE_SERVICE_ACCOUNT` from `server/.env`, which must be of the same Firebase project as the site:
-
-```bash
-npm run push:test -w server -- --token <token>          # one device; its token, in the page's console after turning the bell on:
-                                                        # JSON.parse(localStorage.getItem('alert-notifications:v1')).token
-npm run push:test -w server -- 52.23 21.01 --dry-run    # the place's areas and topics, nothing sent
-npm run push:test -w server -- 52.23 21.01 --everyone   # every device subscribed to that place, real users included
-```
-
-The token mode checks FCM and the service worker; the topic mode also checks the subscription itself (the only way on an iPhone, which has no console), but reaches everyone subscribed there.
-
-### Dependencies
-
-Dependabot (`.github/dependabot.yml`) opens weekly pull requests into `dev`: minor and patch updates grouped (production and development apart), each major version alone, Firebase alone (its tests use a fake, so check push notifications live before merging), GitHub Actions monthly. CI also runs every Monday with no change at all, so a newly published vulnerability (the production audit fails on high ones) or a test that depends on the date shows up anyway. In the repository's settings (Code security), turn on Dependabot alerts and security updates: those pull requests come as soon as an advisory is out. Not automated: the Node version in `.nvmrc` (once a year, at a new LTS) and the `@grpc/grpc-js` override in `package.json` (drop it once `firebase` updates grpc itself).
-
-### Other commands
+The site: `VITE_FIREBASE_*` (public, only with push) and `VITE_API_URL` (empty: same origin) in `client/.env`
+([`client/.env.example`](client/.env.example)); on Vercel also `API_ORIGIN` and `PROXY_SECRET` for the proxy
+([docs/deploy-aws.md](docs/deploy-aws.md#6-the-site-and-the-scheduler)).
 
 ```bash
 npm test           # unit and component tests
-npm run test:e2e   # Playwright in Chromium, with axe accessibility checks (first: npx playwright install chromium)
-npm run lint       # ESLint, including React hook rules
-npm run format     # Prettier (CI runs format:check)
-npm run typecheck  # TypeScript checks
-npm run openapi    # regenerate docs/openapi.json after changing the API's schemas
-npm run build      # production build
-npm run providers:check -w server   # the real Open-Meteo and MeteoAlarm still read (daily in CI, docs/operations.md)
+npm run test:e2e   # Playwright + axe on the production build (first: npx playwright install chromium)
+npm run lint
+npm run typecheck
+npm run build
 ```
 
 ## API
 
-The contract is versioned in the path (`/api/v1`); health and internal endpoints are not part of it and have no version. Within a version only compatible changes are made: an optional field or a new endpoint. Anything that breaks a client (a field removed, renamed or retyped, a required one added) goes into a new version, served next to the old one until nobody calls it. The OpenAPI description, [`docs/openapi.json`](docs/openapi.json), is generated from the zod schemas in `@weather/shared` (`npm run openapi`); CI fails if it is out of date and, on pull requests, if it has a breaking change within the same version. Details: [architecture notes](docs/architecture.md#api-versions).
+Versioned in the path (`/api/v1`); within a version only compatible changes are made. The full description is
+[`docs/openapi.json`](docs/openapi.json) ([browse it](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/natasha-vardo-dev/weather-app/main/docs/openapi.json)), generated from the Zod schemas in `@weather/shared`
+([details](docs/architecture.md#api-versions)).
 
-| Method | Endpoint                                             | Description                                                                                                                    |
-| ------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| GET    | `/api/v1/locations?q=warsaw&limit=5`                 | Search cities                                                                                                                  |
-| GET    | `/api/v1/locations/756135?lang=ru`                   | One place by id, names in a language                                                                                           |
-| GET    | `/api/v1/forecast?lat=52.23&lon=21.01&days=10`       | Current weather, next 24 hours, yesterday and daily forecast                                                                   |
-| GET    | `/api/v1/forecasts?places=52.23,21.01;50.06,19.94`   | Forecasts for up to 10 places at once (saved cities); each item is a forecast or an error                                      |
-| GET    | `/api/v1/air-quality?lat=52.23&lon=21.01`            | Current air quality (European and US AQI)                                                                                      |
-| GET    | `/api/v1/alerts?lat=54.21&lon=21.74&lang=pl`         | Official weather warnings in force or announced at a place (Europe, MeteoAlarm), texts in the language where the issuer has it |
-| GET    | `/api/v1/places/approximate?lang=ru`                 | The user's city guessed from their IP address (fallback when the browser can't locate them); never cached                      |
-| GET    | `/api/v1/places/reverse?lat=52.25&lon=21.05&lang=ru` | The place at the user's location: the city with its coordinates and id (as from search), named via OpenStreetMap Nominatim     |
-| POST   | `/api/v1/push/topics`                                | Subscribe or unsubscribe a device's push token to warnings for a place (only with Firebase configured)                         |
-| POST   | `/api/internal/alerts/notify`                        | Push new warnings; called every 5 minutes by an external scheduler, needs `Authorization: Bearer <ALERTS_NOTIFY_SECRET>`       |
-| GET    | `/api/health`                                        | Health check: the process answers (does not call the weather provider)                                                         |
-| GET    | `/api/health/quota`                                  | 503 while a provider limit is used to 80% or more (for an uptime monitor)                                                      |
-| GET    | `/api/health/notify`                                 | 503 when no notifier run has fully succeeded for 30 minutes (only with Firebase configured; for an uptime monitor)             |
-| GET    | `/api/internal/metrics`                              | Cache hit rates, provider calls against their limits, rate-limited requests; needs `Authorization: Bearer <METRICS_SECRET>`    |
+| Method | Endpoint                                                 | Description                                        |
+| ------ | -------------------------------------------------------- | -------------------------------------------------- |
+| GET    | `/api/v1/locations?q=warsaw&limit=5`                     | Search places                                      |
+| GET    | `/api/v1/locations/756135?lang=ru`                       | One place by id, named in a language               |
+| GET    | `/api/v1/forecast?lat=52.23&lon=21.01&days=10`           | Current weather, next 24 hours, yesterday and days |
+| GET    | `/api/v1/forecasts?places=52.23,21.01;50.06,19.94`       | Forecasts for up to 10 places at once              |
+| GET    | `/api/v1/air-quality?lat=52.23&lon=21.01`                | Current air quality (European and US AQI)          |
+| GET    | `/api/v1/alerts?lat=54.21&lon=21.74&lang=pl`             | Official warnings at a place (Europe, MeteoAlarm)  |
+| GET    | `/api/v1/places/approximate?lang=ru`                     | The user's city guessed from their IP address      |
+| GET    | `/api/v1/places/reverse?lat=52.25&lon=21.05&lang=ru`     | The place at the user's location                   |
+| POST   | `/api/v1/push/topics`                                    | Subscribe a device to warnings for a place         |
+| POST   | `/api/v1/client-errors`                                  | An error report from the browser                   |
+| POST   | `/api/internal/alerts/notify`                            | Push new warnings (scheduler, bearer secret)       |
+| GET    | `/api/internal/metrics`                                  | Cache and provider metrics (bearer secret)         |
+| GET    | `/api/health`, `/api/health/quota`, `/api/health/notify` | Health checks for uptime monitors                  |
 
-Errors use one format: `{ "error": { "code": "INVALID_REQUEST", "message": "..." } }`.
-
-Requests are limited per IP address, per minute and per endpoint group, and so are new places (provider calls); the numbers are in [Key parameters](docs/architecture.md#key-parameters), plus 120 changes an hour per push token. Over the limit: `429` with code `RATE_LIMITED` and `Retry-After` (the per-request limits also send the standard `RateLimit` headers).
+Errors: `{ "error": { "code": "INVALID_REQUEST", "message": "..." } }`; the codes and the status each comes with are
+described in the OpenAPI file. Requests are rate-limited per IP; over the limit the answer is `429 RATE_LIMITED` with
+`Retry-After` ([limits](docs/architecture.md#key-parameters)).
 
 ## Deployment
 
-- Frontend: Vercel, root directory `client`. `client/middleware.ts` (Vercel Routing Middleware) forwards `/api/*` to the backend; `client/vercel.json` serves `index.html` for all other paths, so client-side routes survive a refresh. Environment variables on Vercel: `API_ORIGIN` (the backend's URL, e.g. `https://13-48-1-2.sslip.io`), `PROXY_SECRET` (a long random string, the same as on the VM), and the `VITE_FIREBASE_*` values for push notifications.
-- Backend: an AWS EC2 instance in the EU with an Elastic IP of its own, Node under systemd behind Caddy (HTTPS); set-up, updates and rollback step by step in [docs/deploy-aws.md](docs/deploy-aws.md). Not Render: free Render shares its outgoing addresses, and Open-Meteo, which counts its limits per address, refused every forecast there ([ADR 0019](docs/adr/0019-api-on-oracle-free-vm.md)); not Oracle's free VM, which is stopped when idle ([ADR 0020](docs/adr/0020-api-on-aws-ec2.md)). Free for the AWS free plan's first 6 months, about $10–12 a month after that. The settings are in `/etc/weather-api.env` on the VM (`deploy/vm/api.env.example`). With `NODE_ENV=production` (set by the systemd unit) the server checks its settings at start and refuses to start, listing every problem, without `PROXY_SECRET` (32+ characters) or `TRUST_PROXY`, with `IP_SELF_LOOKUP`, with Firebase but no `ALERTS_NOTIFY_SECRET`, or with a short secret ([architecture notes](docs/architecture.md#reliability-and-security)). Do not set `IP_SELF_LOOKUP` there (it is for local development), nor `CORS_ORIGIN` (the site calls the API through its own origin). Set `PROXY_SECRET` (the same value as on Vercel): the API then answers only requests that came through the frontend's proxy and takes the user's IP from it (`X-Client-IP`), so rate limits and the approximate location cannot be fooled by a forged `X-Forwarded-For` sent straight to the VM. After deploying, check: turning notifications on and off works (the Content-Security-Policy allows the Firebase hosts push uses; tests cannot exercise push); the site works; a request straight to `https://<api>/api/v1/forecast?lat=52.23&lon=21.01` gets 404; "Looks like you're in …" (the approximate location) names your own city, so the user's address reaches the API. Set `TRUST_PROXY=1` as well (Caddy; used only when a request carries no `X-Client-IP`). Optional: `METRICS_SECRET` (enables `/api/internal/metrics`), `LOG_LEVEL` (`info` by default; `debug` logs every provider call).
-- Logs are JSON lines on stdout (pino), kept by journald on the VM (`journalctl -u weather-api`); every 15 minutes a `metrics` line records cache hit rates and provider usage, and a warning is logged when a provider's usage passes 80% of a limit.
-- Monitoring: an uptime monitor (UptimeRobot or Better Stack, free) on the site, `/api/health`, `/api/health/quota` (503 at 80% of a provider limit) and, with push, `/api/health/notify`, with email alerts. Set-up and what each alert means: [docs/operations.md](docs/operations.md).
+- **Site:** Vercel, root directory `client`. `client/middleware.ts` forwards `/api/*` to the API with a shared secret
+  and the user's IP, so the site and the API share one origin. Its variables:
+  [docs/deploy-aws.md](docs/deploy-aws.md#6-the-site-and-the-scheduler).
+- **API:** an AWS EC2 instance with its own IP, Node under systemd behind Caddy, deployed by hand over SSH
+  ([docs/deploy-aws.md](docs/deploy-aws.md)). In production the server refuses to start with a missing or unsafe
+  setting.
+- **Monitoring:** four UptimeRobot monitors ([docs/operations.md](docs/operations.md)).
 
-Serving the API from the frontend's domain avoids CORS and keeps future auth cookies first-party.
+## Scope and limits
 
-## Assumptions
-
-- [No user accounts needed: favourites live in the browser (`localStorage`), so they do not sync between devices]
-- [10 days of forecast is enough: beyond that Open-Meteo still returns data (up to 16 days), but accuracy drops sharply]
-- [Only temperature has a unit switch (°C/°F); wind stays in km/h]
-- [UI translations for 8 languages are machine-quality drafts: they need a review by native speakers before a real release]
-- [Weather warnings cover Europe only (MeteoAlarm's ~38 countries). No banner means no warning was found, not a promise of calm weather; elsewhere there are none yet (the US National Weather Service would be the next source)]
-- [Push notifications: a warning issued while the server was down (deploy, restart) is pushed on the first run after it, thanks to the state in Firestore; without Firestore (local development) it is not, but it still shows on the page]
-- [Availability is best effort: the API runs on one EC2 instance in one region (free for the AWS free plan's first 6 months, then about $10–12 a month, ADR 0020), deployed by hand, and a deploy or reboot is a few seconds without it. That is the price of keeping hosting cheap (ADR 0004, ADR 0020); what must not be lost on a restart (notifications sent, provider usage) is kept in Firestore, so a rebuilt VM carries on, and a second machine or a paid host is the step if an availability target ever requires it]
-- [One server instance: per-IP rate limits are counted in its memory, so during a deploy's short overlap each instance counts on its own]
+- No accounts: favourites live in the browser and do not sync between devices.
+- 10 days of forecast by default; the API accepts up to 16 (`days`).
+- Only temperature has a unit switch; wind stays in km/h.
+- The 8 translations are machine translations; a review by native speakers is in the backlog.
+- Warnings cover Europe only (MeteoAlarm's 39 countries); no banner means no warning was found for the place.
+- Free data sources and hosting only, so their limits are product requirements
+  ([ADR 0004](docs/adr/0004-provider-limits.md)); the API host is on the AWS free plan, which ends after 6 months
+  ([ADR 0020](docs/adr/0020-api-on-aws-ec2.md)).
+- One API instance, deployed by hand; a deploy restarts it, a few seconds without the API.
+- On an iPhone with the app already open, tapping a notification only brings the app forward
+  ([ADR 0026](docs/adr/0026-push-delivery-details.md)).
 
 ## Trade-offs and decisions
 
-- City URLs use the GeoNames id (`/weather/756135-warsaw`), which Open-Meteo and yr.no share, so a link is the same in every language and does not depend on the weather provider; places found by location have no id and keep coordinates in the URL ([ADR 0006](docs/adr/0006-place-urls-by-id.md)).
-- In-memory cache instead of Redis: enough for a single instance; the cache sits behind a small class, so it is easy to replace. Redis waits for a second instance ([ADR 0022](docs/adr/0022-no-redis-while-one-instance.md)).
-- Monorepo with npm workspaces: `server`, `client` and `packages/shared` change together and are reviewed as one unit.
-- `@weather/shared` holds the API contract (types, error format, validation schemas, constants), environment-neutral weather helpers and the API client. Server internals (providers, cache) stay out of it so clients never depend on where data comes from.
+- **Backend for frontend:** one place to cache, guard provider limits and keep the client independent of the provider
+  ([ADR 0001](docs/adr/0001-backend-for-frontend.md)).
+- **City URLs by GeoNames id**, the same in every language and across providers
+  ([ADR 0006](docs/adr/0006-place-urls-by-id.md)).
+- **In-memory cache, no Redis** while there is one instance ([ADR 0022](docs/adr/0022-no-redis-while-one-instance.md)).
+- **Monorepo with a shared contract package** used by the server and the client
+  ([ADR 0002](docs/adr/0002-monorepo-shared-contract.md)).
+- **EC2, not Render:** free Render shares outgoing addresses, and Open-Meteo, which limits per address, refused every
+  forecast there ([ADR 0019](docs/adr/0019-api-on-oracle-free-vm.md), [ADR 0020](docs/adr/0020-api-on-aws-ec2.md)).
 
-## What I would do next
+## Next steps
 
-- [Wind unit setting; accounts so favourites sync between devices]
-- [More e2e scenarios (geolocation, offline, notifications); the React Compiler itself (its lint rules are on)]
-- [With a second API instance: Redis for the cache and the per-IP limits; before that, if restarts become costly, the cache saved to disk at shutdown (ADR 0022)]
+The full list, in order, is [docs/backlog.md](docs/backlog.md). First:
+
+- Deploy the API from `main` automatically
+- A second forecast source (MET Norway) for when Open-Meteo fails or its free limits are outgrown
+- A coverage threshold and branch protection on `main`
+- A wind unit setting; accounts so favourites sync between devices
+
+## Licence and credits
+
+The code is under the [MIT licence](LICENSE) ([ADR 0033](docs/adr/0033-mit-licence.md)). The deployed service is
+non-commercial: Open-Meteo's free tier allows only that, and the data stays under its providers' terms, credited in
+the app (Open-Meteo, © OpenStreetMap contributors for Nominatim, EUMETNET – MeteoAlarm).
+
+Author: [Natallia Savastsenia](https://github.com/natasha-vardo-dev). Questions and bugs go to
+[GitHub issues](https://github.com/natasha-vardo-dev/weather-app/issues); a security problem to
+[SECURITY.md](SECURITY.md).

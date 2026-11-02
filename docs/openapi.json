@@ -3,35 +3,93 @@
   "info": {
     "title": "Weather API",
     "version": "1",
-    "description": "The API between the weather app and its clients. Errors share one shape (ApiError). Generated from the zod schemas in @weather/shared; do not edit by hand."
+    "description": "The API between the weather app and its clients: a backend for frontend over Open-Meteo (forecast, air quality, place search), MeteoAlarm (official warnings), Nominatim (the place at coordinates) and ipwho.is (a city from the IP address).\n\nEvery answer is JSON. Errors share one shape (ApiError) and are never cached. Temperatures are °C, wind km/h, times local to the place.\n\nWithin /api/v1 only compatible changes are made (an optional field, a new endpoint, a new error code); a breaking change gets a new prefix. Requests are limited per IP address (429, with Retry-After); near a provider's free limit new data is refused for everyone (503) while cached answers still come.\n\nNot described here, being operations rather than the contract: GET /api/health, /api/health/quota and /api/health/notify (uptime monitors), GET /api/internal/metrics and POST /api/internal/alerts/notify (a bearer secret each); see docs/operations.md.\n\nGenerated from the zod schemas in @weather/shared (npm run openapi); do not edit by hand.",
+    "license": { "name": "MIT", "url": "https://github.com/natasha-vardo-dev/weather-app/blob/main/LICENSE" }
   },
-  "servers": [{ "url": "/api/v1" }],
+  "externalDocs": {
+    "description": "How the API works and why",
+    "url": "https://github.com/natasha-vardo-dev/weather-app/blob/main/docs/architecture.md"
+  },
+  "servers": [
+    { "url": "https://weather-app-three-rho-21.vercel.app/api/v1", "description": "The demo site" },
+    { "url": "http://localhost:3001/api/v1", "description": "npm run dev" }
+  ],
+  "tags": [
+    { "name": "Places", "description": "Search and name places; GeoNames ids through Open-Meteo." },
+    { "name": "Weather", "description": "Forecasts and air quality from Open-Meteo." },
+    {
+      "name": "Warnings",
+      "description": "Official weather warnings from MeteoAlarm (Europe), and push notifications about them."
+    },
+    { "name": "Client", "description": "What the web app reports about itself." }
+  ],
   "paths": {
     "/locations": {
       "get": {
+        "operationId": "searchLocations",
+        "tags": ["Places"],
         "summary": "Search places by name",
+        "description": "Autocomplete for the search box. Cached by the server (see docs/architecture.md, \"Key parameters\") and sent with Cache-Control.",
         "parameters": [
           {
             "name": "q",
             "in": "query",
+            "description": "A place name, in any language or script; old and other names match too (\"Kiev\" finds Kyiv).",
             "required": true,
             "schema": { "type": "string", "minLength": 2, "maxLength": 100 }
           },
           {
             "name": "limit",
             "in": "query",
+            "description": "How many places at most.",
             "required": false,
             "schema": { "default": 5, "type": "integer", "minimum": 1, "maximum": 10 }
           },
-          { "name": "lang", "in": "query", "required": false, "schema": { "type": "string", "pattern": "^[a-z]{2}$" } }
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "ISO 639-1 code for place names (en, de, fr, es, it, pl, uk, ru, …); English for unknown ones.",
+            "required": false,
+            "schema": { "type": "string", "pattern": "^[a-z]{2}$" }
+          }
         ],
         "responses": {
           "200": {
             "description": "OK",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LocationsResponse" } } }
           },
+          "400": {
+            "description": "A parameter or the body is missing or out of range (INVALID_REQUEST); the message names it.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "429": {
+            "description": "Too many requests from this address, or too many new places asked for (RATE_LIMITED). Wait for Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the address may try again.",
+                "schema": { "type": "integer", "minimum": 1 }
+              },
+              "RateLimit": {
+                "description": "The allowance and what is left of it (IETF draft-8), when a request limit answered.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "500": {
+            "description": "Our bug (INTERNAL).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "502": {
+            "description": "The data provider did not answer, or answered wrongly (PROVIDER_ERROR); try again in a minute.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "503": {
+            "description": "The server is near a provider's free limit for everyone (SERVICE_BUSY): cached answers still come, new places wait.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
           "default": {
-            "description": "Error",
+            "description": "Any other error, in the same shape.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
           }
         }
@@ -39,23 +97,67 @@
     },
     "/locations/{id}": {
       "get": {
+        "operationId": "getLocation",
+        "tags": ["Places"],
         "summary": "A place by id, named in a language",
+        "description": "The name of a saved or linked place in the reader's language. Cached by the server (see docs/architecture.md, \"Key parameters\") and sent with Cache-Control.",
         "parameters": [
           {
             "name": "id",
             "in": "path",
+            "description": "GeoNames id of the place, as in search results and city URLs (/weather/756135-warsaw).",
             "required": true,
             "schema": { "type": "integer", "minimum": 0, "exclusiveMinimum": true, "maximum": 2147483647 }
           },
-          { "name": "lang", "in": "query", "required": false, "schema": { "type": "string", "pattern": "^[a-z]{2}$" } }
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "ISO 639-1 code for place names (en, de, fr, es, it, pl, uk, ru, …); English for unknown ones.",
+            "required": false,
+            "schema": { "type": "string", "pattern": "^[a-z]{2}$" }
+          }
         ],
         "responses": {
           "200": {
             "description": "OK",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Location" } } }
           },
+          "400": {
+            "description": "A parameter or the body is missing or out of range (INVALID_REQUEST); the message names it.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "404": {
+            "description": "No place with this id (NOT_FOUND).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "429": {
+            "description": "Too many requests from this address, or too many new places asked for (RATE_LIMITED). Wait for Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the address may try again.",
+                "schema": { "type": "integer", "minimum": 1 }
+              },
+              "RateLimit": {
+                "description": "The allowance and what is left of it (IETF draft-8), when a request limit answered.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "500": {
+            "description": "Our bug (INTERNAL).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "502": {
+            "description": "The data provider did not answer, or answered wrongly (PROVIDER_ERROR); try again in a minute.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "503": {
+            "description": "The server is near a provider's free limit for everyone (SERVICE_BUSY): cached answers still come, new places wait.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
           "default": {
-            "description": "Error",
+            "description": "Any other error, in the same shape.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
           }
         }
@@ -63,23 +165,29 @@
     },
     "/forecast": {
       "get": {
+        "operationId": "getForecast",
+        "tags": ["Weather"],
         "summary": "The forecast at a place",
+        "description": "Current conditions, yesterday, the next 24 hours and the days ahead in one answer. Cached by the server (see docs/architecture.md, \"Key parameters\") and sent with Cache-Control. Past the cache's time a stale answer is sent at once with a short max-age while it refreshes; if the provider is down, the last good one for up to an hour.",
         "parameters": [
           {
             "name": "lat",
             "in": "query",
+            "description": "Latitude in decimal degrees (-90 to 90); the server rounds to 2 decimals (~1 km).",
             "required": true,
             "schema": { "type": "number", "minimum": -90, "maximum": 90 }
           },
           {
             "name": "lon",
             "in": "query",
+            "description": "Longitude in decimal degrees (-180 to 180); the server rounds to 2 decimals (~1 km).",
             "required": true,
             "schema": { "type": "number", "minimum": -180, "maximum": 180 }
           },
           {
             "name": "days",
             "in": "query",
+            "description": "Days of daily forecast, today included (1 to 16; accuracy drops after 10).",
             "required": false,
             "schema": { "default": 10, "type": "integer", "minimum": 1, "maximum": 16 }
           }
@@ -89,8 +197,38 @@
             "description": "OK",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Forecast" } } }
           },
+          "400": {
+            "description": "A parameter or the body is missing or out of range (INVALID_REQUEST); the message names it.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "429": {
+            "description": "Too many requests from this address, or too many new places asked for (RATE_LIMITED). Wait for Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the address may try again.",
+                "schema": { "type": "integer", "minimum": 1 }
+              },
+              "RateLimit": {
+                "description": "The allowance and what is left of it (IETF draft-8), when a request limit answered.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "500": {
+            "description": "Our bug (INTERNAL).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "502": {
+            "description": "The data provider did not answer, or answered wrongly (PROVIDER_ERROR); try again in a minute.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "503": {
+            "description": "The server is near a provider's free limit for everyone (SERVICE_BUSY): cached answers still come, new places wait.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
           "default": {
-            "description": "Error",
+            "description": "Any other error, in the same shape.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
           }
         }
@@ -98,12 +236,22 @@
     },
     "/forecasts": {
       "get": {
+        "operationId": "getForecasts",
+        "tags": ["Weather"],
         "summary": "Forecasts for several places",
+        "description": "The saved cities in one request, through the same cache as /forecast. A place that fails comes back as its own error while the others come as forecasts (200); when every place fails, the answer is the first error (429, 502 or 503).",
         "parameters": [
-          { "name": "places", "in": "query", "required": true, "schema": { "type": "string" } },
+          {
+            "name": "places",
+            "in": "query",
+            "description": "Up to 10 places as \"lat,lon\" pairs separated by semicolons, e.g. \"52.23,21.01;50.06,19.94\". Answered in the same order.",
+            "required": true,
+            "schema": { "type": "string" }
+          },
           {
             "name": "days",
             "in": "query",
+            "description": "Days of daily forecast, today included (1 to 16; accuracy drops after 10).",
             "required": false,
             "schema": { "default": 10, "type": "integer", "minimum": 1, "maximum": 16 }
           }
@@ -113,8 +261,38 @@
             "description": "OK",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ForecastsResponse" } } }
           },
+          "400": {
+            "description": "A parameter or the body is missing or out of range (INVALID_REQUEST); the message names it.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "429": {
+            "description": "Too many requests from this address, or too many new places asked for (RATE_LIMITED). Wait for Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the address may try again.",
+                "schema": { "type": "integer", "minimum": 1 }
+              },
+              "RateLimit": {
+                "description": "The allowance and what is left of it (IETF draft-8), when a request limit answered.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "500": {
+            "description": "Our bug (INTERNAL).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "502": {
+            "description": "The data provider did not answer, or answered wrongly (PROVIDER_ERROR); try again in a minute.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "503": {
+            "description": "The server is near a provider's free limit for everyone (SERVICE_BUSY): cached answers still come, new places wait.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
           "default": {
-            "description": "Error",
+            "description": "Any other error, in the same shape.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
           }
         }
@@ -122,17 +300,22 @@
     },
     "/air-quality": {
       "get": {
+        "operationId": "getAirQuality",
+        "tags": ["Weather"],
         "summary": "Current air quality at a place",
+        "description": "Both indexes and the main pollutants. Cached by the server (see docs/architecture.md, \"Key parameters\") and sent with Cache-Control.",
         "parameters": [
           {
             "name": "lat",
             "in": "query",
+            "description": "Latitude in decimal degrees (-90 to 90); the server rounds to 2 decimals (~1 km).",
             "required": true,
             "schema": { "type": "number", "minimum": -90, "maximum": 90 }
           },
           {
             "name": "lon",
             "in": "query",
+            "description": "Longitude in decimal degrees (-180 to 180); the server rounds to 2 decimals (~1 km).",
             "required": true,
             "schema": { "type": "number", "minimum": -180, "maximum": 180 }
           }
@@ -142,8 +325,38 @@
             "description": "OK",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AirQuality" } } }
           },
+          "400": {
+            "description": "A parameter or the body is missing or out of range (INVALID_REQUEST); the message names it.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "429": {
+            "description": "Too many requests from this address, or too many new places asked for (RATE_LIMITED). Wait for Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the address may try again.",
+                "schema": { "type": "integer", "minimum": 1 }
+              },
+              "RateLimit": {
+                "description": "The allowance and what is left of it (IETF draft-8), when a request limit answered.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "500": {
+            "description": "Our bug (INTERNAL).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "502": {
+            "description": "The data provider did not answer, or answered wrongly (PROVIDER_ERROR); try again in a minute.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "503": {
+            "description": "The server is near a provider's free limit for everyone (SERVICE_BUSY): cached answers still come, new places wait.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
           "default": {
-            "description": "Error",
+            "description": "Any other error, in the same shape.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
           }
         }
@@ -151,29 +364,74 @@
     },
     "/places/reverse": {
       "get": {
+        "operationId": "reversePlace",
+        "tags": ["Places"],
         "summary": "The place at coordinates",
+        "description": "For \"my location\": the place at the position, matched to the nearest searchable city (within 25 km) so it gets an id. Nominatim allows one call a second for the whole server; when the queue is full the answer is 502 (PROVIDER_ERROR).",
         "parameters": [
           {
             "name": "lat",
             "in": "query",
+            "description": "Latitude in decimal degrees (-90 to 90); the server rounds to 2 decimals (~1 km).",
             "required": true,
             "schema": { "type": "number", "minimum": -90, "maximum": 90 }
           },
           {
             "name": "lon",
             "in": "query",
+            "description": "Longitude in decimal degrees (-180 to 180); the server rounds to 2 decimals (~1 km).",
             "required": true,
             "schema": { "type": "number", "minimum": -180, "maximum": 180 }
           },
-          { "name": "lang", "in": "query", "required": false, "schema": { "type": "string", "pattern": "^[a-z]{2}$" } }
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "ISO 639-1 code for place names (en, de, fr, es, it, pl, uk, ru, …); English for unknown ones.",
+            "required": false,
+            "schema": { "type": "string", "pattern": "^[a-z]{2}$" }
+          }
         ],
         "responses": {
           "200": {
             "description": "OK",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReversePlace" } } }
           },
+          "400": {
+            "description": "A parameter or the body is missing or out of range (INVALID_REQUEST); the message names it.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "404": {
+            "description": "No place at these coordinates (NOT_FOUND).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "429": {
+            "description": "Too many requests from this address, or too many new places asked for (RATE_LIMITED). Wait for Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the address may try again.",
+                "schema": { "type": "integer", "minimum": 1 }
+              },
+              "RateLimit": {
+                "description": "The allowance and what is left of it (IETF draft-8), when a request limit answered.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "500": {
+            "description": "Our bug (INTERNAL).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "502": {
+            "description": "The data provider did not answer, or answered wrongly (PROVIDER_ERROR); try again in a minute.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "503": {
+            "description": "The server is near a provider's free limit for everyone (SERVICE_BUSY): cached answers still come, new places wait.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
           "default": {
-            "description": "Error",
+            "description": "Any other error, in the same shape.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
           }
         }
@@ -181,17 +439,60 @@
     },
     "/places/approximate": {
       "get": {
+        "operationId": "approximatePlace",
+        "tags": ["Places"],
         "summary": "The user's city from their IP address",
+        "description": "Offered when the browser cannot give a position. Depends on who asks (Cache-Control: private, no-store); the address is not logged or stored, only a keyed hash for a day.",
         "parameters": [
-          { "name": "lang", "in": "query", "required": false, "schema": { "type": "string", "pattern": "^[a-z]{2}$" } }
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "ISO 639-1 code for place names (en, de, fr, es, it, pl, uk, ru, …); English for unknown ones.",
+            "required": false,
+            "schema": { "type": "string", "pattern": "^[a-z]{2}$" }
+          }
         ],
         "responses": {
           "200": {
             "description": "OK",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReversePlace" } } }
           },
+          "400": {
+            "description": "A parameter or the body is missing or out of range (INVALID_REQUEST); the message names it.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "404": {
+            "description": "Could not tell the location from this address (NOT_FOUND).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "429": {
+            "description": "Too many requests from this address, or too many new places asked for (RATE_LIMITED). Wait for Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the address may try again.",
+                "schema": { "type": "integer", "minimum": 1 }
+              },
+              "RateLimit": {
+                "description": "The allowance and what is left of it (IETF draft-8), when a request limit answered.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "500": {
+            "description": "Our bug (INTERNAL).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "502": {
+            "description": "The data provider did not answer, or answered wrongly (PROVIDER_ERROR); try again in a minute.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "503": {
+            "description": "The server is near a provider's free limit for everyone (SERVICE_BUSY): cached answers still come, new places wait.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
           "default": {
-            "description": "Error",
+            "description": "Any other error, in the same shape.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
           }
         }
@@ -199,29 +500,66 @@
     },
     "/alerts": {
       "get": {
+        "operationId": "getAlerts",
+        "tags": ["Warnings"],
         "summary": "Official weather warnings at a place",
+        "description": "Warnings in force at the place from the national weather service, in its own words; empty outside Europe (covered: false). Pages ask again every 4 minutes while open.",
         "parameters": [
           {
             "name": "lat",
             "in": "query",
+            "description": "Latitude in decimal degrees (-90 to 90).",
             "required": true,
             "schema": { "type": "number", "minimum": -90, "maximum": 90 }
           },
           {
             "name": "lon",
             "in": "query",
+            "description": "Longitude in decimal degrees (-180 to 180).",
             "required": true,
             "schema": { "type": "number", "minimum": -180, "maximum": 180 }
           },
-          { "name": "lang", "in": "query", "required": false, "schema": { "type": "string", "pattern": "^[a-z]{2}$" } }
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "ISO 639-1 code: the issuer's texts in this language where it has them, else English.",
+            "required": false,
+            "schema": { "type": "string", "pattern": "^[a-z]{2}$" }
+          }
         ],
         "responses": {
           "200": {
             "description": "OK",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AlertsResponse" } } }
           },
+          "400": {
+            "description": "A parameter or the body is missing or out of range (INVALID_REQUEST); the message names it.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "429": {
+            "description": "Too many requests from this address, or too many new places asked for (RATE_LIMITED). Wait for Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the address may try again.",
+                "schema": { "type": "integer", "minimum": 1 }
+              },
+              "RateLimit": {
+                "description": "The allowance and what is left of it (IETF draft-8), when a request limit answered.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "500": {
+            "description": "Our bug (INTERNAL).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "502": {
+            "description": "The data provider did not answer, or answered wrongly (PROVIDER_ERROR); try again in a minute.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
           "default": {
-            "description": "Error",
+            "description": "Any other error, in the same shape.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
           }
         }
@@ -229,7 +567,10 @@
     },
     "/push/topics": {
       "post": {
+        "operationId": "setAlertTopics",
+        "tags": ["Warnings"],
         "summary": "Subscribe or unsubscribe a device's push token to warnings for a place",
+        "description": "The server works out the MeteoAlarm areas the place belongs to and subscribes the token to their topics (one per area, kind of warning and minimum level) in Firebase Cloud Messaging; the token itself is not stored. Only with push configured on the server: otherwise the endpoint does not exist (404). Changes are limited per token (120 an hour) and by a global Firebase budget, which unsubscribing is exempt from; the per-IP request limit applies to both.",
         "requestBody": {
           "required": true,
           "content": {
@@ -237,12 +578,38 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "token": { "type": "string", "minLength": 20, "maxLength": 4096 },
-                  "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
-                  "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
-                  "group": { "type": "string", "enum": ["storm", "all"] },
-                  "level": { "type": "string", "enum": ["yellow", "orange", "red"] },
-                  "subscribe": { "type": "boolean" }
+                  "token": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 4096,
+                    "description": "The device's Firebase Cloud Messaging registration token."
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90,
+                    "description": "Of the place to watch, decimal degrees."
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180,
+                    "description": "Of the place to watch, decimal degrees."
+                  },
+                  "group": {
+                    "type": "string",
+                    "enum": ["storm", "all"],
+                    "description": "Which warnings: \"storm\" (wind and thunderstorms) or \"all\" types."
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": ["yellow", "orange", "red"],
+                    "description": "Notify from this level up."
+                  },
+                  "subscribe": {
+                    "type": "boolean",
+                    "description": "true to subscribe the token to the place, false to unsubscribe it."
+                  }
                 },
                 "required": ["token", "latitude", "longitude", "group", "level", "subscribe"]
               }
@@ -251,11 +618,45 @@
         },
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Subscribed or unsubscribed",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AlertTopicsResponse" } } }
           },
+          "400": {
+            "description": "A parameter or the body is missing or out of range (INVALID_REQUEST); the message names it.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "404": {
+            "description": "Push notifications are not configured on this server (NOT_FOUND).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "429": {
+            "description": "Too many requests from this address, or more than 120 changes an hour for this token (RATE_LIMITED); the per-token limit does not apply to unsubscribing. Wait for Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the address may try again.",
+                "schema": { "type": "integer", "minimum": 1 }
+              },
+              "RateLimit": {
+                "description": "The allowance and what is left of it (IETF draft-8), when a request limit answered.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "500": {
+            "description": "Our bug (INTERNAL).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "502": {
+            "description": "Firebase did not accept the change (PROVIDER_ERROR); the device may retry.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "503": {
+            "description": "The Firebase budget for subscription changes is spent (SERVICE_BUSY); try later.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
           "default": {
-            "description": "Error",
+            "description": "Any other error, in the same shape.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
           }
         }
@@ -263,7 +664,10 @@
     },
     "/client-errors": {
       "post": {
+        "operationId": "reportClientError",
+        "tags": ["Client"],
         "summary": "An error from a user's browser, for the server log",
+        "description": "The web app sends render errors and uncaught errors here, a few per page at most; there is no error-tracking service. Logged as a warning, never answered with the details.",
         "requestBody": {
           "required": true,
           "content": {
@@ -271,12 +675,32 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "kind": { "type": "string", "enum": ["render", "error", "rejection"] },
-                  "message": { "type": "string", "maxLength": 500 },
-                  "stack": { "type": "string", "maxLength": 4000 },
-                  "componentStack": { "type": "string", "maxLength": 2000 },
-                  "path": { "type": "string", "maxLength": 200 },
-                  "release": { "type": "string", "maxLength": 40 }
+                  "kind": {
+                    "type": "string",
+                    "enum": ["render", "error", "rejection"],
+                    "description": "\"render\": a component failed to render; \"error\": an uncaught error; \"rejection\": an unhandled promise rejection."
+                  },
+                  "message": { "type": "string", "maxLength": 500, "description": "The error's message." },
+                  "stack": {
+                    "description": "The stack trace, when there is one.",
+                    "type": "string",
+                    "maxLength": 4000
+                  },
+                  "componentStack": {
+                    "description": "Which components a render error happened in (React gives it).",
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "path": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "description": "The page, with places replaced by a placeholder: no coordinates reach the logs."
+                  },
+                  "release": {
+                    "description": "The build that failed: the service worker may keep an old one in use for a while.",
+                    "type": "string",
+                    "maxLength": 40
+                  }
                 },
                 "required": ["kind", "message", "path"]
               }
@@ -285,8 +709,30 @@
         },
         "responses": {
           "204": { "description": "Logged" },
+          "400": {
+            "description": "A parameter or the body is missing or out of range (INVALID_REQUEST); the message names it.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "429": {
+            "description": "Too many requests from this address, or too many new places asked for (RATE_LIMITED). Wait for Retry-After.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the address may try again.",
+                "schema": { "type": "integer", "minimum": 1 }
+              },
+              "RateLimit": {
+                "description": "The allowance and what is left of it (IETF draft-8), when a request limit answered.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
+          "500": {
+            "description": "Our bug (INTERNAL).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+          },
           "default": {
-            "description": "Error",
+            "description": "Any other error, in the same shape.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
           }
         }
@@ -298,51 +744,109 @@
       "Location": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer", "minimum": 0, "exclusiveMinimum": true, "maximum": 9007199254740991 },
-          "name": { "type": "string" },
-          "country": { "type": "string" },
-          "region": { "type": "string" },
-          "areas": { "type": "array", "items": { "type": "string" } },
-          "kind": { "type": "string", "enum": ["island"] },
-          "latitude": { "type": "number" },
-          "longitude": { "type": "number" },
-          "timezone": { "type": "string" }
+          "id": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991,
+            "description": "GeoNames id: identifies the place in city URLs and in GET /locations/{id}."
+          },
+          "name": {
+            "type": "string",
+            "description": "In the requested language where the provider has it, else in English."
+          },
+          "country": { "type": "string", "description": "Country name, in the requested language where available." },
+          "region": { "description": "First administrative level (state, voivodeship, region).", "type": "string" },
+          "areas": {
+            "description": "Levels below the region, most general first (province, district, municipality); \"\" where a level is missing, so positions line up across places. Tells same-named places apart.",
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["island"],
+            "description": "What the place is when it is not a town; clients ignore kinds they do not know."
+          },
+          "latitude": { "type": "number", "description": "Decimal degrees." },
+          "longitude": { "type": "number", "description": "Decimal degrees." },
+          "timezone": { "description": "IANA time zone of the place, e.g. \"Europe/Warsaw\".", "type": "string" }
         },
         "required": ["id", "name", "country", "latitude", "longitude"],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "A place from the search geocoder."
       },
       "LocationsResponse": {
         "type": "object",
-        "properties": { "locations": { "type": "array", "items": { "$ref": "#/components/schemas/Location" } } },
+        "properties": {
+          "locations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Location" },
+            "description": "Best matches first; empty when nothing matched."
+          }
+        },
         "required": ["locations"],
         "additionalProperties": false
       },
       "CurrentWeather": {
         "type": "object",
         "properties": {
-          "time": { "type": "string" },
-          "temperature": { "type": "number" },
-          "apparentTemperature": { "type": "number" },
-          "humidity": { "type": "number" },
-          "windSpeed": { "type": "number" },
-          "windGusts": { "nullable": true, "type": "number" },
-          "windDirection": { "nullable": true, "type": "number" },
-          "weatherCode": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
-          "isDay": { "type": "boolean" }
+          "time": {
+            "type": "string",
+            "description": "Local time at the place, \"YYYY-MM-DDTHH:mm\" (no offset). The current hour."
+          },
+          "temperature": { "type": "number", "description": "Air temperature, °C (see Forecast.units)." },
+          "apparentTemperature": { "type": "number", "description": "Feels-like temperature, °C." },
+          "humidity": { "type": "number", "description": "Relative humidity, %." },
+          "windSpeed": { "type": "number", "description": "In Forecast.units.windSpeed (km/h)." },
+          "windGusts": {
+            "description": "Gust speed, in the same unit; absent in forecasts cached before the field existed.",
+            "nullable": true,
+            "type": "number"
+          },
+          "windDirection": {
+            "description": "Direction the wind blows from, degrees (0 = north).",
+            "nullable": true,
+            "type": "number"
+          },
+          "weatherCode": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "WMO weather interpretation code (0 clear sky … 99 thunderstorm with hail)."
+          },
+          "isDay": { "type": "boolean", "description": "Whether it is daytime at the place now." }
         },
         "required": ["time", "temperature", "apparentTemperature", "humidity", "windSpeed", "weatherCode", "isDay"],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "The current hour at the place."
       },
       "DailyForecast": {
         "type": "object",
         "properties": {
-          "date": { "type": "string" },
-          "weatherCode": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
-          "tempMax": { "type": "number" },
-          "tempMin": { "type": "number" },
-          "precipitationProbability": { "nullable": true, "type": "number" },
-          "sunrise": { "nullable": true, "type": "string" },
-          "sunset": { "nullable": true, "type": "string" }
+          "date": { "type": "string", "description": "\"YYYY-MM-DD\" in the place's time zone." },
+          "weatherCode": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "WMO weather interpretation code for the day."
+          },
+          "tempMax": { "type": "number", "description": "°C." },
+          "tempMin": { "type": "number", "description": "°C." },
+          "precipitationProbability": {
+            "nullable": true,
+            "description": "Highest chance of precipitation in the day, %; null when unknown.",
+            "type": "number"
+          },
+          "sunrise": {
+            "description": "Local time at the place, \"YYYY-MM-DDTHH:mm\" (no offset). Null in polar day or night; absent in answers cached before the field existed.",
+            "nullable": true,
+            "type": "string"
+          },
+          "sunset": {
+            "description": "Local time at the place, \"YYYY-MM-DDTHH:mm\" (no offset). Null in polar day or night; absent in older answers.",
+            "nullable": true,
+            "type": "string"
+          }
         },
         "required": ["date", "weatherCode", "tempMax", "tempMin", "precipitationProbability"],
         "additionalProperties": false
@@ -350,19 +854,32 @@
       "HourlyForecast": {
         "type": "object",
         "properties": {
-          "time": { "type": "string" },
-          "temperature": { "type": "number" },
-          "humidity": { "type": "number" },
-          "windSpeed": { "type": "number" },
-          "windGusts": { "nullable": true, "type": "number" },
-          "weatherCode": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
-          "precipitationProbability": { "nullable": true, "type": "number" },
-          "precipitation": { "nullable": true, "type": "number" },
-          "uvIndex": { "nullable": true, "type": "number" },
-          "pressure": { "nullable": true, "type": "number" },
-          "visibility": { "nullable": true, "type": "number" },
-          "dewPoint": { "nullable": true, "type": "number" },
-          "isDay": { "type": "boolean" }
+          "time": { "type": "string", "description": "Local time at the place, \"YYYY-MM-DDTHH:mm\" (no offset)." },
+          "temperature": { "type": "number", "description": "°C." },
+          "humidity": { "type": "number", "description": "Relative humidity, %." },
+          "windSpeed": { "type": "number", "description": "In Forecast.units.windSpeed (km/h)." },
+          "windGusts": { "description": "Gust speed, in the same unit.", "nullable": true, "type": "number" },
+          "weatherCode": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "WMO weather interpretation code for the hour."
+          },
+          "precipitationProbability": {
+            "nullable": true,
+            "description": "Chance of precipitation, %; null when unknown.",
+            "type": "number"
+          },
+          "precipitation": {
+            "description": "Expected amount in the hour, in Forecast.units.precipitation (mm).",
+            "nullable": true,
+            "type": "number"
+          },
+          "uvIndex": { "description": "UV index (WHO scale, 0–11+).", "nullable": true, "type": "number" },
+          "pressure": { "description": "Sea-level pressure, hPa.", "nullable": true, "type": "number" },
+          "visibility": { "description": "Metres.", "nullable": true, "type": "number" },
+          "dewPoint": { "description": "Dew point, °C.", "nullable": true, "type": "number" },
+          "isDay": { "type": "boolean", "description": "Whether the hour is in daylight." }
         },
         "required": [
           "time",
@@ -378,23 +895,45 @@
       "Forecast": {
         "type": "object",
         "properties": {
-          "latitude": { "type": "number" },
-          "longitude": { "type": "number" },
-          "timezone": { "type": "string" },
+          "latitude": {
+            "type": "number",
+            "description": "The point the forecast is for: the request rounded to 2 decimals (~1 km)."
+          },
+          "longitude": {
+            "type": "number",
+            "description": "The point the forecast is for: the request rounded to 2 decimals (~1 km)."
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA time zone of the place; every time in the answer is local to it."
+          },
           "units": {
             "type": "object",
             "properties": {
-              "temperature": { "type": "string" },
-              "windSpeed": { "type": "string" },
-              "precipitation": { "type": "string" }
+              "temperature": { "type": "string", "description": "Always \"°C\": clients convert." },
+              "windSpeed": { "type": "string", "description": "\"km/h\"." },
+              "precipitation": { "description": "\"mm\".", "type": "string" }
             },
             "required": ["temperature", "windSpeed"],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "description": "Units of the numbers in this answer, as the provider names them."
           },
           "current": { "$ref": "#/components/schemas/CurrentWeather" },
-          "yesterday": { "nullable": true, "allOf": [{ "$ref": "#/components/schemas/DailyForecast" }] },
-          "hourly": { "type": "array", "items": { "$ref": "#/components/schemas/HourlyForecast" } },
-          "daily": { "type": "array", "items": { "$ref": "#/components/schemas/DailyForecast" } }
+          "yesterday": {
+            "nullable": true,
+            "description": "Yesterday's weather at the place, for comparison; null when the provider has none.",
+            "allOf": [{ "$ref": "#/components/schemas/DailyForecast" }]
+          },
+          "hourly": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/HourlyForecast" },
+            "description": "The next 24 hours, starting with the current hour."
+          },
+          "daily": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/DailyForecast" },
+            "description": "One per day, starting with today in the place's time zone."
+          }
         },
         "required": ["latitude", "longitude", "timezone", "units", "current", "yesterday", "hourly", "daily"],
         "additionalProperties": false
@@ -415,16 +954,22 @@
                   "RATE_LIMITED",
                   "SERVICE_BUSY",
                   "NETWORK_ERROR"
-                ]
+                ],
+                "description": "What went wrong, for the client to act on: INVALID_REQUEST (400): a parameter or body is missing or out of range; the message names it. NOT_FOUND (404): no such place, or no such endpoint. RATE_LIMITED (429): this address sent too many requests, or asked for too many new places; Retry-After says when to try again. PROVIDER_ERROR (502): the data provider did not answer or answered wrongly; worth a retry in a minute. SERVICE_BUSY (503): the server is near a provider's free limit for everyone; cached data is still served, new places wait. INTERNAL (500): our bug. NETWORK_ERROR: made by the client only when no answer came; never sent by the API."
               },
-              "message": { "type": "string" }
+              "message": {
+                "type": "string",
+                "description": "Plain English, safe to show to the user; clients translate by code where they can."
+              }
             },
             "required": ["code", "message"],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "description": "What went wrong: a code to act on and a message to show."
           }
         },
         "required": ["error"],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "The one shape of every error answer; errors are never cached."
       },
       "ForecastsResponse": {
         "type": "object",
@@ -467,7 +1012,8 @@
                   "additionalProperties": false
                 }
               ]
-            }
+            },
+            "description": "In the order the places were asked for: the forecast, or the error for that place alone (the others still come)."
           }
         },
         "required": ["forecasts"],
@@ -476,42 +1022,72 @@
       "AirQuality": {
         "type": "object",
         "properties": {
-          "time": { "type": "string" },
-          "timezone": { "type": "string" },
-          "europeanAqi": { "nullable": true, "type": "number" },
-          "usAqi": { "nullable": true, "type": "number" },
+          "time": {
+            "type": "string",
+            "description": "Local time at the place, \"YYYY-MM-DDTHH:mm\" (no offset). The hour the values are for."
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA time zone of the place, used to pick the index people there know."
+          },
+          "europeanAqi": {
+            "nullable": true,
+            "description": "European Air Quality Index (0–20 good … over 100 extremely poor); null where the provider has no data.",
+            "type": "number"
+          },
+          "usAqi": {
+            "nullable": true,
+            "description": "US AQI (0–50 good … over 300 hazardous); null where the provider has no data.",
+            "type": "number"
+          },
           "pollutants": {
             "type": "object",
             "properties": {
-              "pm2_5": { "nullable": true, "type": "number" },
-              "pm10": { "nullable": true, "type": "number" },
-              "ozone": { "nullable": true, "type": "number" },
-              "nitrogenDioxide": { "nullable": true, "type": "number" }
+              "pm2_5": { "nullable": true, "description": "Particulate matter under 2.5 µm.", "type": "number" },
+              "pm10": { "nullable": true, "description": "Particulate matter under 10 µm.", "type": "number" },
+              "ozone": { "nullable": true, "description": "O₃.", "type": "number" },
+              "nitrogenDioxide": { "nullable": true, "description": "NO₂.", "type": "number" }
             },
             "required": ["pm2_5", "pm10", "ozone", "nitrogenDioxide"],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "description": "Concentrations, µg/m³."
           }
         },
         "required": ["time", "timezone", "europeanAqi", "usAqi", "pollutants"],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Current air quality at a place."
       },
       "ReversePlace": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "country": { "type": "string" },
-          "latitude": { "type": "number" },
-          "longitude": { "type": "number" },
-          "id": { "type": "integer", "minimum": 0, "exclusiveMinimum": true, "maximum": 9007199254740991 }
+          "name": { "type": "string", "description": "City or locality, in the requested language where available." },
+          "country": { "description": "Country name.", "type": "string" },
+          "latitude": {
+            "type": "number",
+            "description": "The matched city's coordinates when id is set, so it is the same place as in search; else the point asked for."
+          },
+          "longitude": { "type": "number", "description": "See latitude." },
+          "id": {
+            "description": "GeoNames id, when the place matched a city the search knows.",
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991
+          }
         },
         "required": ["name", "latitude", "longitude"],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "What to call a place found by coordinates or by IP address."
       },
       "WeatherAlert": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "level": { "type": "string", "enum": ["yellow", "orange", "red"] },
+          "id": { "type": "string", "description": "The warning's CAP identifier; stable for one warning." },
+          "level": {
+            "type": "string",
+            "enum": ["yellow", "orange", "red"],
+            "description": "MeteoAlarm awareness level: yellow (2), orange (3) or red (4); green is never sent."
+          },
           "type": {
             "type": "string",
             "enum": [
@@ -530,40 +1106,65 @@
               "marine-hazard",
               "drought",
               "other"
-            ]
+            ],
+            "description": "MeteoAlarm awareness type (CAP profile v2.0); \"other\" for anything new."
           },
-          "onset": { "type": "string" },
-          "expires": { "type": "string" },
-          "language": { "type": "string" },
-          "event": { "type": "string" },
-          "headline": { "type": "string" },
-          "description": { "type": "string" },
-          "instruction": { "type": "string" },
-          "sender": { "type": "string" },
-          "web": { "type": "string" }
+          "onset": {
+            "type": "string",
+            "description": "ISO 8601 with offset; the warning is in force from onset to expires."
+          },
+          "expires": { "type": "string", "description": "ISO 8601 with offset." },
+          "language": {
+            "type": "string",
+            "description": "Language of the texts (BCP 47, e.g. \"pl-PL\"): the requested one if the issuer has it, else English."
+          },
+          "event": { "type": "string", "description": "The issuer's own name for the event, unmodified." },
+          "headline": { "description": "The issuer's headline, unmodified.", "type": "string" },
+          "description": { "description": "The issuer's description, unmodified.", "type": "string" },
+          "instruction": { "description": "The issuer's advice, unmodified.", "type": "string" },
+          "sender": { "description": "The national weather service that issued it.", "type": "string" },
+          "web": { "description": "URL of the issuer's page about this kind of warning.", "type": "string" }
         },
         "required": ["id", "level", "type", "onset", "expires", "language", "event"],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "One official warning, in the words of the national weather service."
       },
       "AlertsResponse": {
         "type": "object",
         "properties": {
-          "alerts": { "type": "array", "items": { "$ref": "#/components/schemas/WeatherAlert" } },
+          "alerts": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WeatherAlert" },
+            "description": "Most severe first, then soonest; empty where there are none or no coverage."
+          },
           "attribution": {
             "nullable": true,
+            "description": "Who to credit next to the warnings, as the source's terms require; null when nothing is shown.",
             "type": "object",
-            "properties": { "name": { "type": "string" }, "url": { "type": "string" } },
+            "properties": {
+              "name": { "type": "string", "description": "The credit line to show, e.g. \"EUMETNET – MeteoAlarm\"." },
+              "url": { "type": "string", "description": "Where the credit links to." }
+            },
             "required": ["name", "url"],
             "additionalProperties": false
           },
-          "covered": { "type": "boolean" }
+          "covered": {
+            "description": "Whether the source covers the place at all (false outside Europe), so warnings and notifications can exist there. Absent in answers cached before the field existed.",
+            "type": "boolean"
+          }
         },
         "required": ["alerts", "attribution"],
         "additionalProperties": false
       },
       "AlertTopicsResponse": {
         "type": "object",
-        "properties": { "areas": { "type": "array", "items": { "type": "string" } } },
+        "properties": {
+          "areas": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "The MeteoAlarm areas the place belongs to; the service worker matches incoming warnings by them."
+          }
+        },
         "required": ["areas"],
         "additionalProperties": false
       }

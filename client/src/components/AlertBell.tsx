@@ -137,7 +137,7 @@ export function AlertBell(props: Props) {
   // Once nothing is being applied, the panel shows what is actually stored: a change made in
   // another tab, or the previous settings again after a change failed. Kept in the draft during
   // render (an effect did it a render later), so the draft is still those settings when
-  // notifications are then turned off, here or in another tab. (roborev)
+  // notifications are then turned off, here or in another tab.
   if (on && !busy && (draft.group !== saved.group || draft.level !== saved.level)) {
     setDraft({ group: saved.group, level: saved.level });
   }
@@ -201,7 +201,7 @@ export function AlertBell(props: Props) {
                   setPending('switch');
                   // What is on screen becomes the choice: turned off, the panel keeps showing it,
                   // and turning on again uses it, not an older one from this tab, when the
-                  // settings were changed in another. (Found by roborev.)
+                  // settings were changed in another.
                   setDraft(settings);
                   void (on ? disable() : enable(settings));
                 }}

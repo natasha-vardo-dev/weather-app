@@ -80,7 +80,7 @@ export function SettingsMenu() {
   // A place turned on meanwhile (another tab) joins the rows kept while the menu is open, so
   // switched off here it stays, greyed, with its settings, like the others. Stored in the kept
   // rows during render, as React advises for state that follows other values (an effect did
-  // it a render later); only shown, not stored, it vanished when switched off. (roborev)
+  // it a render later); only shown, not stored, it vanished when switched off.
   const addedAlertRows = alertRows ? alerts.places.filter((p) => !alertRows.some((r) => samePlace(r, p))) : [];
   if (alertRows && addedAlertRows.length > 0) setAlertRows([...alertRows, ...addedAlertRows]);
   const shownAlertRows = alertRows ?? alerts.places;

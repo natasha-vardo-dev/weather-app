@@ -3,8 +3,7 @@
  * stored, each forecast in it is stored too under the URL its city page asks for alone
  * (/api/v1/forecast?lat=…&lon=…&days=…, the same version as the batch). Saved cities are loaded in batches on the start page and
  * in the strip, while a city page loads its own /forecast; without this, a saved city seen
- * only as a card could not be opened offline, although the card showed its forecast. (Found
- * by roborev.)
+ * only as a card could not be opened offline, although the card showed its forecast.
  *
  * Serialized into sw.js by vite-plugin-pwa: no outside references, only the arguments and
  * service-worker globals. The URL must match `getForecast` in the shared API client: the same
@@ -16,7 +15,7 @@
  * Written with `cache.put`, the copies are outside the expiration plugin's bookkeeping (it
  * counts only what it stores itself), so they are cleaned up here: each time a batch is
  * stored, city copies older than a day (the route's maxAgeSeconds) are deleted. Otherwise a
- * city once saved and removed would stay in the cache for good. (Found by roborev.)
+ * city once saved and removed would stay in the cache for good.
  */
 export async function splitForecastBatch({
   cacheName,

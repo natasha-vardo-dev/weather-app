@@ -155,8 +155,8 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
   // Before the rate limits, so checks never use up anyone's allowance.
   // With a proxy secret, health also says whether this request carried it (`proxied`): health
   // itself is open, so an uptime monitor calling it through the site would stay green with the
-  // secrets different on Vercel and the API host, while every other API call got 404 (found by
-  // roborev). The monitor checks for `"proxied":true` (docs/operations.md). Says nothing of the secret.
+  // secrets different on Vercel and the API host, while every other API call got 404. The
+  // monitor checks for `"proxied":true` (docs/operations.md). Says nothing of the secret.
   app.get('/api/health', (req, res) => {
     res.set('Cache-Control', 'no-store');
     if (draining()) {

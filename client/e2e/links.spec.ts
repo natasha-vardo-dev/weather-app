@@ -25,6 +25,21 @@ test('a shared link opens the city with its forecast', async ({ page, checkA11y 
   await checkA11y('tile under the mouse');
 });
 
+test('a chart opened at the bottom of the screen scrolls into view with room below it', async ({ page }) => {
+  await page.goto('/weather/756135-warsaw');
+  const tile = page.getByRole('button', { name: /Humidity/ });
+  // The tile on the screen's last line, so its chart opens below the fold.
+  await tile.evaluate((element) => {
+    window.scrollBy(0, element.getBoundingClientRect().bottom - window.innerHeight + 4);
+  });
+  await tile.click();
+
+  const panel = page.locator('.detail-panel:not([hidden])');
+  // Space left between the panel and the screen's bottom edge, once scrolling (smooth) ends.
+  const gap = () => panel.evaluate((element) => window.innerHeight - element.getBoundingClientRect().bottom);
+  await expect.poll(gap).toBeGreaterThanOrEqual(16);
+});
+
 test('a link made in another language, or edited, moves to the canonical address', async ({ page }) => {
   await page.goto('/weather/756135-varshava');
   await expect(page).toHaveURL('/weather/756135-warsaw');

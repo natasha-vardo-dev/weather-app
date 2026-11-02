@@ -6,17 +6,15 @@
 ## Context
 
 [0008](0008-languages-and-units.md) sets the main rules for languages and units, and [0016](0016-fewer-languages.md)
-the list of languages. Many smaller choices were made later, for the place names, the header and settings, the
-warnings list and the weather details, each after comparing variants on mockups or fixing a bug found in use. This ADR
-records, after the fact, the reasoning that used to live in `architecture.md`, which now describes only how these
-parts work.
+the list of languages. This record holds the smaller choices for the place names, the header and settings, the warnings
+list and the weather details; `architecture.md` describes only how these parts work.
 
 ## Decision
 
 - **Default language by base language, choice stored.** `de-AT` picks German; an explicit choice in the switcher wins,
-  because the browser's list is only a guess.
-- **No i18n library for now.** Typed files and `Intl` cover 8 languages; with many more languages, or translators
-  working in a TMS, `i18next`/FormatJS with lazy-loaded JSON would be the next step.
+  because the browser's list is a default, not a choice.
+- **No i18n library.** Typed files and `Intl` cover 8 languages. With many more languages, or translators working in
+  a TMS, `i18next` or FormatJS with lazy-loaded JSON is the alternative.
 - **Numbers and dates from `Intl`, not from strings,** so they are right for every locale, not only the translated
   ones.
 - **Only place search takes `lang`,** because Open-Meteo returns city, region and country names in that language;
@@ -45,7 +43,7 @@ parts work.
   first is off by a degree (14.4 °C is 58 °F; 14 °C gives 57 °F). Differences ("4° warmer") are computed on converted
   values so they have no +32 offset.
 - **No unit letter on "14°", wind unit separate.** As in most weather apps; the unit is in the settings. Many people
-  mix units (°C with mph in the UK), so wind would get its own setting if needed.
+  mix units (°C with mph in the UK), a wind unit setting is in the backlog.
 - **Logo with the name as the way home.** Before, the only way back was the browser's, and none at all after opening a
   shared city link. Most sites link the logo to the start page (yr.no, AccuWeather, weather.com; Google puts its logo
   left of the search). The icon on a blue tile matches the Home Screen icon once installed. It has no frame because it
@@ -135,8 +133,8 @@ parts work.
   a menu pattern to build); a section under the 10-day list (long page, repeats the list).
 - **Details placement:** tiles below the 10 days in addition to the row on top (wind, humidity, precipitation twice);
   keeping the row on top (Google's choice).
-- **Air quality panel:** padding to chart height with empty space (looks unfinished); a 24-hour AQI chart for now
-  (needs hourly air quality data, and would be taller).
+- **Air quality panel:** padding to chart height with empty space; a 24-hour AQI chart (needs hourly air quality
+  data).
 - **"Feels like" and the summary lines:** two even lines (the second wraps on a phone in Russian); a column beside the
   number (too narrow on a phone); details at 1rem (too close to the 1.1rem condition line, the order blurred); only a
   brighter colour (tried first, still small); bright numbers in soft words (busier).

@@ -12,8 +12,8 @@ import { rewrite } from '@vercel/functions/middleware';
  *
  * A rewrite, not a fetch of its own: Vercel's router proxies the request, as the plain rewrite
  * in vercel.json did, so the middleware returns at once. Fetching here, it would hold every
- * request open, and the Edge runtime gives up after about 25 s: a free Render instance waking
- * up (up to a minute) would have answered with Vercel's 504 page. (Found by roborev.)
+ * request open, and the Edge runtime gives up after about 25 s: a slow API would get
+ * Vercel's 504 page.
  * vercel.json's rewrites cannot add request headers, hence the middleware.
  *
  * Runs only on Vercel; locally the Vite proxy forwards /api and the server, without

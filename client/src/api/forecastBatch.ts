@@ -18,7 +18,7 @@ interface Waiting {
  * Only the saved cities' tiles and cards are batched. The city page asks for its own forecast
  * alone (`sendAlone`): in a batch it would wait for the slowest saved city, and the service
  * worker would keep it only inside that batch, not as the city's own /forecast for offline
- * use. A single place left in a batch also goes out alone. (Found by roborev.)
+ * use. A single place left in a batch also goes out alone.
  */
 export function createForecastBatcher(
   client: Pick<ApiClient, 'getForecast' | 'getForecasts'>,
@@ -46,7 +46,7 @@ export function createForecastBatcher(
       // - the server is older than the client (they deploy separately): no /api/forecasts yet;
       // - the network failed and the service worker has no copy of this exact list of places
       //   (favourites changed since, or the city page batched with the strip): it may still
-      //   have each city's own /forecast. (Found by roborev.)
+      //   have each city's own /forecast.
       if (
         err instanceof ApiError &&
         (err.code === ERROR_CODES.NOT_FOUND ||

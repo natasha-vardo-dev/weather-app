@@ -17,22 +17,35 @@ const languageSchema = z
   .string()
   .regex(/^[a-z]{2}$/i)
   .transform((value) => value.toLowerCase())
-  .default('en');
+  .default('en')
+  .describe('ISO 639-1 code for place names (en, de, fr, es, it, pl, uk, ru, …); English for unknown ones.');
 
 export const locationsQuerySchema = z.object({
   q: z
     .string()
     .trim()
     .min(SEARCH_MIN_LENGTH, `Type at least ${SEARCH_MIN_LENGTH} characters to search.`)
-    .max(SEARCH_MAX_LENGTH),
-  limit: z.coerce.number().int().min(1).max(SEARCH_MAX_LIMIT).default(SEARCH_DEFAULT_LIMIT),
+    .max(SEARCH_MAX_LENGTH)
+    .describe('A place name, in any language or script; old and other names match too ("Kiev" finds Kyiv).'),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(SEARCH_MAX_LIMIT)
+    .default(SEARCH_DEFAULT_LIMIT)
+    .describe('How many places at most.'),
   lang: languageSchema,
 });
 
 /** GET /api/locations/:id — one place by provider id, names in `lang`. */
 export const locationByIdSchema = z.object({
   // Bounded, so an impossible id is answered with 400 here, not sent to the provider.
-  id: z.coerce.number().int().positive().max(MAX_LOCATION_ID),
+  id: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(MAX_LOCATION_ID)
+    .describe('GeoNames id of the place, as in search results and city URLs (/weather/756135-warsaw).'),
   lang: languageSchema,
 });
 
@@ -45,7 +58,7 @@ export const locationByIdSchema = z.object({
  * ("Required." rather than "expected number, received NaN"); range errors keep Zod's.
  * `In` is the input type, `string` inside a pipe from a split string (which accepts nothing wider).
  */
-function coordinate<In = unknown>(range: { min: number; max: number }) {
+function coordinate<In = unknown>(range: { min: number; max: number }, description: string) {
   return z.preprocess(
     (value: In) => (typeof value === 'string' ? (value.trim() === '' ? undefined : Number(value)) : value),
     z
@@ -54,14 +67,28 @@ function coordinate<In = unknown>(range: { min: number; max: number }) {
           issue.code === 'invalid_type' ? (issue.input === undefined ? 'Required.' : 'Must be a number.') : undefined,
       })
       .min(range.min)
-      .max(range.max),
+      .max(range.max)
+      .describe(description),
   );
 }
 
+const LAT = 'Latitude in decimal degrees (-90 to 90); the server rounds to 2 decimals (~1 km).';
+const LON = 'Longitude in decimal degrees (-180 to 180); the server rounds to 2 decimals (~1 km).';
+// Warnings are matched against region borders at the exact point, not the rounded one.
+const LAT_EXACT = 'Latitude in decimal degrees (-90 to 90).';
+const LON_EXACT = 'Longitude in decimal degrees (-180 to 180).';
+const daysSchema = z.coerce
+  .number()
+  .int()
+  .min(1)
+  .max(FORECAST_MAX_DAYS)
+  .default(FORECAST_DEFAULT_DAYS)
+  .describe(`Days of daily forecast, today included (1 to ${FORECAST_MAX_DAYS}; accuracy drops after 10).`);
+
 export const forecastQuerySchema = z.object({
-  lat: coordinate(LATITUDE_RANGE),
-  lon: coordinate(LONGITUDE_RANGE),
-  days: z.coerce.number().int().min(1).max(FORECAST_MAX_DAYS).default(FORECAST_DEFAULT_DAYS),
+  lat: coordinate(LATITUDE_RANGE, LAT),
+  lon: coordinate(LONGITUDE_RANGE, LON),
+  days: daysSchema,
 });
 
 /**
@@ -82,20 +109,23 @@ export const forecastsQuerySchema = z.object({
         .array(
           z.object({
             // A missing half (`52.23` with no comma) or an empty one (`places=,`) is refused too.
-            lat: coordinate<string>(LATITUDE_RANGE),
-            lon: coordinate<string>(LONGITUDE_RANGE),
+            lat: coordinate<string>(LATITUDE_RANGE, LAT),
+            lon: coordinate<string>(LONGITUDE_RANGE, LON),
           }),
         )
         .min(1)
         .max(MAX_FAVORITES, `At most ${MAX_FAVORITES} places at once.`),
+    )
+    .describe(
+      `Up to ${MAX_FAVORITES} places as "lat,lon" pairs separated by semicolons, e.g. "52.23,21.01;50.06,19.94". Answered in the same order.`,
     ),
-  days: z.coerce.number().int().min(1).max(FORECAST_MAX_DAYS).default(FORECAST_DEFAULT_DAYS),
+  days: daysSchema,
 });
 
 /** GET /api/places/reverse — the place at coordinates (current location), in `lang`. */
 export const reverseQuerySchema = z.object({
-  lat: coordinate(LATITUDE_RANGE),
-  lon: coordinate(LONGITUDE_RANGE),
+  lat: coordinate(LATITUDE_RANGE, LAT),
+  lon: coordinate(LONGITUDE_RANGE, LON),
   lang: languageSchema,
 });
 
@@ -103,26 +133,34 @@ export const reverseQuerySchema = z.object({
 export const approximateQuerySchema = z.object({ lang: languageSchema });
 
 export const airQualityQuerySchema = z.object({
-  lat: coordinate(LATITUDE_RANGE),
-  lon: coordinate(LONGITUDE_RANGE),
+  lat: coordinate(LATITUDE_RANGE, LAT),
+  lon: coordinate(LONGITUDE_RANGE, LON),
 });
 
 /** GET /api/alerts — official warnings at a place, texts in `lang` where the issuer has it. */
 export const alertsQuerySchema = z.object({
-  lat: coordinate(LATITUDE_RANGE),
-  lon: coordinate(LONGITUDE_RANGE),
-  lang: languageSchema,
+  lat: coordinate(LATITUDE_RANGE, LAT_EXACT),
+  lon: coordinate(LONGITUDE_RANGE, LON_EXACT),
+  lang: languageSchema.describe("ISO 639-1 code: the issuer's texts in this language where it has them, else English."),
 });
 
 /** POST /api/push/topics — a device's push token and the place it wants warnings for. */
 export const alertTopicsSchema = z.object({
   // FCM web tokens are ~160 characters; the bound keeps junk away from the push service.
-  token: z.string().min(20).max(4096),
-  latitude: z.number().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
-  longitude: z.number().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
-  group: z.enum(ALERT_GROUPS),
-  level: z.enum(ALERT_LEVELS),
-  subscribe: z.boolean(),
+  token: z.string().min(20).max(4096).describe("The device's Firebase Cloud Messaging registration token."),
+  latitude: z
+    .number()
+    .min(LATITUDE_RANGE.min)
+    .max(LATITUDE_RANGE.max)
+    .describe('Of the place to watch, decimal degrees.'),
+  longitude: z
+    .number()
+    .min(LONGITUDE_RANGE.min)
+    .max(LONGITUDE_RANGE.max)
+    .describe('Of the place to watch, decimal degrees.'),
+  group: z.enum(ALERT_GROUPS).describe('Which warnings: "storm" (wind and thunderstorms) or "all" types.'),
+  level: z.enum(ALERT_LEVELS).describe('Notify from this level up.'),
+  subscribe: z.boolean().describe('true to subscribe the token to the place, false to unsubscribe it.'),
 });
 
 /** What happened in the browser: a render that failed, or an error nothing caught. */
@@ -133,15 +171,24 @@ export const CLIENT_ERROR_KINDS = ['render', 'error', 'rejection'] as const;
  * error-tracking service). Bounded: anyone can send it, and it ends up in the logs.
  */
 export const clientErrorSchema = z.object({
-  kind: z.enum(CLIENT_ERROR_KINDS),
-  message: z.string().max(500),
-  stack: z.string().max(4000).optional(),
-  /** Which components a render error happened in (React gives it). */
-  componentStack: z.string().max(2000).optional(),
-  /** The page, with places replaced by a placeholder: no coordinates in the logs. */
-  path: z.string().max(200),
-  /** The build that failed: the service worker may keep an old one in use for a while. */
-  release: z.string().max(40).optional(),
+  kind: z
+    .enum(CLIENT_ERROR_KINDS)
+    .describe(
+      '"render": a component failed to render; "error": an uncaught error; "rejection": an unhandled promise rejection.',
+    ),
+  message: z.string().max(500).describe("The error's message."),
+  stack: z.string().max(4000).optional().describe('The stack trace, when there is one.'),
+  componentStack: z
+    .string()
+    .max(2000)
+    .optional()
+    .describe('Which components a render error happened in (React gives it).'),
+  path: z.string().max(200).describe('The page, with places replaced by a placeholder: no coordinates reach the logs.'),
+  release: z
+    .string()
+    .max(40)
+    .optional()
+    .describe('The build that failed: the service worker may keep an old one in use for a while.'),
 });
 
 /** Parsed (output) types, used by the server after validation. */

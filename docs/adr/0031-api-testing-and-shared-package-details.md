@@ -5,8 +5,8 @@
 
 ## Context
 
-This ADR records, after the fact, the reasoning that used to live in `docs/architecture.md` next to the description
-of API versions, testing, the shared package and the alternatives to a backend. The main decisions are in
+This record holds the smaller reasons around API versions, testing, the shared package and the alternatives to a
+backend; `docs/architecture.md` describes only how they work. The main decisions are in
 [0001](0001-backend-for-frontend.md), [0002](0002-monorepo-shared-contract.md), [0012](0012-api-versioning.md) and
 [0015](0015-testing-strategy.md); this one keeps the smaller reasons and lessons they do not state.
 
@@ -29,7 +29,7 @@ MeteoAlarm would otherwise be found by users first.
   the contract is checked, not only typed.
 - **oasdiff skips a major-version change:** breaking the old version is what a new one is for. Nothing is uploaded,
   and oasdiff's review link is off.
-- **Tolerant client:** the retry uses `cache: 'reload'` because a wrong-shaped answer usually comes from the HTTP
+- **Tolerant client:** the retry uses `cache: 'reload'` because a wrong-shaped answer comes from an old copy in the HTTP
   cache; if the fresh one is no better, an ordinary error replaces a crash. POST is not repeated.
 - **Service worker cache per version:** a new version starts empty and cannot read old shapes.
 - **Version usage in metrics:** versions not served are counted as "other", so made-up versions cannot grow the
