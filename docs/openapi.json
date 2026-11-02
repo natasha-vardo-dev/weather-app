@@ -558,10 +558,6 @@
             "description": "The data provider did not answer, or answered wrongly (PROVIDER_ERROR); try again in a minute.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
           },
-          "503": {
-            "description": "The server is near a provider's free limit for everyone (SERVICE_BUSY): cached answers still come, new places wait.",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
-          },
           "default": {
             "description": "Any other error, in the same shape.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }

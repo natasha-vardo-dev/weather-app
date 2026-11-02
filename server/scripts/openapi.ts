@@ -254,7 +254,8 @@ export function openApi() {
         'Warnings in force at the place from the national weather service, in its own words; empty outside Europe (covered: false). Pages ask again every 4 minutes while open.',
         alertsQuerySchema,
         alertsResponseSchema,
-        { errors: providerErrors },
+        // MeteoAlarm calls go through no budget, so no 503 here.
+        { errors: { '502': providerErrors['502'] } },
       ),
       '/push/topics': {
         post: {
