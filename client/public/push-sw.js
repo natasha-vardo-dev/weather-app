@@ -108,6 +108,58 @@ function forgetOpen() {
   });
 }
 
+/**
+ * TEMPORARY, for the iPhone case (2026-11-02: tapping a warning left a running app on another
+ * city): the last 30 notification events of the last 7 days, kept on the device under `trace`
+ * in the same store, written by this worker and the page (client/src/push/pendingOpen.ts). Read
+ * from the page's console; never sent anywhere. Remove both with the investigation, and delete
+ * the `trace` key once then (see tracePage), or entries stay on devices. Never rejects nor hangs.
+ */
+function trace(message, detail) {
+  return new Promise((resolve) => {
+    try {
+      const open = indexedDB.open(DB, 1);
+      open.onupgradeneeded = () => open.result.createObjectStore(STORE);
+      open.onerror = () => resolve();
+      open.onsuccess = () => {
+        const db = open.result;
+        db.onversionchange = () => db.close();
+        const done = () => {
+          resolve();
+          db.close();
+        };
+        try {
+          const tx = db.transaction(STORE, 'readwrite');
+          const store = tx.objectStore(STORE);
+          const get = store.get('trace');
+          // Done once the write is queued: close() lets the transaction finish first.
+          get.onsuccess = () => {
+            try {
+              const week = Date.now() - 7 * 24 * 60 * 60 * 1000;
+              const entries = (Array.isArray(get.result) ? get.result : []).filter(
+                (entry) => typeof entry?.at === 'number' && entry.at >= week,
+              );
+              entries.push({ at: Date.now(), who: 'worker', message, detail: detail ?? null });
+              store.put(entries.slice(-30), 'trace');
+            } catch {
+              // A trace is never worth a failure.
+            }
+            done();
+          };
+          get.onerror = done;
+          tx.oncomplete = done;
+          tx.onerror = done;
+          tx.onabort = done;
+        } catch {
+          done();
+        }
+      };
+    } catch {
+      resolve();
+    }
+  });
+}
+
 function parse(json, fallback) {
   try {
     return JSON.parse(json);
@@ -203,15 +255,42 @@ function showFallback(payload) {
   );
 }
 
+/** How long one step of a click (focusing, navigating, opening a window) may take. */
+const STEP_MS = 3000;
+
+/**
+ * The value of `promise`, or `onTimeout` if it neither resolves nor rejects within `ms` (a
+ * rejection gives `onReject`). Safari can leave focus() pending: awaited without a limit, the
+ * click never finished, nothing opened, and the worker received no more pushes. (2026-11-02)
+ */
+function within(promise, ms, { onTimeout, onReject }) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(onTimeout), ms);
+    Promise.resolve(promise).then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(onReject);
+      },
+    );
+  });
+}
+
 self.addEventListener('push', (event) => {
   const payload = event.data ? parse(event.data.text(), {}) : {};
   // Every push must show a notification (Chrome shows its own otherwise, Safari unsubscribes).
   event.waitUntil(
-    showWarning(payload).catch((error) => {
-      // Visible in the worker's console; the error carries no personal data.
-      console.error('push: full notification failed', error);
-      return showFallback(payload);
-    }),
+    Promise.all([
+      showWarning(payload).catch((error) => {
+        // Visible in the worker's console; the error carries no personal data.
+        console.error('push: full notification failed', error);
+        return showFallback(payload);
+      }),
+      within(trace('push'), STEP_MS, {}),
+    ]),
   );
 });
 
@@ -239,30 +318,6 @@ function askPageToOpen(client, path) {
   });
 }
 
-/** How long one step of a click (focusing, navigating, opening a window) may take. */
-const STEP_MS = 3000;
-
-/**
- * The value of `promise`, or `onTimeout` if it neither resolves nor rejects within `ms` (a
- * rejection gives `onReject`). Safari can leave focus() pending: awaited without a limit, the
- * click never finished, nothing opened, and the worker received no more pushes. (2026-11-02)
- */
-function within(promise, ms, { onTimeout, onReject }) {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(onTimeout), ms);
-    Promise.resolve(promise).then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      () => {
-        clearTimeout(timer);
-        resolve(onReject);
-      },
-    );
-  });
-}
-
 /** How long the click waits for the place to be recorded, and only before messaging the page. */
 const RECORD_MS = 500;
 
@@ -279,45 +334,56 @@ self.addEventListener('notificationclick', (event) => {
   // WindowClient.navigate() is the fallback for a page that does not answer, a new window the
   // last one. Every step has a time limit, so the event always ends. Each route taken is
   // logged (Safari's Web Inspector shows the worker's console): a phone cannot be watched otherwise.
+  // Each step goes to the console and, for now, to the on-device trace (awaited at the end).
+  const traced = [];
+  const log = (message, detail) => {
+    console.info(message, detail ?? '');
+    traced.push(trace(message, detail));
+  };
   const record = recordOpen(path);
+  // After the record's transaction: the trace must not delay it.
+  log('notification click', path);
   const recording = within(record, RECORD_MS, { onTimeout: false });
   event.waitUntil(
-    within(self.clients.matchAll({ type: 'window' }), STEP_MS, { onTimeout: [], onReject: [] }).then((windows) => {
-      const open = windows[0];
-      console.info('notification click', { path, windows: windows.length });
-      if (!open) {
-        console.info('notification click: new window');
-        return Promise.all([recording, within(self.clients.openWindow(url.href), STEP_MS, {})]);
-      }
-      // Side by side: the place is opened whatever focus() does; the event ends when all have.
-      const focused = within(open.focus?.(), STEP_MS, {});
-      const opened = (async () => {
-        // A page that picks the record up as it shows must find it already there.
-        await recording;
-        if (await askPageToOpen(open, path)) {
-          console.info('notification click: the page opened it');
-          // Opened: a record written after the page cleared it would open the place again later.
-          return within(
-            record.then(() => forgetOpen()),
-            STEP_MS,
-            {},
-          );
+    within(self.clients.matchAll({ type: 'window' }), STEP_MS, { onTimeout: [], onReject: [] })
+      .then((windows) => {
+        const open = windows[0];
+        log('notification click: windows', windows.length);
+        if (!open) {
+          log('notification click: new window');
+          return Promise.all([recording, within(self.clients.openWindow(url.href), STEP_MS, {})]);
         }
-        if ('navigate' in open) {
-          console.info('notification click: no answer, navigating the window');
-          // Pending past the limit: it may still happen, so no second window over it.
-          const navigated = await within(
-            Promise.resolve().then(() => open.navigate(url.href)),
-            STEP_MS,
-            { onTimeout: 'pending', onReject: null },
-          );
-          if (navigated) return undefined;
-        }
-        // Not this worker's window (opened before it, or after a hard reload), or no navigate().
-        console.info('notification click: could not navigate, new window');
-        return within(self.clients.openWindow(url.href), STEP_MS, {});
-      })();
-      return Promise.all([focused, opened]);
-    }),
+        // Side by side: the place is opened whatever focus() does; the event ends when all have.
+        const focused = within(open.focus?.(), STEP_MS, {});
+        const opened = (async () => {
+          // A page that picks the record up as it shows must find it already there.
+          await recording;
+          if (await askPageToOpen(open, path)) {
+            log('notification click: the page opened it');
+            // Opened: a record written after the page cleared it would open the place again later.
+            return within(
+              record.then(() => forgetOpen()),
+              STEP_MS,
+              {},
+            );
+          }
+          if ('navigate' in open) {
+            log('notification click: no answer, navigating the window');
+            // Pending past the limit: it may still happen, so no second window over it.
+            const navigated = await within(
+              Promise.resolve().then(() => open.navigate(url.href)),
+              STEP_MS,
+              { onTimeout: 'pending', onReject: null },
+            );
+            if (navigated) return undefined;
+          }
+          // Not this worker's window (opened before it, or after a hard reload), or no navigate().
+          log('notification click: could not navigate, new window');
+          return within(self.clients.openWindow(url.href), STEP_MS, {});
+        })();
+        return Promise.all([focused, opened]);
+      })
+      // The trace written, whatever the routes did.
+      .then(() => within(Promise.all(traced), STEP_MS, {})),
   );
 });
