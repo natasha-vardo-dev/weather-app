@@ -14,6 +14,32 @@ import {
 } from './responseChecks.js';
 import type { AirQuality, Forecast, ForecastsResponse, Location, LocationsResponse, ReversePlace } from './types.js';
 
+type TimedSignal = AbortSignal & { timedOut?: boolean };
+
+/**
+ * The caller's signal (if any) plus a timeout, with `timedOut` set when the timeout fired.
+ * Built by hand: AbortSignal.any and AbortSignal.timeout are missing in older Safari and in
+ * React Native, where this client must also run.
+ */
+function timedSignal(signal: AbortSignal | undefined, timeoutMs: number) {
+  const controller = new AbortController();
+  const timed = controller.signal as TimedSignal;
+  const onAbort = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  signal?.addEventListener('abort', onAbort);
+  const timer = setTimeout(() => {
+    timed.timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+  return {
+    signal: timed,
+    clear: () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+    },
+  };
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -29,14 +55,28 @@ export interface ApiClientOptions {
   /** e.g. "" for same-origin web, "https://api.example.com" for mobile */
   baseUrl: string;
   fetchFn?: typeof fetch;
+  /** How long a request may take, answer included, before it fails as NETWORK_ERROR. */
+  timeoutMs?: number;
 }
+
+/**
+ * Longer than the server's slowest answer (a batch of new places: provider calls of 5 s, a few
+ * at a time) and the service worker's own 6 s wait for the network, which shows a saved copy
+ * instead; short enough that a stalled request on a weak signal does not keep the page's
+ * placeholder up until the browser gives up, which takes minutes.
+ */
+export const REQUEST_TIMEOUT_MS = 15_000;
 
 /**
  * Environment-neutral API client: works in browsers, Node.js and React Native.
  * Each app passes its own base URL.
  */
-export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args) }: ApiClientOptions) {
-  async function send(path: string, signal: AbortSignal | undefined, body: unknown, reload: boolean) {
+export function createApiClient({
+  baseUrl,
+  fetchFn = (...args) => fetch(...args),
+  timeoutMs = REQUEST_TIMEOUT_MS,
+}: ApiClientOptions) {
+  async function send(path: string, signal: AbortSignal, body: unknown, reload: boolean) {
     try {
       return await fetchFn(
         `${baseUrl}${path}`,
@@ -45,7 +85,8 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
           : { signal, method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
       );
     } catch (err) {
-      if ((err as Error).name === 'AbortError') throw err;
+      // The caller's own abort; a timeout is a failed network like any other.
+      if ((err as Error).name === 'AbortError' && !(signal as TimedSignal).timedOut) throw err;
       throw new ApiError(
         'No connection to the server. Check your internet and try again.',
         ERROR_CODES.NETWORK_ERROR,
@@ -61,18 +102,48 @@ export function createApiClient({ baseUrl, fetchFn = (...args) => fetch(...args)
    * Not for POST: nothing caches it.
    */
   async function request<T>(path: string, check: (body: unknown) => boolean, signal?: AbortSignal, body?: unknown) {
+    const timed = timedSignal(signal, timeoutMs);
+    try {
+      return await attempt<T>(path, check, timed.signal, body);
+    } finally {
+      timed.clear();
+    }
+  }
+
+  async function attempt<T>(path: string, check: (body: unknown) => boolean, signal: AbortSignal, body?: unknown) {
     for (let reload = false; ; reload = true) {
       const response = await send(path, signal, body, reload);
       if (!response.ok) {
         const error = (await response.json().catch(() => null)) as ApiErrorBody | null;
-        throw new ApiError(
-          error?.error?.message ?? 'Something went wrong. Try again.',
-          error?.error?.code ?? ERROR_CODES.INTERNAL,
-          response.status,
-        );
+        if (error?.error?.code) {
+          throw new ApiError(
+            error.error.message ?? 'Something went wrong. Try again.',
+            error.error.code,
+            response.status,
+          );
+        }
+        // A server error without the API's error body comes from something in front of the API:
+        // the site's proxy answering 502/504 itself because the API is down or unreachable. The
+        // request never reached the API, so it can be tried again; the user's network is fine.
+        if (response.status >= 500) {
+          throw new ApiError(
+            'The server is not responding. Try again in a few minutes.',
+            ERROR_CODES.SERVER_UNAVAILABLE,
+            response.status,
+          );
+        }
+        throw new ApiError('Something went wrong. Try again.', ERROR_CODES.INTERNAL, response.status);
       }
       const data: unknown = await response.json().catch(() => undefined);
       if (check(data)) return data as T;
+      // The answer stalled and was cut by the timeout: a failed network, not a bad answer.
+      if ((signal as TimedSignal).timedOut) {
+        throw new ApiError(
+          'No connection to the server. Check your internet and try again.',
+          ERROR_CODES.NETWORK_ERROR,
+          0,
+        );
+      }
       if (reload || body !== undefined) {
         throw new ApiError(
           'The server sent an answer this app cannot read. Try again later.',

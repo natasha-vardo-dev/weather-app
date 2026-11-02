@@ -36,9 +36,31 @@ export const locationByIdSchema = z.object({
   lang: languageSchema,
 });
 
+/**
+ * A latitude or longitude from a query string. `z.coerce.number()` alone reads an empty or blank
+ * value as 0 (`Number('') === 0`), so `?lat=&lon=` would be a valid place in the Gulf of Guinea:
+ * a provider call and a cache entry for a request that named no place. Blank is missing here.
+ * A preprocess, not a pipe from a string: the OpenAPI description keeps the parameter a number.
+ * It converts the string itself, so a missing value and a wrong one get messages of their own
+ * ("Required." rather than "expected number, received NaN"); range errors keep Zod's.
+ * `In` is the input type, `string` inside a pipe from a split string (which accepts nothing wider).
+ */
+function coordinate<In = unknown>(range: { min: number; max: number }) {
+  return z.preprocess(
+    (value: In) => (typeof value === 'string' ? (value.trim() === '' ? undefined : Number(value)) : value),
+    z
+      .number({
+        error: (issue) =>
+          issue.code === 'invalid_type' ? (issue.input === undefined ? 'Required.' : 'Must be a number.') : undefined,
+      })
+      .min(range.min)
+      .max(range.max),
+  );
+}
+
 export const forecastQuerySchema = z.object({
-  lat: z.coerce.number().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
-  lon: z.coerce.number().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
+  lat: coordinate(LATITUDE_RANGE),
+  lon: coordinate(LONGITUDE_RANGE),
   days: z.coerce.number().int().min(1).max(FORECAST_MAX_DAYS).default(FORECAST_DEFAULT_DAYS),
 });
 
@@ -59,10 +81,9 @@ export const forecastsQuerySchema = z.object({
       z
         .array(
           z.object({
-            // The input type is the split string's: zod 4 types a coerced number's input as unknown,
-            // which a pipe from strings does not accept.
-            lat: z.coerce.number<string>().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
-            lon: z.coerce.number<string>().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
+            // A missing half (`52.23` with no comma) or an empty one (`places=,`) is refused too.
+            lat: coordinate<string>(LATITUDE_RANGE),
+            lon: coordinate<string>(LONGITUDE_RANGE),
           }),
         )
         .min(1)
@@ -73,8 +94,8 @@ export const forecastsQuerySchema = z.object({
 
 /** GET /api/places/reverse — the place at coordinates (current location), in `lang`. */
 export const reverseQuerySchema = z.object({
-  lat: z.coerce.number().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
-  lon: z.coerce.number().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
+  lat: coordinate(LATITUDE_RANGE),
+  lon: coordinate(LONGITUDE_RANGE),
   lang: languageSchema,
 });
 
@@ -82,14 +103,14 @@ export const reverseQuerySchema = z.object({
 export const approximateQuerySchema = z.object({ lang: languageSchema });
 
 export const airQualityQuerySchema = z.object({
-  lat: z.coerce.number().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
-  lon: z.coerce.number().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
+  lat: coordinate(LATITUDE_RANGE),
+  lon: coordinate(LONGITUDE_RANGE),
 });
 
 /** GET /api/alerts — official warnings at a place, texts in `lang` where the issuer has it. */
 export const alertsQuerySchema = z.object({
-  lat: z.coerce.number().min(LATITUDE_RANGE.min).max(LATITUDE_RANGE.max),
-  lon: z.coerce.number().min(LONGITUDE_RANGE.min).max(LONGITUDE_RANGE.max),
+  lat: coordinate(LATITUDE_RANGE),
+  lon: coordinate(LONGITUDE_RANGE),
   lang: languageSchema,
 });
 
