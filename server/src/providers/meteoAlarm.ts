@@ -34,7 +34,22 @@ export const FEED_LIMITS = { entries: 5000, polygonsPerEntry: 50, pointsPerPolyg
  * run, and a page's warning text must not wait behind that fan-out. Feeds: one per country,
  * all at once as before (the limit only bounds them); CAPs: a few at a time.
  */
-const MAX_CONCURRENT = { feeds: 40, caps: 10 } as const;
+/**
+ * Downloads at a time, per queue. The notifier's full warnings have a queue of their own: after
+ * downtime it asks for hundreds at once, and in the pages' queue a visitor's warning would wait
+ * behind all of them, past the client's 15 s timeout. (Found by roborev.)
+ */
+const MAX_CONCURRENT = { feeds: 40, caps: 10, notifierCaps: 5 } as const;
+
+/**
+ * A document that failed is not asked for again this long; requests meanwhile fail at once
+ * with the same error. While MeteoAlarm is down every page view would otherwise wait out the
+ * timeout again (8 s) and ask once more. Short: well inside the notifier's 5-minute interval
+ * and the terms' 10-minute delay.
+ */
+export const FAILURE_TTL_MS = 60 * 1000;
+/** Feeds and listed warnings are a few thousand at most; a bound all the same. */
+const MAX_FAILURES = 1000;
 
 /** The URL as given if it is https on an allowed host with the default port and no credentials, else null. */
 export function allowedUrl(href: string): string | null {
@@ -290,6 +305,9 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
   private regionIndex: Promise<RegionIndex> | null = null;
   private readonly feedLimit = concurrencyLimit(MAX_CONCURRENT.feeds);
   private readonly capLimit = concurrencyLimit(MAX_CONCURRENT.caps);
+  private readonly notifierCapLimit = concurrencyLimit(MAX_CONCURRENT.notifierCaps);
+  /** Documents that failed lately (FAILURE_TTL_MS), by cache key, with their error. */
+  private readonly failures = new Map<string, { until: number; error: unknown }>();
   /** The feed entry behind each warning of the last listWarnings, for loadWarning. */
   private listed = new Map<string, FeedEntry>();
 
@@ -413,7 +431,9 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
   async loadWarning(ref: string): Promise<CapAlert | null> {
     const entry = this.listed.get(ref);
     if (!entry) return null;
-    return this.cached(this.caps, ref, async () => parseCap(await this.fetchText(ref, MAX_BYTES.cap), entry));
+    return this.cached(this.caps, ref, async () =>
+      parseCap(await this.fetchText(ref, MAX_BYTES.cap, this.notifierCapLimit), entry),
+    );
   }
 
   private regions(): Promise<RegionIndex> {
@@ -458,23 +478,29 @@ export class MeteoAlarmProvider implements AlertsProvider, AlertBroadcastSource 
   private cached<T>(cache: TtlCache<Promise<T>>, key: string, load: () => Promise<T>): Promise<T> {
     const hit = cache.get(key);
     if (hit) return hit;
+    const failure = this.failures.get(key);
+    if (failure && failure.until > this.now()) return Promise.reject(failure.error);
+    this.failures.delete(key);
     const promise = load();
     cache.set(key, promise);
-    // Errors are not cached: the next request tries again.
-    promise.catch(() => {
+    // Errors are not cached as answers: they are remembered for FAILURE_TTL_MS, then asked again.
+    promise.catch((error: unknown) => {
       if (cache.get(key) === promise) cache.delete(key);
+      if (this.failures.size >= MAX_FAILURES) this.failures.delete(this.failures.keys().next().value!);
+      this.failures.set(key, { until: this.now() + FAILURE_TTL_MS, error });
     });
     return promise;
   }
 
   /**
    * A document from an allowed host only, without following redirects (one could lead
-   * anywhere), within `maxBytes`, a limited number at a time (MAX_CONCURRENT).
+   * anywhere), within `maxBytes`, a limited number at a time (MAX_CONCURRENT): feeds and full
+   * warnings in queues of their own, the notifier's full warnings in a third (`limit`).
    */
-  private fetchText(url: string, maxBytes: number): Promise<string> {
+  private fetchText(url: string, maxBytes: number, limit?: ReturnType<typeof concurrencyLimit>): Promise<string> {
     if (!allowedUrl(url)) return Promise.reject(new ProviderError('meteoalarm: document URL not allowed'));
     const host = new URL(url).host;
-    const limit = url.startsWith(FEED_URL) ? this.feedLimit : this.capLimit;
+    limit ??= url.startsWith(FEED_URL) ? this.feedLimit : this.capLimit;
     return limit(async () => {
       let response: Response;
       try {
