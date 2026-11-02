@@ -687,7 +687,7 @@ Why: [ADR 0027](adr/0027-languages-units-and-charts-details.md)
   - the API client records values parsed from such answers, with the reason, in a `WeakMap` (`api/savedResponses.ts`); a batch's forecasts inherit it;
   - `useForecast` (also used by favourite tiles and cards) and `useAirQuality` report a saved value and its reason while mounted with it (`useReportSaved`, a counter per reason);
   - the in-memory caches do not keep saved values (`keep`), so the next view asks the network again.
-- **API down, site up:** the proxy answers 502/504. With a saved copy the page shows it with the server banner; without one it shows `SERVER_UNAVAILABLE` ("The weather server isn't responding") with "Try again".
+- **API down, site up:** the proxy answers 502/504. With a saved copy the page shows it with the server banner; without one it shows `SERVER_UNAVAILABLE` (a client-side code, not in the API; "The weather server isn't responding") with "Try again".
 - **Updates:** `registerType: 'autoUpdate'` with `skipWaiting` and `clientsClaim` set by hand (`injectRegister: 'script-defer'` does not add them): a new version installs in the background, takes over without a prompt and runs from the next page load. An open page keeps its old code until reloaded. Two lazily loaded chunks may be gone after a deploy:
   - the Firebase SDK: turning notifications on in an older page can fail (the panel shows its usual error; a reload fixes it);
   - the privacy policy: the footer opens it with a full page load, not an in-app link.
@@ -742,6 +742,10 @@ Why: [ADR 0010](adr/0010-meteoalarm-warnings.md), [ADR 0030](adr/0030-weather-wa
 - Within a version only compatible changes: an optional field, a new endpoint, a new error code (clients show an
   unknown code as a general error). Removing, renaming or retyping a field, adding a required one or changing a
   parameter needs a new version.
+- oasdiff in CI is stricter about error codes than this rule: it counts a new value of `error.code` in a response as
+  breaking and fails the pull request. A code only the client makes (`NETWORK_ERROR`, `SERVER_UNAVAILABLE`) does not
+  belong in the description: the response schema lists `ApiErrorCode`, which leaves `SERVER_UNAVAILABLE` out
+  (`NETWORK_ERROR` predates the check and stays).
 - Answers are strict zod schemas (`responseSchemas.ts` in `shared`); a field the contract does not list fails the
   server's tests. `contract.test.ts` calls every endpoint (success and errors); the Open-Meteo adapter's output is
   checked in its own tests.

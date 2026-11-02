@@ -65,7 +65,8 @@ server's internals goes there. The client imports plain functions only, not Zod 
 - logs never hold IP addresses, coordinates or search words.
 
 **API:** within `/api/v1` only compatible changes: an optional field, a new endpoint, a new error code. Removing,
-renaming, retyping or making something required needs a new version.
+renaming, retyping or making something required needs a new version. Note that oasdiff in CI fails on a new error code
+in a response all the same; a code only the client makes stays out of the API's schema (`ApiErrorCode`).
 
 **Client:**
 

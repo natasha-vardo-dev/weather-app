@@ -25,10 +25,13 @@ export const ERROR_CODES = {
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
 
+/** The codes an API answer can carry: SERVER_UNAVAILABLE is made by the client only. */
+export type ApiErrorCode = Exclude<ErrorCode, typeof ERROR_CODES.SERVER_UNAVAILABLE>;
+
 /** Shape of every error response returned by the API. */
 export interface ApiErrorBody {
   error: {
-    code: ErrorCode;
+    code: ApiErrorCode;
     message: string;
   };
 }

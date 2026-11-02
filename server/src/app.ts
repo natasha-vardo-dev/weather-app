@@ -1,4 +1,4 @@
-import { API_PREFIX, ERROR_CODES, ZodError, type ApiErrorBody, type ErrorCode } from '@weather/shared';
+import { API_PREFIX, ERROR_CODES, ZodError, type ApiErrorBody, type ApiErrorCode } from '@weather/shared';
 import cors from 'cors';
 import { isIP } from 'node:net';
 import express, { type ErrorRequestHandler } from 'express';
@@ -54,7 +54,7 @@ function apiVersion(path: string): string | undefined {
   return SERVED_VERSIONS.has(version) ? version : 'other';
 }
 
-function errorBody(code: ErrorCode, message: string): ApiErrorBody {
+function errorBody(code: ApiErrorCode, message: string): ApiErrorBody {
   return { error: { code, message } };
 }
 

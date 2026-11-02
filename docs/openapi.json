@@ -414,8 +414,7 @@
                   "INTERNAL",
                   "RATE_LIMITED",
                   "SERVICE_BUSY",
-                  "NETWORK_ERROR",
-                  "SERVER_UNAVAILABLE"
+                  "NETWORK_ERROR"
                 ]
               },
               "message": { "type": "string" }
@@ -455,8 +454,7 @@
                             "INTERNAL",
                             "RATE_LIMITED",
                             "SERVICE_BUSY",
-                            "NETWORK_ERROR",
-                            "SERVER_UNAVAILABLE"
+                            "NETWORK_ERROR"
                           ]
                         },
                         "message": { "type": "string" }

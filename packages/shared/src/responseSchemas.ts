@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ALERT_LEVELS, ALERT_TYPES, type AlertsResponse } from './alerts.js';
-import { ERROR_CODES, type ApiErrorBody } from './errors.js';
+import { ERROR_CODES, type ApiErrorBody, type ApiErrorCode } from './errors.js';
 import type { AlertTopicsResponse } from './push.js';
 import type { AirQuality, Forecast, ForecastsResponse, Location, LocationsResponse, ReversePlace } from './types.js';
 
@@ -95,7 +95,13 @@ export const forecastSchema = z
   })
   .meta({ id: 'Forecast' });
 
-const errorCode = z.enum(Object.values(ERROR_CODES));
+// The codes the API can send. SERVER_UNAVAILABLE is the client's own (a proxy's 5xx with no API
+// body) and never in an answer, so it is not part of the contract: listed, it was a new enum value
+// in every response, which oasdiff counts as breaking. NETWORK_ERROR, client-side too, stays: the
+// published description already has it, and removing it would be a change as well.
+const errorCode = z.enum(
+  Object.values(ERROR_CODES).filter((code): code is ApiErrorCode => code !== ERROR_CODES.SERVER_UNAVAILABLE),
+);
 const errorDetail = z.strictObject({ code: errorCode, message: z.string() });
 
 /** Every error answer, whatever the endpoint. */

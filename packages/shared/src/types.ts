@@ -1,6 +1,6 @@
 /** Data contract between the API and every client (web, mobile). */
 
-import type { ErrorCode } from './errors.js';
+import type { ApiErrorCode } from './errors.js';
 
 /**
  * What a place is, when it is not a town: shown next to the name, since search can return
@@ -110,7 +110,7 @@ export interface AirQuality {
 }
 
 /** One place of GET /api/forecasts: its forecast, or why there is none (others still come). */
-export type ForecastResult = { forecast: Forecast } | { error: { code: ErrorCode; message: string } };
+export type ForecastResult = { forecast: Forecast } | { error: { code: ApiErrorCode; message: string } };
 
 /** GET /api/forecasts: in the order the places were asked for. */
 export interface ForecastsResponse {
