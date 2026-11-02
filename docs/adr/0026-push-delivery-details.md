@@ -81,6 +81,9 @@ The forces:
   warning for Warsaw). The page now gets a message and opens the city with its own router, then confirms; the
   worker navigates the window only without a confirmation within a second (an older page), and opens a new window
   last. Not yet seen working on the iPhone itself.
+- **Every step of a click has a time limit** (3 s), and focusing does not hold up opening the place: in Safari on a
+  Mac a `focus()` that never settled, awaited first, left nothing opened and the click event unfinished, after which
+  no more notifications came (2026-11-02).
 
 ## Consequences
 

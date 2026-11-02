@@ -224,6 +224,31 @@ describe('notification click', () => {
     expect(sw.clients.openWindow).toHaveBeenCalledTimes(2);
   });
 
+  // Safari left focus() pending: the click never ended, nothing opened, no more pushes came.
+  it('ends the click even when focusing or navigating never settles', async () => {
+    vi.useFakeTimers();
+    try {
+      const sw = loadServiceWorker(state);
+      const never = () => new Promise(() => {});
+      const window = {
+        focus: vi.fn(never),
+        navigate: vi.fn(never),
+        postMessage: vi.fn(),
+      };
+      sw.clients.matchAll.mockResolvedValueOnce([window] as never);
+      let ended = false;
+      void click(sw).then(() => (ended = true));
+      await vi.advanceTimersByTimeAsync(1000); // the page did not answer
+      expect(window.navigate).toHaveBeenCalledWith(URL_); // not held up by focus()
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(ended).toBe(true);
+      // A navigation still pending may yet happen: no second window over it.
+      expect(sw.clients.openWindow).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('closes its database connection after reading, so the database can be upgraded later', async () => {
     const db = fakeIndexedDB(null);
     const sw = loadServiceWorker(null, db);
