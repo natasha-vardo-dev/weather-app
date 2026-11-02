@@ -1,4 +1,4 @@
-import { isValidCoordinates, isValidLocationId } from '@weather/shared';
+import { COORDINATE_DECIMALS, isValidCoordinates, isValidLocationId } from '@weather/shared';
 
 /** What a weather page needs to know about a place: coordinates plus display info. */
 export interface Place {
@@ -12,7 +12,7 @@ export interface Place {
 
 /** ~1 km precision: enough for weather, and identical URLs for nearby places help caching. */
 function round(value: number): string {
-  return value.toFixed(2);
+  return value.toFixed(COORDINATE_DECIMALS);
 }
 
 /** Letters NFD does not split into a base letter and a mark, and two whole alphabets. */

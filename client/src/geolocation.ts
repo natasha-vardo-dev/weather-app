@@ -1,3 +1,4 @@
+import { roundCoordinate } from '@weather/shared';
 /**
  * The browser's Geolocation API as plain functions (no React), so the rules are testable:
  * how errors map and how coordinates are rounded.
@@ -24,7 +25,7 @@ const OPTIONS: PositionOptions = {
  * position never reaches the URL, the server or its logs.
  */
 export function roundCoordinates({ latitude, longitude }: Coordinates): Coordinates {
-  return { latitude: Number(latitude.toFixed(2)), longitude: Number(longitude.toFixed(2)) };
+  return { latitude: roundCoordinate(latitude), longitude: roundCoordinate(longitude) };
 }
 
 /** GeolocationPositionError codes: 1 denied, 2 unavailable, 3 timeout. */
