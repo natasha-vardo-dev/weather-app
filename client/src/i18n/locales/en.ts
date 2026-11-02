@@ -11,6 +11,7 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
   dataBy: 'Weather data by',
   privacy: 'Privacy',
   offline: "You're offline. Showing the last loaded forecast, which may be out of date.",
+  serverDown: "The weather server isn't responding. Showing the last loaded forecast, which may be out of date.",
   outdated: (time) => `Forecast last updated: ${time}.`,
   crash: {
     title: 'Something went wrong',
@@ -97,6 +98,11 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
     label: 'Search for a city',
     searching: 'Searching…',
     noResults: (q) => `No cities match “${q}”. Check the spelling.`,
+    found: (n) =>
+      plural(n, {
+        one: '{n} city found. Use the up and down arrows to choose.',
+        other: '{n} cities found. Use the up and down arrows to choose.',
+      }),
   },
   place: { island: 'island' },
   weather: { loading: (place) => `Loading forecast for ${place}…`, tryAgain: 'Try again' },
@@ -209,5 +215,6 @@ export const en: MessagesFactory = ({ num, deg, plural }) => ({
     RATE_LIMITED: 'Too many requests from your network. Wait a minute and try again.',
     SERVICE_BUSY: 'The service is busy right now. Try again in a few minutes.',
     NETWORK_ERROR: 'No connection to the server. Check your internet and try again.',
+    SERVER_UNAVAILABLE: "The weather server isn't responding. Try again in a few minutes.",
   },
 });

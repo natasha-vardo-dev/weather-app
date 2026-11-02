@@ -4,6 +4,7 @@ import { API_PREFIX } from '@weather/shared';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { deleteOldApiCaches } from './src/sw/deleteOldApiCaches.ts';
+import { markServerErrorCopy, savedCopyOnServerError } from './src/sw/savedCopyOnServerError.ts';
 import { splitForecastBatch } from './src/sw/splitForecastBatch.ts';
 import vercel from './vercel.json' with { type: 'json' };
 
@@ -69,8 +70,8 @@ export default defineConfig({
         runtimeCaching: [
           {
             // Last forecasts, air quality and localized place names, for when the network fails
-            // or stalls: a working network always wins, so the API's own cache rules stay in
-            // charge. Error responses (502, 404) are returned but never stored. A saved copy is
+            // or stalls, or the server does (5xx, below): a working network always wins, so the
+            // API's own cache rules stay in charge. Error responses are never stored. A saved copy is
             // marked with a header, so the page can say it may be out of date (api/savedResponses.ts).
             // Any API version (serialized into sw.js, so a literal, not API_PREFIX): a page still
             // on the old code asks the old one, under its own URLs.
@@ -84,9 +85,13 @@ export default defineConfig({
               // tens of seconds of skeleton. After this the saved copy is shown, if there is one
               // (without one Workbox keeps waiting); a late answer is still stored for next time.
               networkTimeoutSeconds: 6,
+              // savedCopyOnServerError repeats this age limit: change both together.
               expiration: { maxEntries: 50, maxAgeSeconds: DAY_SECONDS },
               cacheableResponse: { statuses: [200] },
               plugins: [
+                // A server error with a saved copy: the copy, not the error (the API down), marked
+                // as such. One plugin: the two share Workbox's per-request state.
+                { fetchDidSucceed: savedCopyOnServerError, cachedResponseWillBeUsed: markServerErrorCopy },
                 {
                   // What the API marks no-store is not kept either: a partial batch of forecasts
                   // (one city failed) would otherwise replace the last complete copy, and that
@@ -101,9 +106,11 @@ export default defineConfig({
                 { cacheDidUpdate: deleteOldApiCaches },
                 {
                   // Serialized into sw.js: no outside references, so the header name is a
-                  // literal (SAVED_RESPONSE_HEADER).
+                  // literal (SAVED_RESPONSE_HEADER). A copy already marked (server error) keeps
+                  // its mark.
                   cachedResponseWillBeUsed: async ({ cachedResponse }) => {
                     if (!cachedResponse) return null;
+                    if (cachedResponse.headers.has('X-From-Cache')) return cachedResponse;
                     const headers = new Headers(cachedResponse.headers);
                     headers.set('X-From-Cache', '1');
                     return new Response(cachedResponse.body, {

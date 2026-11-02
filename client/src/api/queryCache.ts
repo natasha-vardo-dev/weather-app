@@ -38,11 +38,8 @@ export function createQueryCache<T>(options: {
 
   function get(key: string): T | undefined {
     const entry = values.get(key);
-    if (!entry) return undefined;
-    if (now() - entry.storedAt > ttlMs) {
-      values.delete(key);
-      return undefined;
-    }
+    // An expired entry stays (bounded by maxEntries) so `age` still tells how old the shown data is.
+    if (!entry || now() - entry.storedAt > ttlMs) return undefined;
     return entry.value;
   }
 

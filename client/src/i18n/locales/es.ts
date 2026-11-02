@@ -11,6 +11,8 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
   dataBy: 'Datos meteorológicos de',
   privacy: 'Privacidad',
   offline: 'Estás sin conexión. Se muestra el último pronóstico cargado, puede estar desactualizado.',
+  serverDown:
+    'El servidor del tiempo no responde. Se muestra el último pronóstico cargado, puede estar desactualizado.',
   outdated: (time) => `Última actualización del pronóstico: ${time}.`,
   crash: {
     title: 'Algo salió mal',
@@ -98,6 +100,11 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
     label: 'Buscar una ciudad',
     searching: 'Buscando…',
     noResults: (q) => `Ninguna ciudad coincide con «${q}». Revisa la ortografía.`,
+    found: (n) =>
+      plural(n, {
+        one: '{n} ciudad encontrada. Elige con las flechas arriba y abajo.',
+        other: '{n} ciudades encontradas. Elige con las flechas arriba y abajo.',
+      }),
   },
   place: { island: 'isla' },
   weather: { loading: (place) => `Cargando el pronóstico para ${place}…`, tryAgain: 'Reintentar' },
@@ -211,5 +218,6 @@ export const es: MessagesFactory = ({ num, deg, plural }) => ({
     RATE_LIMITED: 'Demasiadas solicitudes desde tu red. Espera un minuto e inténtalo de nuevo.',
     SERVICE_BUSY: 'El servicio está saturado en este momento. Inténtalo de nuevo en unos minutos.',
     NETWORK_ERROR: 'No hay conexión con el servidor. Revisa tu conexión a internet e inténtalo de nuevo.',
+    SERVER_UNAVAILABLE: 'El servidor del tiempo no responde. Inténtalo de nuevo en unos minutos.',
   },
 });

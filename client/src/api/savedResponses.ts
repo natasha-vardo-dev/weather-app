@@ -11,14 +11,20 @@
  * (forecast, air quality, a forecast per saved city), so a fresh answer for one must not
  * hide that another is still old, and an old answer no longer shown must not keep the
  * warning up.
+ *
+ * Each saved value also says why it was used: `network` (the request failed or timed out) or
+ * `server` (the site answered, the API behind it did not: the header's value is `server`). The
+ * banner tells the user they are offline only in the first case.
  */
 export const SAVED_RESPONSE_HEADER = 'X-From-Cache';
 
-/** Parsed bodies of saved answers. Weak: a value nobody holds is forgotten. */
-const savedValues = new WeakSet<object>();
+export type SavedReason = 'network' | 'server';
 
-/** How many mounted components show a saved value right now. */
-let shown = 0;
+/** Parsed bodies of saved answers, and why. Weak: a value nobody holds is forgotten. */
+const savedValues = new WeakMap<object, SavedReason>();
+
+/** How many mounted components show a saved value right now, by reason. */
+const shown: Record<SavedReason, number> = { network: 0, server: 0 };
 const listeners = new Set<() => void>();
 
 /**
@@ -26,40 +32,57 @@ const listeners = new Set<() => void>();
  * itself says where it came from wherever it travels (caches, state, props).
  */
 export function markSavedResponse(response: Response): Response {
-  if (!response.headers.has(SAVED_RESPONSE_HEADER)) return response;
+  const mark = response.headers.get(SAVED_RESPONSE_HEADER);
+  if (mark === null) return response;
+  const reason: SavedReason = mark === 'server' ? 'server' : 'network';
   const parse = response.json.bind(response);
   response.json = async () => {
     const value: unknown = await parse();
-    if (typeof value === 'object' && value !== null) savedValues.add(value);
+    if (typeof value === 'object' && value !== null) savedValues.set(value, reason);
     return value;
   };
   return response;
 }
 
-/** For values taken out of a saved answer (one forecast of a batch): they are saved too. */
-export function markSavedValue(value: object): void {
-  savedValues.add(value);
+/** For values taken out of a saved answer (one forecast of a batch): saved too, for the same reason. */
+export function markSavedValue(value: object, reason: SavedReason = 'network'): void {
+  savedValues.set(value, reason);
+}
+
+/** Why a value on screen is a saved one, or undefined for a fresh one. */
+export function savedReason(value: unknown): SavedReason | undefined {
+  return typeof value === 'object' && value !== null ? savedValues.get(value) : undefined;
 }
 
 export function isSavedValue(value: unknown): boolean {
-  return typeof value === 'object' && value !== null && savedValues.has(value);
+  return savedReason(value) !== undefined;
 }
 
 /** Counts one more saved value on screen; call the result when it is gone. */
-export function showSaved(): () => void {
-  shown += 1;
-  if (shown === 1) listeners.forEach((listener) => listener());
+export function showSaved(reason: SavedReason = 'network'): () => void {
+  const before = showingSaved();
+  shown[reason] += 1;
+  if (showingSaved() !== before) listeners.forEach((listener) => listener());
   let released = false;
   return () => {
     if (released) return;
     released = true;
-    shown -= 1;
-    if (shown === 0) listeners.forEach((listener) => listener());
+    const was = showingSaved();
+    shown[reason] -= 1;
+    if (showingSaved() !== was) listeners.forEach((listener) => listener());
   };
 }
 
+/**
+ * Why the screen shows saved data, if it does: `network` when any of it is there because the
+ * network failed (then the user may be offline), else `server`.
+ */
+export function showingSaved(): SavedReason | null {
+  return shown.network > 0 ? 'network' : shown.server > 0 ? 'server' : null;
+}
+
 export function isShowingSaved(): boolean {
-  return shown > 0;
+  return showingSaved() !== null;
 }
 
 export function subscribeToSaved(onChange: () => void): () => void {

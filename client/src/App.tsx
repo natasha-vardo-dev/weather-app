@@ -3,9 +3,9 @@ import { Link, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SearchBar } from './components/SearchBar';
 import { SettingsMenu } from './components/SettingsMenu';
-import { NoSignalIcon } from './components/NoticeIcons';
+import { ClockIcon, NoSignalIcon } from './components/NoticeIcons';
 import { WeatherIcon } from './components/WeatherIcon';
-import { useOffline } from './hooks/useOffline';
+import { useStaleReason } from './hooks/useOffline';
 import { usePushMaintenance } from './hooks/useAlertNotifications';
 import { useI18n } from './i18n/I18nProvider';
 import { placePath } from './locationUrl';
@@ -20,7 +20,7 @@ export function App() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { t } = useI18n();
-  const offline = useOffline();
+  const stale = useStaleReason();
   usePushMaintenance();
 
   return (
@@ -48,13 +48,14 @@ export function App() {
       </header>
 
       <main className="page__main">
-        {/* The live region stays in the page, so going offline is announced. Offline the
-            service worker serves the last loaded forecasts, so the banner warns they may be old. */}
+        {/* The live region stays in the page, so going offline is announced. Offline, or with our
+            server down, the service worker serves the last loaded forecasts, so the banner warns
+            they may be old, and says which of the two it is. */}
         <div role="status">
-          {offline && (
+          {stale && (
             <p className="notice">
-              <NoSignalIcon />
-              <span>{t.offline}</span>
+              {stale === 'offline' ? <NoSignalIcon /> : <ClockIcon />}
+              <span>{stale === 'offline' ? t.offline : t.serverDown}</span>
             </p>
           )}
         </div>

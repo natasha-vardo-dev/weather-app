@@ -90,6 +90,26 @@ describe('SearchBar', () => {
     expect(await within(list).findByText('No cities match “qwzx”. Check the spelling.')).toBeInTheDocument();
   });
 
+  it('tells screen readers how many cities were found, or that none were', async () => {
+    searchLocations.mockResolvedValueOnce([warsaw, warsawSuburb]).mockResolvedValueOnce([]);
+    const { user, input } = setup();
+    const announced = () =>
+      screen
+        .getAllByRole('status')
+        .map((status) => status.textContent)
+        .join(' ');
+
+    await user.type(input, 'warsaw');
+    await screen.findAllByRole('option');
+    expect(announced()).toContain('2 cities found. Use the up and down arrows to choose.');
+
+    await user.clear(input);
+    await user.type(input, 'qwzx');
+    await screen.findByText('No cities match “qwzx”. Check the spelling.', { selector: '[role="status"]' });
+    // The list's own copy of the hint is hidden from them: a listbox holds only options.
+    expect(within(screen.getByRole('listbox')).getByText(/No cities match/)).toHaveAttribute('aria-hidden', 'true');
+  });
+
   it('does not search for fewer letters than the minimum', async () => {
     const { user, input } = setup();
 

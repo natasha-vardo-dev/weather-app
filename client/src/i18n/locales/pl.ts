@@ -11,6 +11,7 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
   dataBy: 'Dane pogodowe:',
   privacy: 'Prywatność',
   offline: 'Jesteś offline. Pokazujemy ostatnio pobraną prognozę, może być nieaktualna.',
+  serverDown: 'Serwer pogody nie odpowiada. Pokazujemy ostatnio pobraną prognozę, może być nieaktualna.',
   outdated: (time) => `Ostatnia aktualizacja prognozy: ${time}.`,
   crash: {
     title: 'Coś poszło nie tak',
@@ -103,6 +104,13 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     label: 'Wyszukaj miasto',
     searching: 'Szukam…',
     noResults: (q) => `Żadne miasto nie pasuje do „${q}”. Sprawdź pisownię.`,
+    found: (n) =>
+      plural(n, {
+        one: 'Znaleziono {n} miasto. Wybierz strzałkami w górę i w dół.',
+        few: 'Znaleziono {n} miasta. Wybierz strzałkami w górę i w dół.',
+        many: 'Znaleziono {n} miast. Wybierz strzałkami w górę i w dół.',
+        other: 'Znaleziono {n} miasta. Wybierz strzałkami w górę i w dół.',
+      }),
   },
   place: { island: 'wyspa' },
   weather: { loading: (place) => `Wczytywanie prognozy: ${place}…`, tryAgain: 'Spróbuj ponownie' },
@@ -229,5 +237,6 @@ export const pl: MessagesFactory = ({ deg, plural }) => ({
     RATE_LIMITED: 'Zbyt wiele zapytań z Twojej sieci. Odczekaj minutę i spróbuj ponownie.',
     SERVICE_BUSY: 'Usługa jest teraz przeciążona. Spróbuj ponownie za kilka minut.',
     NETWORK_ERROR: 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.',
+    SERVER_UNAVAILABLE: 'Serwer pogody nie odpowiada. Spróbuj ponownie za kilka minut.',
   },
 });

@@ -128,6 +128,20 @@ export function SearchBar({ onSelect, onLocate }: Props) {
       <span className="visually-hidden" role="status">
         {locateMe.locating ? t.location.locating : ''}
       </span>
+      {/*
+        What the list shows, read out: screen readers announce the highlighted option only once
+        the user moves to it, so without this they would not know suggestions arrived, or none.
+        The list's own hints are hidden from them: a listbox may hold only options.
+      */}
+      <span className="visually-hidden" role="status">
+        {!showList || loading
+          ? ''
+          : error
+            ? t.errors[error]
+            : results.length > 0
+              ? t.search.found(results.length)
+              : t.search.noResults(searchedFor)}
+      </span>
       {locateError && (
         <div className="search__notice" ref={noticeRef}>
           <p className="search__notice-text" role="alert">
@@ -154,10 +168,20 @@ export function SearchBar({ onSelect, onLocate }: Props) {
       )}
       {showList && (
         <ul id={listId} role="listbox" className="search__list">
-          {loading && results.length === 0 && <li className="search__hint">{t.search.searching}</li>}
-          {error && <li className="search__hint search__hint--error">{t.errors[error]}</li>}
+          {loading && results.length === 0 && (
+            <li className="search__hint" aria-hidden="true">
+              {t.search.searching}
+            </li>
+          )}
+          {error && (
+            <li className="search__hint search__hint--error" aria-hidden="true">
+              {t.errors[error]}
+            </li>
+          )}
           {!loading && !error && results.length === 0 && (
-            <li className="search__hint">{t.search.noResults(searchedFor)}</li>
+            <li className="search__hint" aria-hidden="true">
+              {t.search.noResults(searchedFor)}
+            </li>
           )}
           {results.map((location, i) => (
             <li

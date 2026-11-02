@@ -1,5 +1,5 @@
 import { ApiError, ERROR_CODES, MAX_FAVORITES, type ApiClient, type Forecast } from '@weather/shared';
-import { isSavedValue, markSavedValue } from './savedResponses';
+import { markSavedValue, savedReason } from './savedResponses';
 
 interface Waiting {
   latitude: number;
@@ -47,7 +47,12 @@ export function createForecastBatcher(
       // - the network failed and the service worker has no copy of this exact list of places
       //   (favourites changed since, or the city page batched with the strip): it may still
       //   have each city's own /forecast. (Found by roborev.)
-      if (err instanceof ApiError && (err.code === ERROR_CODES.NOT_FOUND || err.code === ERROR_CODES.NETWORK_ERROR)) {
+      if (
+        err instanceof ApiError &&
+        (err.code === ERROR_CODES.NOT_FOUND ||
+          err.code === ERROR_CODES.NETWORK_ERROR ||
+          err.code === ERROR_CODES.SERVER_UNAVAILABLE)
+      ) {
         return sendEach(waiting);
       }
       waiting.forEach((w) => w.reject(err));
@@ -55,13 +60,13 @@ export function createForecastBatcher(
     }
     // A batch the service worker served from its cache: so is each forecast in it, and the
     // page must say it may be old (savedResponses).
-    const saved = isSavedValue(response);
+    const saved = savedReason(response);
     // Another shape (a proxy's own JSON): every place gets "missing" rather than waiting forever.
     const results = Array.isArray(response?.forecasts) ? response.forecasts : [];
     waiting.forEach((w, i) => {
       const result = results[i];
       if (result && 'forecast' in result) {
-        if (saved) markSavedValue(result.forecast);
+        if (saved) markSavedValue(result.forecast, saved);
         w.resolve(result.forecast);
       } else {
         const error = result?.error ?? { code: ERROR_CODES.INTERNAL, message: 'Missing from the answer.' };
