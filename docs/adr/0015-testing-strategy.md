@@ -1,6 +1,7 @@
 # 0015. Tests against fakes; end-to-end on the production build
 
-- Status: Accepted
+- Status: Accepted; partly superseded by [0031](0031-api-testing-and-shared-package-details.md): offline, the service
+  worker and geolocation are now covered by e2e, and the planned check of the real providers runs daily
 - Date: 2026-10-31 (recorded)
 
 ## Context

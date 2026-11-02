@@ -2,103 +2,318 @@
 
 ## Overview
 
-Client–server application using the Backend for Frontend (BFF) pattern.
-The browser talks only to our backend; the backend talks to the weather provider.
+A client–server application using the Backend for Frontend (BFF) pattern: the browser talks only to our backend, and
+the backend talks to the weather and place providers.
 
-The main decisions, with their reasons and the options rejected, are recorded in [adr/](adr/README.md); this document
-describes how each part works.
+This document describes how each part works: read the section for what you change, not the whole file. The reasons and
+the options rejected are in [adr/](adr/README.md); how to set up, test and ship a change is in
+[CONTRIBUTING.md](../CONTRIBUTING.md); running it in production is in [operations.md](operations.md).
+
+```mermaid
+flowchart LR
+  browser["Browser or installed app<br/>React SPA, service worker"]
+  vercel["Vercel<br/>static site, /api proxy<br/>(adds X-Proxy-Secret, X-Client-IP)"]
+  api["API on AWS EC2<br/>Express behind Caddy<br/>in-memory caches"]
+  openMeteo[("Open-Meteo<br/>forecast, air quality, search")]
+  meteoAlarm[("MeteoAlarm<br/>warning feeds, full warnings")]
+  nominatim[("Nominatim<br/>place at a position")]
+  ipwho[("ipwho.is<br/>place by IP address")]
+  firestore[("Firestore<br/>what was pushed, provider usage")]
+  fcm[("Firebase Cloud Messaging")]
+  cron["cron-job.org<br/>every 5 minutes"]
+
+  browser -->|HTTPS| vercel -->|HTTPS + secret| api
+  api --> openMeteo & meteoAlarm & nominatim & ipwho
+  api <--> firestore
+  cron -->|POST /api/internal/alerts/notify| api
+  api -->|topic messages| fcm -->|push| browser
+```
+
+A warning notification, from subscribing to the device:
+
+```mermaid
+sequenceDiagram
+  participant Page as Page (bell)
+  participant API as API
+  participant FCM as Firebase Cloud Messaging
+  participant Cron as cron-job.org
+  participant MA as MeteoAlarm
+  participant FS as Firestore
+  participant SW as Service worker
+
+  Page->>FCM: get a token (permission asked)
+  Page->>API: POST /api/v1/push/topics (token, place's areas, kinds, level)
+  API->>FCM: subscribe the token to area topics
+  Cron->>API: POST /api/internal/alerts/notify
+  API->>FS: take the lease, read what was sent
+  API->>MA: country feeds, then new full warnings
+  API->>FCM: one message per topic of each new warning
+  API->>FS: record each warning sent
+  FCM-->>SW: data message
+  SW->>SW: write the notification in the user's language (strings from IndexedDB)
+```
+
+## Contents
+
+- **Server:** [Backend layers](#backend-layers) · [Caching](#caching) ·
+  [Protecting the provider's limits](#protecting-the-providers-limits) · [Observability](#observability) ·
+  [Privacy](#privacy) · [Reliability and security](#reliability-and-security)
+- **Client:** [Frontend](#frontend) · [Same-named places in search](#same-named-places-in-search) ·
+  [Favourites](#favourites) · [Languages](#languages) · [Temperature units](#temperature-units) ·
+  [Header and settings](#header-and-settings) · [Current location](#current-location) · [Detail charts](#detail-charts)
+  · [Installable app (PWA)](#installable-app-pwa)
+- **Both:** [Push notifications about warnings](#push-notifications-about-warnings) ·
+  [Weather warnings](#weather-warnings) · [API versions](#api-versions) · [Testing](#testing) ·
+  [Shared package](#shared-package) · [Key parameters](#key-parameters)
+
+## Where to start
+
+| You change…                           | Read                                                                                                                               |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| a provider call, a cache, a limit     | [Caching](#caching), [Protecting the provider's limits](#protecting-the-providers-limits), [ADR 0004](adr/0004-provider-limits.md) |
+| an endpoint or a schema in `shared`   | [API versions](#api-versions), [Shared package](#shared-package); then `npm run openapi`                                           |
+| the page, a text, a setting           | [Frontend](#frontend), [Languages](#languages) (every text in all 8 locale files), [Header and settings](#header-and-settings)     |
+| offline behaviour, the service worker | [Installable app (PWA)](#installable-app-pwa); check in a build (`npm run build && npm run preview -w client`)                     |
+| warnings or push notifications        | [Weather warnings](#weather-warnings), [Push notifications](#push-notifications-about-warnings), [operations.md](operations.md)    |
+| location, IP lookup, anything stored  | [Current location](#current-location), [Privacy](#privacy) and the `/privacy` page                                                 |
+| hosting, secrets, deploys             | [Reliability and security](#reliability-and-security), [deploy-aws.md](deploy-aws.md), [operations.md](operations.md)              |
 
 ## Backend layers
 
-- `routes/` validate input (Zod) and map HTTP to service calls
-- `services/` hold the logic: caching, key normalisation
-- `providers/` adapt a specific external API to our `WeatherProvider` interface
+- `routes/` validate input (Zod) and map HTTP to service calls.
+- `services/` hold the logic: caching, key normalisation.
+- `providers/` adapt one external API each to our interfaces (`WeatherProvider` and others).
 
-Dependencies point downward only. Tests replace the provider with a fake.
+Dependencies point downward only. Tests replace the providers with fakes. The backend keeps provider keys (if a paid
+provider is used) out of the browser, normalises provider data into our own model and caches answers (times in
+[Key parameters](#key-parameters)).
 
-## Why a backend at all
-
-- Keeps API keys (if a paid provider is used) out of the browser
-- Caches responses: forecasts for 15 minutes, air quality for an hour, city searches for 24 hours
-- Normalises provider data into our own model
-- Lets us switch providers by adding a new adapter
+Why: [ADR 0001](adr/0001-backend-for-frontend.md)
 
 ## Caching
 
-Forecast cache keys round coordinates to 2 decimals (~1 km), so nearby requests share an entry.
-Every forecast also includes yesterday (Open-Meteo `past_days=1`), so it is not a request parameter and not part of the key: still one provider call per place.
-Every forecast also includes the next 24 hours (`forecast_hours=24`, starting at the current hour), again with no extra provider call. Because of the 15-minute cache, right after the hour changes the first "Now" slot may still be the previous hour for a few minutes; accepted to keep provider usage flat.
-The UI uses yesterday for one line under the current weather ("3° warmer than yesterday", comparing daily highs) rather than a row in the forecast list, which stays forward-looking.
-Air quality comes from a separate Open-Meteo API (another host), so it has its own endpoint (`/api/v1/air-quality`) and cache: an hour, because the provider updates it hourly, with the same ~1 km key rounding. It is separate from `/forecast` so that the forecast never fails or waits because of it; the client loads both in parallel and simply hides the air quality item if that request fails. The server waits up to 10 seconds for it, twice as long as for other Open-Meteo calls: this API is slower, a 5-second timeout was seen to fire on a cache miss (right after a restart), and since the item loads apart from the forecast, waiting holds nothing up. A failed request is retried once by itself after 20 seconds (most provider hiccups are short; without it the item stayed hidden until the city was reopened), and the page's "Try again" retries both requests. One retry, not a backoff loop: it is secondary data, and every retry spends the provider's rate limit. Considered and not done: an "Air quality: unavailable" line with its own retry button, which tells a failure apart from "no data for this place", at the price of one more UI state and 19 translations. The cost is one more provider call per place, at most 24 a day with this TTL (forecast: up to 96, at 2.2 calls each).
-Which index to show is a presentation choice made in `shared` (`summarizeAirQuality`): the European AQI for places whose timezone is in `Europe/` or in a short list of European zones outside it (Canary Islands, Madeira, Azores, Iceland, Faroe Islands, Cyprus), the US AQI elsewhere, falling back to the other one when a value is missing. The API returns both raw values, so another client can choose differently.
-The item shows a coloured dot (each index's official palette, darkest bands lightened for the blue background; the level is always written out, so colour is not the only signal). The whole value is a button (`aria-expanded`) that reveals PM2.5, PM10, O₃ and NO₂ concentrations below the details; they come in the same provider call. Without any pollutant data the value is plain text, so it never opens an empty box. Pollutants are shown as plain µg/m³ numbers without colour, because the two indices use different thresholds.
-The cache (`TtlCache`) is in-memory, per instance:
+The server caches every provider answer in memory (`TtlCache`, per instance).
 
-- **Size in bytes, least recently used first.** Each cache has a budget in bytes, measured as the JSON size of the values (objects in memory take roughly 2–3 times more): forecasts 16 MB (a forecast is about 8 KB, so about 2,000 places), searches, places by id and air quality 4 MB each, reverse geocoding 2 MB. When a budget is reached, the least recently _used_ entry goes (LRU), so a popular city is not evicted before a rare one just because it was stored earlier. Before, the limit was 500 entries per cache, evicted first-in-first-out.
-- **TTL jitter.** Up to 10% of each TTL is taken off at random, so entries stored together (a batch of favourites, the burst after a restart) do not all expire, and call the provider, in the same second. Jitter only shortens: a TTL can also be a promise to a source (MeteoAlarm's 10-minute delay limit).
-- **Stale values, two windows** (as HTTP's `stale-while-revalidate` and `stale-if-error`). Just past its TTL (forecasts 5 minutes, air quality 10, names a day), an entry is still returned at once while a new value loads in the background, one load per key; nobody waits for the provider on a popular entry. After that a request waits for the provider as on a miss, and gets the old value only if the provider fails: forecasts up to an hour old in all, air quality 2 hours, searches and places a week. So a provider outage shows a slightly older forecast instead of an error, while on a normal day a rarely opened city is not shown old: a first version had one long window (an hour) for both, and with little traffic it answered almost every visit to a rare city with an old forecast, refreshing it for a next visitor who might come only after it was old again. A stale answer goes out with `max-age=60` instead of 300 or 900 (in a batch, if any forecast in it is stale), so browsers ask again soon; not `no-store`, so the service worker still keeps it for offline. MeteoAlarm's caches have no stale windows: an old warning is worse than none, and its terms limit the delay.
-- **The page says when a forecast is old.** Above a city's forecast whose current weather is more than 60 minutes old (`forecastAgeMinutes` in `shared`, checked every minute), a notice says "Forecast last updated: 2:00 PM" (with the day when it was not today: "yesterday 9:40 PM"). Fresh data is up to ~40 minutes behind (the provider's current weather is per 15 minutes, plus the server's 15 and the browser's caches), so 60 means the provider was down and the server answered with what it had, or the page stayed open. Judged from the data's own time, it needs nothing from the API and covers both; hence the neutral wording rather than "couldn't update". Offline, the offline banner says it instead. Both notices share one style: a fill darker than the page in the light theme (white text 7:1; the old offline banner's 15% white fill gave 4.2:1, below AA), 10% white in the dark one, and an icon.
-- **The provider is asked for the rounded point.** Forecasts and air quality are cached per ~1 km cell, and the provider is now asked for the point the key stands for (2 decimals), not for whoever asked first; everyone in the cell gets the same answer whichever request filled the cache. In steep terrain the cell's point may differ in elevation from the city's (Open-Meteo corrects temperature for elevation): the price of sharing entries at all.
-- **Not shared, not kept.** A restart (a deploy, a reboot) starts with an empty cache, and several instances would each have their own, multiplying provider calls. The next step is Redis behind the same `getOrLoad`: this memory cache as a first level, Redis as a shared second one.
+**Forecasts** (`/forecast`, `/forecasts`):
 
-Metrics show per cache: hits, misses, joined loads, stale answers (at once, and on errors), failed background refreshes, evictions, entries and bytes.
+- Key: coordinates rounded to 2 decimals (~1 km, `roundCoordinate` and `placeKey` in `shared`, used everywhere a place
+  is compared: cache keys, URLs, saved places); the provider is asked for that rounded point, so everyone in the cell
+  gets the same answer.
+- `days` (1–16) is not in the key: up to 10 the 10-day forecast is loaded and cut, above it the 16-day one, so a place
+  has at most two entries.
+- Every forecast includes yesterday (`past_days=1`) and the next 24 hours from the current hour (`forecast_hours=24`) in
+  the same provider call. Yesterday feeds one line under the current weather ("3° warmer than yesterday", daily highs).
+- TTL 15 minutes, so for a few minutes after the hour the first "Now" slot can still be the previous hour.
 
-**One provider call per key at a time** (`TtlCache.getOrLoad`): the cache keeps the promise of a load in flight, and requests for the same key join it. Before, ten people opening one city in the same second (or a popular entry expiring under load: a cache stampede) were ten calls to Open-Meteo; now one. A failed load is not cached and reaches everyone who waited; the next request loads again. All caches of the weather service, the place lookup and the IP lookup use it (MeteoAlarm's provider already kept promises). Checked against the real API: ten parallel requests for Warsaw, one provider call.
+**Air quality** (`/api/v1/air-quality`):
+
+- A separate Open-Meteo API and host, with its own endpoint and cache: TTL an hour, same ~1 km key and rounded point.
+- The server waits up to 10 s for it (5 s for other Open-Meteo calls).
+- The client loads it in parallel with the forecast and hides the item if it fails; a failed request retries once after
+  20 s, and the page's "Try again" retries both.
+- `shared` (`summarizeAirQuality`) picks the index: European AQI for `Europe/` timezones and the Canary Islands,
+  Madeira, Azores, Iceland, Faroe Islands and Cyprus, US AQI elsewhere, falling back to the other when a value is
+  missing. The API returns both raw values.
+- The item shows a dot in the index's official palette (darkest bands lightened for the blue background) and the level
+  in words. The value is a button (`aria-expanded`) that reveals PM2.5, PM10, O₃ and NO₂ in µg/m³ without colour; with
+  no pollutant data it is plain text.
+
+**`TtlCache`:**
+
+- **Byte budget, LRU.** Size is the JSON size of values (in memory roughly 2–3×): forecasts 16 MB (~8 KB each, ~2,000
+  places), searches, places by id and air quality 4 MB each, reverse geocoding 2 MB. The least recently used entry goes
+  first.
+- **TTL jitter.** Up to 10% of each TTL is taken off at random; jitter never lengthens a TTL.
+- **Two stale windows** (as `stale-while-revalidate` and `stale-if-error`):
+  - past its TTL an entry is still returned at once while one background load per key refreshes it: 5 more minutes for
+    forecasts, 10 for air quality, a day for names;
+  - after that a request waits for the provider as on a miss, and gets the old value only if the provider fails:
+    forecasts up to an hour old in all, air quality 2 hours, searches and places a week;
+  - a stale answer goes out with `max-age=60` instead of 300 or 900 (a batch, if any forecast in it is stale), not
+    `no-store`;
+  - MeteoAlarm's caches have no stale windows.
+- **One load per key** (`TtlCache.getOrLoad`): a load in flight is kept as a promise and requests for the same key join
+  it; a failed load is not cached, reaches everyone who waited, and the next request loads again. Used by all caches of
+  the weather service, the place lookup and the IP lookup (MeteoAlarm's provider keeps its own promises).
+- **In memory only.** A restart starts empty; several instances would each have their own (Redis deferred,
+  [ADR 0022](adr/0022-no-redis-while-one-instance.md)).
+
+Metrics per cache: hits, misses, joined loads, stale answers (at once and on errors), failed background refreshes,
+evictions, entries and bytes.
+
+**Old-forecast notice.** When a city's current weather is more than 60 minutes old (`forecastAgeMinutes` in `shared`,
+checked every minute), a notice above the forecast says "Forecast last updated: 2:00 PM" (with the day if not today:
+"yesterday 9:40 PM"). Offline, the offline banner says it instead. Both use one style: a fill darker than the page in
+the light theme (white text 7:1), 10% white in the dark theme, and an icon.
+
+Why: [ADR 0003](adr/0003-in-memory-cache.md), [ADR 0023](adr/0023-cache-and-provider-budget-details.md),
+[ADR 0012](adr/0012-api-versioning.md)
 
 ## Protecting the provider's limits
 
-The bottleneck is Open-Meteo's free tier (600 calls a minute, 5,000 an hour, 10,000 a day, for the server's IP), not our server. In order of effect:
+Open-Meteo's free tier (600 calls a minute, 5,000 an hour, 10,000 a day, per server IP) is the bottleneck. Layers, in
+order of effect:
 
-1. **Caching** with ~1 km keys, and **coalescing** concurrent loads (above).
-2. **Batch forecasts:** `GET /api/v1/forecasts?places=…` (up to 10, `MAX_FAVORITES`): the start page with ten saved cities made ten requests, now one. Each place goes through the same cache as `/forecast`, so provider calls are the same; the gain is requests to our API (and to its rate limit) and round trips on a phone. One failing place does not fail the others (each item is a forecast or an error); a partial answer is `no-store`, an answer with nothing is the usual error. The client batches the saved cities' tiles and cards (`api/forecastBatch.ts`, `useForecast(…, { batch: true })`): forecasts asked for in the same moment (the effects of one render) go out together. The city page's own forecast always goes alone to `/forecast`, even when its tile in the strip has already queued it (`sendAlone` takes it out of the batch): in a batch it would wait for the slowest saved city, and the service worker would keep it only inside that batch, not as the city's own copy for offline use (found by roborev). A place left alone in a batch also uses `/forecast`. Offline, a saved city seen only as a card must still open: when the service worker stores a batch, it also stores each forecast in it under the URL that city's page asks for (`src/sw/splitForecastBatch.ts`, a Workbox `cacheDidUpdate`, unit-tested against the API client's own URLs; checked in a production build: a city opened offline from its card shows its forecast with the offline banner). Written outside Workbox's expiration bookkeeping, the copies are cleaned up by the same function: copies older than a day are deleted whenever a batch is stored. Found by roborev. The client falls back to one request each when the server has no batch endpoint yet (client and server deploy separately) and when the network fails: the service worker keeps a batch under its exact list of places, so after the favourites change (or when the city page went out in one batch with the strip) it has no copy of that list, but may have each city's own `/forecast` (every city page that was opened online). A partial batch is `no-store`, and the service worker honours that too (a `cacheWillUpdate` plugin skips `no-store` answers), so one failed city does not replace the last complete copy. Both found by roborev. Considered: asking Open-Meteo for several places in one call (it accepts lists of coordinates) — fewer HTTP calls, but not clearly less quota (Open-Meteo counts heavier requests as several calls; to be checked against its terms), and the cache would have to split a call's answer between places.
-3. **Rate limiting per IP** (`express-rate-limit`, `rateLimits.ts`), a minute's window: 300 for the API, 60 for search (a long tail of queries misses the cache, so search spends quota fastest), 10 for `/places/*` (Nominatim allows one call a second for the whole server), and 30 batches for `/api/v1/forecasts`: a batch is one request but up to ten provider calls, so batches are limited by places (30 × 10 = 300, as many as single forecasts); under the general limit alone a script sending batches of new places could cause ten times as many provider calls (found by roborev). Worst case one address can now reach 600 places a minute (singles and batches together) — the provider's minute limit for the whole server, which per-IP limits cannot protect anyway against many addresses: that is what the cache and the metrics' warning at 80% are for. Generous on purpose: it stops scripts, not people, and an office or a VPN puts many people behind one address. The IP is `req.ip`. Trusting `X-Forwarded-For` from anyone would let a client claim a new address per request and never be limited, so only the proxies in front are trusted (`TRUST_PROXY`). That alone was not enough (found by roborev): the API host is public (Render then, the VM now), and a client calling it directly with a forged `X-Forwarded-For` got it passed on by the host's proxy and taken as its address. So the frontend's proxy now proves itself: a Vercel middleware (`client/middleware.ts`, instead of the plain rewrite, which cannot add request headers) rewrites `/api/*` to the API, still proxied by Vercel's router (a `fetch` of its own would hold each request, and the Edge runtime gives up after about 25 s, less than a free Render instance took to wake; found by roborev), with a shared secret (`X-Proxy-Secret`, `PROXY_SECRET` on both sides) and the address Vercel saw (`X-Client-IP`; Vercel sets `x-real-ip` and overwrites `x-forwarded-for`, so a client cannot fake them there). With `PROXY_SECRET` set, the API refuses requests without the secret (404, as an unknown endpoint) and takes `X-Client-IP` as `req.ip` only together with it, instead of counting proxies in `X-Forwarded-For`, whose handling on a forwarded request Vercel does not document. Health and `/internal/*` stay open (monitors and the scheduler call them directly; `/internal/*` has its own secret). Without the variable (local development, tests) every request is served, so nothing changes until it is set on both. Checked by tests on both sides; on the real hosts it is a deployment step: the site works, a direct call to the API host (`https://<ip>.sslip.io`) gets 404. The library logs a warning when the setup looks wrong. `/api/health` and `/api/internal/*` are not limited. Counts are in memory (per instance); with several, a Redis store shares them. Over the limit: `429`, code `RATE_LIMITED` (translated in the client; "Try again" is offered), `RateLimit` and `Retry-After` headers.
-4. **A budget for the whole server** (`Metrics.budget`), counted in Open-Meteo's own units: a request with more than 10 variables or 2 weeks counts as several calls (variables / 10 × days / 14, from its pricing FAQ; `openMeteoWeight`), and our forecast is 22 variables over 11 days, 2.2 calls (26 and 2.6 until "now" stopped asking again for what the hourly data has: humidity, wind and gusts are the current hour's, day or night comes from today's sunrise and sunset); air quality and search are 1. With forecasts kept 15 minutes and air quality an hour, a place kept fresh all day costs about 235 calls, so the budget covers some 38 such places (21 before: 10 and 30 minutes, 2.6 a forecast). Counted per request, the budget would have allowed more than twice the limit (found by roborev). per-IP limits stop one address, not many (or a crowd of real users), so the providers' own limits are watched too. Before each call to Open-Meteo (forecast, search, places by id, air quality) the services check its usage in the last minute, hour and day; at 90% of any limit (`BUDGET_SHARE`) new calls are refused until the window moves on: cached answers still go out, stale ones too where the cache keeps them for errors, and anything else gets `503 SERVICE_BUSY` ("The service is busy right now", translated, "Try again" offered; not `RATE_LIMITED`, whose text blames the user's network). 10% is left for calls already under way. The same for ipwho.is (the approximate location), with a cap of our own (30 a minute, 1,000 a day: it only asks for "low traffic", and real users' lookups are cached a day per address). A refusal is logged at most once a minute and counted (`refused` in the metrics). Nominatim needs no budget: its queue already allows one call a second for the whole server. The price: while the budget is spent, places nobody has asked about recently do not open, for anyone.
+1. **Caching and coalescing** (above).
+2. **Batch forecasts** — `GET /api/v1/forecasts?places=…`, up to 10 (`MAX_FAVORITES`):
+   - each place goes through the same cache as `/forecast`; each item is a forecast or an error; a partial answer is
+     `no-store`, an answer with nothing is the usual error;
+   - the client (`api/forecastBatch.ts`, `useForecast(…, { batch: true })`) batches saved cities' tiles and cards asked
+     for in the same render;
+   - the city page's own forecast always goes alone to `/forecast` (`sendAlone` takes it out of a queued batch); a place
+     left alone in a batch also uses `/forecast`;
+   - the client falls back to one request per place when the server has no batch endpoint or the network fails;
+   - the service worker splits each stored batch into per-city copies under the URLs the city pages ask for
+     (`src/sw/splitForecastBatch.ts`, a Workbox `cacheDidUpdate`), and deletes copies older than a day whenever a batch
+     is stored; a `cacheWillUpdate` plugin skips `no-store` answers.
+3. **Rate limits per IP** (`express-rate-limit`, `rateLimits.ts`), one-minute window:
+   - 300 for the API, 60 for search, 10 for `/places/*`, 30 batches for `/api/v1/forecasts`;
+   - `/api/health` and `/api/internal/*` are not limited;
+   - over the limit: `429 RATE_LIMITED` (translated, "Try again" offered) with `RateLimit` and `Retry-After` headers;
+   - counts are in memory, per instance.
+4. **Client address** (`req.ip`): the Vercel middleware (`client/middleware.ts`) rewrites `/api/*` to the API, adding
+   `X-Proxy-Secret` (`PROXY_SECRET` on both sides) and `X-Client-IP` (the address Vercel saw):
+   - with `PROXY_SECRET` set, the API answers 404 to requests without the secret and takes `X-Client-IP` as `req.ip`
+     only together with it; health and `/internal/*` stay open (`/internal/*` has its own secret);
+   - otherwise only the proxies in `TRUST_PROXY` are trusted for `X-Forwarded-For`;
+   - without the variable (local development, tests) every request is served;
+   - a direct call to the API host (`https://<ip>.sslip.io`) gets 404;
+   - `express-rate-limit` logs a warning when the proxy setup looks wrong.
+5. **Provider calls per address** (`LoadLimiter`, `rateLimits.ts`): forecast and air-quality calls one address causes,
+   30 a minute and 150 an hour:
+   - only provider calls count; a cached answer is never refused; a refused refresh of a stale entry still sends the
+     stale value;
+   - over it: `429 RATE_LIMITED`, per place inside a batch;
+   - IPv6 counts per /56; past 50,000 addresses in a window new ones are not counted;
+   - two requests for the same new place at once share one load, and so one refusal.
+6. **Empty coordinates** (`?lat=&lon=`, `places=,`) get 400. Every 400 names the parameter: `lat: Required.`,
+   `lat: Must be a number.`, `lat: Too big: …`.
+7. **Budget for the whole server** (`Metrics.budget`), in Open-Meteo's units (`openMeteoWeight`: variables / 10 × days /
+   14):
+   - our forecast is 22 variables over 11 days, 2.2 calls; air quality and search 1; a place kept fresh all day costs
+     ~235 calls, so the budget covers ~38 such places;
+   - before each Open-Meteo call (forecast, search, places by id, air quality) usage in the last minute, hour and day is
+     checked; at 90% of any limit (`BUDGET_SHARE`) new calls are refused until the window moves on;
+   - while refused, cached and stale-if-error answers still go out; anything else gets `503 SERVICE_BUSY` (translated,
+     "Try again" offered);
+   - ipwho.is has a cap of our own: 30 a minute, 1,000 a day; its answers are cached a day per address;
+   - Nominatim has no budget: its queue allows one call a second for the whole server;
+   - a refusal is logged at most once a minute and counted (`refused` in the metrics).
+
+Why: [ADR 0004](adr/0004-provider-limits.md), [ADR 0005](adr/0005-hosting-same-origin-proxy.md),
+[ADR 0023](adr/0023-cache-and-provider-budget-details.md)
 
 ## Observability
 
-- **Logs:** JSON lines (pino) on stdout, kept by journald on the VM: one per request (method, path without the query, status, duration; the query has coordinates and search terms, so it is left out, and so are IPs), provider errors with their cause (timeout, HTTP status), unhandled errors with the stack. `LOG_LEVEL=debug` adds every provider call (provider, host, path, status, duration). `npm run dev` pipes them through pino-pretty. The health check is not logged (every few seconds).
-- **Metrics** (`observability/metrics.ts`): cache hits, misses and coalesced requests per cache with the hit rate; calls to each provider in the last minute, hour and day against its limits, with errors; responses by status class; rate-limited requests. Provider calls are counted by wrapping the `fetch` each adapter takes, so no adapter changed. A warning is logged once per window when usage passes 80% of a limit, before the provider starts refusing, and `GET /api/health/quota` answers 503 while any limit is at 80% or more (with the provider, window and share), so an uptime monitor turns it into an alert ([operations.md](operations.md)); public like health, since free monitors cannot send a secret, and it tells how busy the providers are, nothing about users. Read them at `GET /api/internal/metrics` (bearer `METRICS_SECRET`; without it the endpoint does not exist), and every 15 minutes as a `metrics` log line, which gives a history without a metrics service. In memory, lost on restart, except provider usage, which is saved to the state store once a minute and restored at start (ADR 0018), so the budget is not reset by a restart: enough for one small instance. Next step with several instances or alerting: Prometheus format (`prom-client`) scraped by Grafana Cloud, or OpenTelemetry.
-- **Health:** `GET /api/health` for the uptime monitor and `deploy.sh`: the process answers, with uptime and the commit (`GIT_COMMIT`, written by the deploy script). It deliberately does not call the provider: an Open-Meteo outage is not a reason to restart an instance that still serves cached forecasts. With `PROXY_SECRET` set it also says whether the request carried the right secret (`proxied`), so the uptime monitor, which calls it through the site, catches the secrets differing on Vercel and the VM; health itself stays open, so a plain status check would not (found by roborev).
+- **Logs:** JSON lines (pino) on stdout, kept by journald on the VM.
+  - One line per request: method, path without the query, status, duration; no query, no IP.
+  - Provider errors with their cause (timeout, HTTP status); unhandled errors with the stack.
+  - `LOG_LEVEL=debug` adds every provider call (provider, host, path, status, duration).
+  - `npm run dev` pipes them through pino-pretty. The health check is not logged.
+- **Metrics** (`observability/metrics.ts`):
+  - per cache: hits, misses, coalesced requests, hit rate; per provider: calls in the last minute, hour and day against
+    its limits, with errors; responses by status class; rate-limited requests;
+  - provider calls are counted by wrapping the `fetch` each adapter takes;
+  - at 80% of a limit a warning is logged once per window, and `GET /api/health/quota` (public) answers 503 with the
+    provider, window and share ([operations.md](operations.md));
+  - read at `GET /api/internal/metrics` (bearer `METRICS_SECRET`; without it the endpoint does not exist) and every 15
+    minutes as a `metrics` log line;
+  - in memory, lost on restart, except provider usage, saved to the state store once a minute and restored at start
+    ([ADR 0018](adr/0018-durable-operational-state.md)).
+- **Health:** `GET /api/health` (uptime monitor, `deploy.sh`) returns uptime and the commit (`GIT_COMMIT`, written by
+  the deploy script). It does not call the provider. With `PROXY_SECRET` set it reports whether the request carried the
+  right secret (`proxied`).
+
+Why: [ADR 0024](adr/0024-server-hardening-observability-privacy.md)
 
 ## Privacy
 
-The audience is European, so the GDPR applies; the policy is the page `/privacy` (`client/src/pages/PrivacyPage.tsx`,
-linked from the footer, loaded on demand), in English only: a legal text in 8 unreviewed translations would be worse
-than one version. It describes what the code does, so it changes with it: a new service that receives anything from
-the user, or new data kept, means editing the page. As built:
+The policy is the page `/privacy` (`client/src/pages/PrivacyPage.tsx`, linked from the footer, loaded on demand), in
+English only. It describes what the code does: a new service that receives anything from the user, or new data kept,
+means editing it. As built:
 
 - no accounts, cookies, analytics or ads; favourites and settings stay in the browser, and so do the last loaded
-  forecasts, air quality and place names (the service worker's cache, up to 50 for a day: a record of places viewed,
-  so the policy lists it);
-- the server sees places and searches (and passes them to Open-Meteo and Nominatim as itself, so those never see the
-  user), the IP address for rate limiting (memory, a minute; not in logs), and browser error reports (message, stack,
-  page kind, user agent), the last two in the logs, which journald on the VM keeps 14 days (`MaxRetentionSec`, set by
-  `deploy/vm/setup.sh`; the policy states it);
-- the IP goes to ipwho.is only when the locate button was pressed and the browser could not find a position; the
-  position found is cached a day in memory under a keyed hash of the address (`ipFingerprint`, a random key per
-  process), not the address, which a plain hash would not protect (all IPv4 addresses can be hashed);
-- with notifications on, the browser talks to Firebase and its push service, and the server subscribes the device's
-  token to topics named after warning areas, without storing it (a SHA-256 of the token is kept in memory for an hour
-  to limit changes per device);
-- the server's own operational state in Firestore (ADR 0018) holds nothing about users: warning identifiers, times
-  and provider call counts.
+  forecasts, air quality and place names (the service worker's cache, up to 50 for a day; the policy lists it);
+- the server sees places and searches and passes them to Open-Meteo and Nominatim as itself; it sees the IP address for
+  rate limiting (memory, a minute; not in logs) and browser error reports (message, stack, page kind, user agent);
+  places, searches and error reports reach the logs, which journald on the VM keeps 14 days (`MaxRetentionSec`, set by
+  `deploy/vm/setup.sh`);
+- the IP goes to ipwho.is only when the locate button was pressed and the browser found no position; the result is
+  cached a day in memory under a keyed hash of the address (`ipFingerprint`, a random key per process);
+- with notifications on, the browser talks to Firebase and its push service; the server subscribes the device's token to
+  topics named after warning areas without storing it (a SHA-256 of the token is kept in memory for an hour to limit
+  changes per device);
+- the server's operational state in Firestore ([ADR 0018](adr/0018-durable-operational-state.md)) holds nothing about
+  users: warning identifiers, times and provider call counts;
+- the font is part of the build (`@fontsource-variable/bricolage-grotesque`); the Content-Security-Policy lists no
+  Google hosts except Firebase's; the service worker deletes its old Google Fonts caches; an end-to-end test checks that
+  font files come only from the site.
 
-The font used to come from Google Fonts, which sent every visitor's address to Google on each visit (a German court
-found that against the GDPR in 2022, LG München I, 3 O 17493/20). It is now part of the build
-(`@fontsource-variable/bricolage-grotesque`, the same optical-size and weight axes), so the Content-Security-Policy
-lists no Google hosts except Firebase's; the service worker deletes its old Google Fonts caches. An end-to-end test
-checks that font files come only from the site.
+Why: [ADR 0017](adr/0017-privacy-policy-and-own-font.md),
+[ADR 0024](adr/0024-server-hardening-observability-privacy.md)
 
 ## Reliability and security
 
-- **Configuration fails closed** (`server/src/config.ts`): every setting is read and checked in one place before the server starts. In production (`NODE_ENV=production`, which the systemd unit sets, or `RENDER=true` on Render) the server refuses to start without `PROXY_SECRET` (32 characters at least) or `TRUST_PROXY`, with `IP_SELF_LOOKUP=1`, with Firebase but no `ALERTS_NOTIFY_SECRET` (devices could subscribe and nothing would ever be sent), with a short `METRICS_SECRET`, or with a non-https or local `CORS_ORIGIN` (none is needed in production: the site calls the API through its own origin). All problems are listed at once, never a secret's value. An instance that does not start is noticed at once; one serving without its proxy check is not (found by the production review: with no secret and `TRUST_PROXY` counting proxies, a forged `X-Forwarded-For` got a fresh rate limit per request). The Vercel middleware likewise refuses an `API_ORIGIN` that is not a bare `https://` origin (plain http only for localhost), and, in Vercel's production environment, a missing `PROXY_SECRET`. Locally every setting stays optional.
-- **Outbound requests** (`providers/meteoAlarm.ts`): MeteoAlarm's feeds name the URL of each full warning (CAP), so the server fetched URLs taken from upstream content: a tampered feed or a redirect could have made it request internal addresses (server-side request forgery). Documents are now fetched only over https from `feeds.meteoalarm.org` (every CAP link in the live feeds is there; checked 31 October 2026), on the default port, without credentials in the URL and without following redirects (`redirect: 'error'`); an entry linking anywhere else is dropped. The VM's firewall does not restrict outgoing traffic, so this check is the boundary.
-- **Provider answers are checked and bounded** (`providers/http.ts`): every provider's body is read as a stream and abandoned past a size limit (2 MB for JSON, 8 MB for a feed, 1 MB for a CAP; the live answers are ~30 KB, up to ~640 KB and ~20 KB), and a `Content-Length` over it is refused before reading. Open-Meteo's answers used to be cast to their TypeScript interfaces: a missing or shorter array produced a "successful" forecast that broke our own contract and replaced a good cached one. Now the parallel arrays must have the same length (and at least one entry), and what the adapter builds is parsed with the API's own schemas from `shared` (`forecastSchema`, `airQualitySchema`, `locationSchema`) before anyone caches it; any failure is a `ProviderError`, so stale-if-error serves the last good copy. Nominatim and ipwho.is answers are type-checked field by field. MeteoAlarm feeds are cut at 5,000 entries, 50 polygons an entry and 5,000 points a polygon (live: ~420 entries in Germany's feed, polygons under 400 points), and fetches are bounded (`concurrencyLimit`): the ~40 feeds in a queue of their own, full warnings (CAP) 10 at a time in another, so a notifier run or a page cannot open unbounded connections and buffers, and a page's warning text never waits behind the notifier's read of every feed.
-- **Notification changes are limited** (`routes/push.ts`): each `POST /api/v1/push/topics` is one Firebase Admin call per area, and the proxy secret proves the proxy, not the visitor, so a script could spend the project's quota. On top of the general limit: 60 a minute per IP (`rateLimits.push`) and 120 an hour per token, sized for a renewed token, which re-subscribes every place with notifications on (the client sends those one by one, not as a burst; a 429 midway would leave the device on a dead token) (a token is a capability: whoever has it can change its subscriptions; keyed by its SHA-256, never kept as it came), a global budget of our own (`FCM_TOPIC_LIMITS`, 300 calls a minute and 20,000 a day, refusing at 90% with `503 SERVICE_BUSY` like the providers' budgets, and shown by `/api/health/quota`), at most 4 Firebase calls at once (the budget checked again when a queued change's turn comes, so a burst cannot overshoot it), and the same change already under way (a double click, a retry) joined instead of repeated. Turning notifications off is exempt from the per-token allowance and the budget (still counted, still under the per-IP limit): nothing may keep pushes coming to someone who asked them to stop.
-- **Operational state survives restarts** ([ADR 0018](adr/0018-durable-operational-state.md)): what the notifier has sent, a lease that keeps one notifier run at a time across instances, and provider usage (added back at start, then saved once a minute and at shutdown, awaited before the process exits; never saved before the saved counts were read back, which would wipe them; so a restart does not hand out a fresh daily allowance) are kept in Firestore when Firebase is configured, in memory otherwise. Forecast caches stay in memory (ADR 0003). Per-IP rate limits are still per instance: during a deploy's overlap each instance counts on its own.
-- **Shutdown** (`shutdown.ts`): on SIGTERM (every deploy and reboot; systemd kills the process 30 s later) the server stops accepting connections, `/api/health` answers 503 and every answer closes its connection, requests under way get up to 10 s to finish, idle keep-alive connections are closed as they appear, and whatever is still open after that is cut. Before, the process just died mid-answer. An uncaught exception or unhandled rejection is logged (`fatal`, with the stack) before the process exits; systemd restarts it.
-- **Errors in browsers:** an `ErrorBoundary` around the page content shows "Something went wrong" with a reload button instead of a blank screen, while the header (search, settings) keeps working; the next page renders again. A last one around everything shows a plain English message (the providers themselves may be what failed). Render errors (caught or not, through `createRoot`'s `onCaughtError` / `onUncaughtError`) and errors and rejections nothing caught are sent to `POST /api/v1/client-errors`, which writes them to the server log as warnings (`client error`, with the stack, React's component stack, the browser and the build). Our own endpoint rather than an error-tracking service such as Sentry (the owner's choice): nothing leaves our hosts, at the price of no grouping or alerting. What is sent is limited: the path with places replaced by a placeholder (a link to a place without an id holds its coordinates), no query, nothing from storage; the same error once, five at most per page; browser and extension noise ignored. The endpoint validates and bounds the report and allows ten a minute per address.
-- **Security headers:** the site's are in `client/vercel.json`, one place, and `vite preview` sends the same (read from that file), so the end-to-end tests run under them: a Content-Security-Policy that allows only our own scripts, Google Fonts, our API and the two Firebase hosts push needs (`firebaseinstallations`, `fcmregistrations`), and no framing; HSTS; `nosniff`; `Referrer-Policy`; a `Permissions-Policy` allowing geolocation to the site only. The tests fail on any console error, which a policy violation is, so every scenario checks the policy; one test checks the headers are there and that an injected script and an inline style are blocked. React's inline styles are set through the DOM, which the policy allows; axe sets some while it measures, and those alone are not counted. Push could not be exercised under the policy in a test (no notification permission in automation): check turning notifications on and off after deploying. The API's own answers get helmet's headers.
+- **Configuration fails closed** (`server/src/config.ts`): every setting is read and checked before the server starts.
+  - In production (`NODE_ENV=production`, set by the systemd unit, or `RENDER=true`) the server refuses to start without
+    `PROXY_SECRET` (at least 32 characters) or `TRUST_PROXY`, with `IP_SELF_LOOKUP=1`, with Firebase but no
+    `ALERTS_NOTIFY_SECRET`, with a short `METRICS_SECRET`, or with a non-https or local `CORS_ORIGIN`.
+  - All problems are listed at once, never a secret's value. Locally every setting is optional.
+  - The Vercel middleware refuses an `API_ORIGIN` that is not a bare `https://` origin (http only for localhost) and, in
+    Vercel's production environment, a missing `PROXY_SECRET`.
+- **Outbound requests** (`providers/meteoAlarm.ts`): full warnings (CAP) are fetched only over https from
+  `feeds.meteoalarm.org`, default port, no credentials in the URL, no redirects (`redirect: 'error'`); an entry linking
+  elsewhere is dropped. The VM's firewall does not restrict outgoing traffic.
+- **Provider answers are bounded and checked** (`providers/http.ts`):
+  - bodies are read as a stream and abandoned past 2 MB (JSON), 8 MB (feed) or 1 MB (CAP); a larger `Content-Length` is
+    refused before reading (live answers are ~30 KB, up to ~640 KB and ~20 KB);
+  - Open-Meteo's parallel arrays must have the same length (at least one entry), and the adapter's result is parsed with
+    `shared`'s schemas (`forecastSchema`, `airQualitySchema`, `locationSchema`) before caching; any failure is a
+    `ProviderError`;
+  - Nominatim and ipwho.is answers are type-checked field by field;
+  - MeteoAlarm feeds are cut at 5,000 entries, 50 polygons an entry, 5,000 points a polygon (live: ~420 entries in
+    Germany's feed, polygons under 400 points); fetches go through three queues (`concurrencyLimit`): the ~40 feeds in
+    one, the pages' CAP documents 10 at a time in another, the notifier's 5 at a time in a third, so a run after
+    downtime cannot make a visitor's warning wait.
+- **Notification changes are limited** (`routes/push.ts`, `POST /api/v1/push/topics`, one Firebase Admin call per
+  area):
+  - 60 a minute per IP (`rateLimits.push`), on top of the general limit;
+  - 120 an hour per token, keyed by its SHA-256; the client re-subscribes places one by one;
+  - a global budget (`FCM_TOPIC_LIMITS`): 300 calls a minute, 20,000 a day, refusing at 90% with `503 SERVICE_BUSY`,
+    shown by `/api/health/quota`;
+  - at most 4 Firebase calls at once, the budget checked again when a queued change's turn comes;
+  - the same change already under way is joined;
+  - turning notifications off is exempt from the per-token allowance and the budget (still counted, still under the
+    per-IP limit).
+- **Operational state** ([ADR 0018](adr/0018-durable-operational-state.md)): what the notifier has sent, a lease for one
+  notifier run at a time, and provider usage are kept in Firestore when Firebase is configured, in memory otherwise.
+  Provider usage is added back at start (before anything is saved), then saved once a minute and at shutdown, awaited
+  before exit. Forecast caches stay in memory ([ADR 0003](adr/0003-in-memory-cache.md)); per-IP limits are per
+  instance.
+- **Shutdown** (`shutdown.ts`): on SIGTERM (systemd kills 30 s later) the server stops accepting connections,
+  `/api/health` answers 503, every answer closes its connection, requests under way get up to 10 s, idle keep-alive
+  connections are closed, and the rest is cut. An uncaught exception or unhandled rejection is logged (`fatal`, with the
+  stack) before exit; systemd restarts the process.
+- **Errors in browsers** ([ADR 0014](adr/0014-client-error-reporting.md)):
+  - an `ErrorBoundary` around the page content shows "Something went wrong" with a reload button while the header keeps
+    working; the next page renders again; an outer one shows a plain English message;
+  - render errors (`createRoot`'s `onCaughtError` / `onUncaughtError`) and uncaught errors and rejections go to
+    `POST /api/v1/client-errors`, logged as warnings (`client error`, with the stack, component stack, browser, build);
+  - the client sends the path with places replaced by a placeholder, no query, nothing from storage; each error once,
+    five per page at most; browser and extension noise ignored;
+  - the endpoint validates and bounds the report, ten a minute per address.
+- **Security headers:** the site's are in `client/vercel.json`, and `vite preview` sends the same (read from that file).
+  - CSP: only our own scripts, styles and fonts, our API and the two Firebase hosts push needs
+    (`firebaseinstallations`, `fcmregistrations`); no framing. Also HSTS, `nosniff`, `Referrer-Policy`, and a
+    `Permissions-Policy` allowing geolocation to the site only.
+  - End-to-end tests fail on any console error, so a policy violation fails them; one test checks the headers and that
+    an injected script and an inline style are blocked. React's inline styles are set through the DOM, which the policy
+    allows; axe's own are not counted.
+  - Push is not exercised under the policy in tests: check turning notifications on and off after deploying.
+  - The API's answers get helmet's headers.
+
+Why: [ADR 0024](adr/0024-server-hardening-observability-privacy.md), [ADR 0014](adr/0014-client-error-reporting.md),
+[ADR 0018](adr/0018-durable-operational-state.md)
 
 ## Frontend
 
@@ -109,172 +324,531 @@ SPA with client-side routing (React Router):
 - `/weather/:lat,:lon?name=&country=` — forecast for a place without a city id (a position found by location)
 - anything else — not found
 
-**Links.** A city link is identified by its id, and the slug is for people only: `/weather/756135-warsaw`, like yr.no's links (which use the same GeoNames ids; Open-Meteo's location ids are GeoNames ids, so they are not tied to the weather provider and survive a change of it). The slug is plain Latin from the English name, so the link is one address for every reader and does not turn into `%D0%92…` when copied; the name and country on screen come from the id in the reader's language. A link made in another language (`756135-varshava`, transliterated: Cyrillic and Greek are spelled out, other scripts give no slug) or edited by hand opens by the id and the page replaces the address with the canonical one (`history.replace`, no extra back step) once it has the English name. A saved city opens at once (coordinates from the favourites, so its forecast starts without waiting); another city waits for one lookup by id (cached a day, and by the service worker for offline), with the page skeleton meanwhile. An unknown id is "not found". Places without an id (a position with no matching city) keep coordinates in the path and the name in the query: nothing else knows their name. Older links (`/weather/52.23,21.01?name=…&id=…`) still open, and move to the id form once the id is confirmed to be at those coordinates (an edited one keeps its coordinates). Before, every link carried coordinates plus the name and country in the language they were found in ("?name=Варшава&country=Польша"), shown until the id lookup translated them, and kept for good for places without one. Cost of the change: a city that is not saved waits for the id lookup before its forecast starts (one request, usually cached). The coordinates come from any lookup of the id that has succeeded, in any language, so switching the language never takes the forecast away while the new language's lookup runs (or fails offline); loading or an error only when nothing about the id is known yet. Whatever follows the id is not checked ("756135-Warsaw" typed by hand opens and is corrected). One cache of lookups by id, shared with the place names, so an id costs one request per language. Code: `locationUrl.ts` (`placePath`, `parsePlaceRoute`, `slugify`), `placeRoute.ts` (`resolveRoute`, a plain function, tested), `hooks/usePlaceRoute.ts`.
+**Links** ([ADR 0006](adr/0006-place-urls-by-id.md); code: `locationUrl.ts` with `placePath`, `parsePlaceRoute`,
+`slugify`; `placeRoute.ts` with `resolveRoute`, a plain tested function; `hooks/usePlaceRoute.ts`):
 
-Pages live in `pages/`, reusable UI in `components/`.
-Styles are plain global CSS with BEM-like class names, one file per part of the page in `client/src/styles/`, imported in a fixed order by `styles/index.css`: the order is the cascade, so later files win at equal specificity. Each file ends with its own reduced-motion overrides; in one shared block in the middle of the old single stylesheet they lost to transitions declared further down (the bell's switch and the warnings' chevrons kept animating). CSS Modules were considered: they scope class names, but would mean renaming every class in the components and the tests, and the right-to-left rules (`[dir='rtl'] .x`) would need `:global`; for one app with distinct prefixes per component the collision risk does not justify it. A component grown large keeps its pieces in a folder of its own (`components/settings/`: the language list, the warnings list and its rows).
-Weather icons are a small hand-drawn set of filled two-colour SVGs (`WeatherIcon.tsx`). Icon libraries such as `lucide-react` were tried, but they are outline-only, and filling them breaks the rain, snow and storm icons; ten icons do not justify a dependency. `shared` only names the icon kind, so a React Native app can map the same kinds to its own images.
-Because the browser doesn't treat SPA navigation as a new page, the app updates `document.title` itself and moves focus to the place heading for screen reader and keyboard users.
-Data fetching lives in hooks (`useLocationSearch`, `useForecast`, `useAirQuality`). Forecasts and air quality go through a small shared in-memory cache (`api/queryCache.ts`, TTL equal to the API's `Cache-Control` max-age, 5 and 15 minutes): a place that is already loaded (for example by its favourite tile) renders at once, concurrent requests for one place are merged, and errors are not cached. Without it, switching cities briefly replaced the page with a loading line and the layout jumped. Unknown places show a placeholder shaped like the page, the air quality slot is kept while it loads, and `scrollbar-gutter: stable` keeps the content width fixed.
+- A city is identified by its GeoNames id (Open-Meteo's location id); the slug after it is for people only.
+- The slug is plain Latin from the English name. Cyrillic and Greek are transliterated (`756135-varshava`); other
+  scripts give no slug.
+- The name and country on screen come from a lookup by id in the reader's language.
+- Whatever follows the id is not checked: a link with another slug (another language, or edited by hand, such as
+  `756135-Warsaw`) opens by the id, and once the English name is known the page replaces the address with the
+  canonical one (`history.replace`, no extra back step).
+- A saved city opens at once, with coordinates from the favourites. Another city waits for one lookup by id (cached a
+  day, and by the service worker for offline), showing the page skeleton meanwhile. An unknown id is "not found".
+- The coordinates come from any lookup of the id that has succeeded, in any language: switching the language keeps the
+  forecast while the new lookup runs (or fails offline). Loading or an error shows only when nothing about the id is
+  known yet.
+- Lookups by id share one cache with the place names: one request per id and language.
+- A place without an id keeps coordinates in the path and the name in the query.
+- Older links (`/weather/52.23,21.01?name=…&id=…`) still open and move to the id form once the id is confirmed to be at
+  those coordinates; an edited one keeps its coordinates.
+
+**Code layout and styles:**
+
+- Pages live in `pages/`, reusable UI in `components/`. A large component keeps its pieces in a folder of its own
+  (`components/settings/`: the language list, the warnings list and its rows).
+- Styles are plain global CSS with BEM-like class names, one file per part of the page in `client/src/styles/`,
+  imported in a fixed order by `styles/index.css`. The order is the cascade: later files win at equal specificity.
+- Each style file ends with its own reduced-motion overrides.
+- Weather icons are a small hand-drawn set of filled two-colour SVGs (`WeatherIcon.tsx`). `shared` only names the
+  icon kind.
+- On each navigation the app sets `document.title` and moves focus to the place heading.
+
+**Data loading:**
+
+- Data fetching lives in hooks: `useLocationSearch`, `useForecast`, `useAirQuality`.
+- Every API request has a 15-second limit, answer included (`REQUEST_TIMEOUT_MS` in `shared`); past it the request
+  fails as `NETWORK_ERROR` with "Try again". With a saved copy, the service worker shows it after 6 seconds. The timer
+  is built by hand, not with `AbortSignal.timeout`/`any`.
+- Forecasts and air quality go through a shared in-memory cache (`api/queryCache.ts`, TTL equal to the API's
+  `Cache-Control` max-age, 5 and 15 minutes): a place already loaded (for example by its favourite tile) renders at
+  once, concurrent requests for one place are merged, errors are not cached.
+- An unknown place shows a placeholder shaped like the page; the air quality slot is kept while it loads;
+  `scrollbar-gutter: stable` keeps the content width fixed.
+- `useRevalidateOnReturn` loads forecasts and air quality again when the page comes back into view (another tab, an
+  app switched back to, a phone woken up) or the connection returns while it is in view, if the shown data is at least
+  as old as the server keeps it: 15 minutes for forecasts, an hour for air quality. Every place on the page does it;
+  favourite tiles go in one batch.
+- Meanwhile the old data stays on screen with no loading state, and stays if the new load fails (the outdated notice
+  then says how old it is).
+- Nothing is reloaded on a timer while the page stays in view, except warnings.
+
+**City page:**
+
+- Header buttons by the name: the star (favourites, icon only), then the bell (warnings). Their tooltips are CSS from
+  `data-tip`, shown on hover and keyboard focus. On phones the country goes under the name, so the name and the
+  buttons share a line.
+- Wording is "favourites" everywhere: the star's tooltip is "Add to favourites" or, when saved, "In favourites"; its
+  hidden name is "Add to favourites" or "Remove from favourites"; the full-list hint is "You can add up to 10 cities to
+  favourites".
+- "You are here" is plain text after the country, on its baseline, in the same colour and 0.85em ("Poland · 📍 You
+  are here"). "Approximate, by IP" has a yellow pin and its own words. On a phone the mark moves under the district
+  and region line. It is drawn twice: visually hidden in the heading (read with the name), and an `aria-hidden` copy
+  below.
+- A name longer than the screen (one word, such as Llanfairpwllgwyngyll…) breaks inside the word; the buttons stay on
+  its first line.
+- The current temperature has a weather icon after the number, centred on it and sized from its font (0.62em),
+  decorative (`aria-hidden`); the condition is written on the next line.
+- Several warnings collapse to the most severe and soonest one plus "3 more warnings".
+- The hourly strip shows the chance of rain under the icon in hours above 30%, in one fixed-height slot shared with the
+  icon; in a dry hour the icon sits in the slot's middle. Sunrise and sunset are cells of their own between the hours.
+- The 10-day list's day column is as wide as the longest day name in the list (rows are subgrids of the list,
+  `max-content`), leaving 12 px before the icon. Browsers without subgrid keep a fixed 3.5rem column.
+- Today's row in the 10-day list is lighter (a pseudo-element, so the subgrid's columns do not shift), with a
+  decorative dot on its bar for the temperature now; the bar, and so the dot, is hidden on phones.
+
+Why: [ADR 0025](adr/0025-frontend-search-and-favourites-details.md)
 
 ## Push notifications about warnings
 
-- **Constraint:** free services only, no database. The server stays stateless; the state lives where it is free:
-  - **Who wants what:** Firebase Cloud Messaging topics, one per area, kind and minimum level (`PL1261.storm.orange`). A device subscribes its push token through `POST /api/v1/push/topics`; the server computes the areas of the place (its MeteoAlarm regions, as for the page, or a 0.25° grid cell where countries draw their warnings) and asks FCM. Nothing is stored here. The device keeps its own list (`localStorage`) to change or undo it, renew it when its token changes, and name the place in a notification.
-  - **What was sent:** until each warning ends, in a `StateStore` ([ADR 0018](adr/0018-durable-operational-state.md)): Firestore when Firebase is configured, so it survives restarts and deploys, and memory otherwise. An external scheduler (cron-job.org, free) calls `POST /api/internal/alerts/notify` every 5 minutes. Each run takes a lease (4 minutes) so two instances overlapping during a deploy do not both push, reads the saved state at the start of every run, not once per process, and merges it into memory rather than replacing it, so instances taking turns during a deploy never push what the other already sent, and a failed save never brings back an older record (a failed read fails the run rather than starting empty, which would warm up silently and then overwrite the saved state; an unreadable document is ignored with a warning) and saves it after each warning sent and after every run, failed ones included; shutdown waits for a run under way (at most 5 seconds), and a run cut anyway has already recorded what it sent. With saved state, warnings issued while the server was down are pushed on the next run. Without it (the first start, or the memory store) the first read of each source (a country's feed) only records the warnings in force (no repeats for anyone). Warm-up is per source, not per run: a feed that failed on the first run, or a warning whose full text failed to load then, is recorded silently when first read rather than pushed as new. A warning counts as sent only once FCM accepted its messages (`sendEach` reports rejections per message instead of throwing, so every rejection except a known permanent one, such as a malformed message, becomes an error and a retry: network errors arrive there as `app/network-error`, and recording an unsent warning as sent is worse than trying again), sent one warning at a time: a failure retries just that warning on the next run and fails the run, so the scheduler shows it. Permanent rejections are not retried (they would fail the same way) but counted (`rejected` in the run's answer and in the status), logged as errors, and keep the run from counting as a success; their time (`lastRejectedAt`, saved with the state) keeps `/api/health/notify` at 503 for 30 minutes, since later clean runs would otherwise hide them. A run in which every feed failed fails (502) instead of reporting "no warnings"; a run with some feeds failed answers 200 with `feedsFailed`. `GET /api/health/notify` (public, like quota: feed codes and times only) answers 503 when no run has fully succeeded (every feed read, nothing refused) for 30 minutes or FCM refused messages within them, so an uptime monitor catches a scheduler that stopped, a feed down for long or FCM refusing messages. The data payload is kept under FCM's 4 KB (`fitPayload`, 3,800 bytes counted in UTF-8): the 160-character headline cap alone did not bound it (Cyrillic is two bytes a character, and issuers give up to ten languages), so headlines go first, then the area list, then languages other than English and the issuer's first. The broadcast path parses each full warning with its feed entry as fallback and shares the page's cache, so both read one version. Unsubscribing a token FCM no longer knows succeeds (it is on no topic), so notifications can always be turned off. The client joins the new topic before leaving the old one; if leaving fails, the old topic is remembered in storage (`leave`) and retried on the next change, on turning off and on the next start, since a broader old setting would otherwise keep notifying even after turning off. Every change to the stored subscriptions (on, off, a new setting, a new token, leaving old topics) runs one at a time, since each reads the state, waits on the network and writes it back: a token renewal on start finishing after a settings change would otherwise bring the old setting back. Retries run in that queue too, and a pending leave of the setting that is current again is dropped, never sent: switching back to it must not leave the topic just joined; and moves every stored place to a new token before subscribing another. (These came from a roborev review, along with a crash: a hook placed after the bell's early returns blanked the page once coverage arrived.) Rejected: time windows on the warning's `sent` time, stateless, but MeteoAlarm lists a warning minutes after `sent`, so a fixed window would miss it.
-- **One notification per warning, a closed one does not come back:** a CAP update names the warning it replaces (`references`); it keeps the first version's key, which is the notification's `tag`, and it is pushed again only if its level went up. A device in two areas gets the same warning twice at most, and the same tag replaces it quietly (`renotify: false`). Dropping a repeat on the device is not possible: Chrome shows its own notification for a push that shows none, Safari unsubscribes after three.
-- **Each run** reads all ~39 country feeds (cached 4 minutes), loads the full text only of warnings not seen yet, and publishes to every topic a new warning reaches: each area × (storm, all) × each minimum level up to its own. Overlapping runs share one.
-- **The notification is written on the device,** in the user's language: messages are data-only (level, type, times, areas, the issuer's texts), and the service worker (`public/push-sw.js`, loaded into the generated worker) reads from IndexedDB the user's places and the strings the page stored for the current language. Title "Orange warning: Thunderstorms · Kraków", body the time and the issuer's headline; a tap opens the city page. Every push shows a notification, whatever fails: Chrome otherwise shows its own "site updated in the background", and Safari revokes subscriptions that receive pushes without one. If writing the full one throws (stored state of an older format, IndexedDB unavailable, an invalid locale), a plainer one with the same tag is shown from the message alone (the issuer's event and headline in the browser's language, else "Weather warning"), and the error goes to the worker's console; reading IndexedDB never rejects nor hangs (unreadable means no saved state).
-- **Same-named places beyond search:** search suggestions told twins apart only within one result list; the page and favourites kept just name, country, coordinates and id, so two saved Józefów looked the same. The lookup by id the page already makes (to show the name in the UI language) now also returns region and levels below it. The page shows the country beside the name and district and region on a line below the name and buttons ("Powiat otwocki · Masovian Voivodeship"), so a town is placed even with a namesake in the same voivodeship. Each part stays whole, so a long line wraps at the dot ("Powiat warszawski zachodni ·" / "Masovian Voivodeship") instead of leaving the last word alone. A name longer than the screen (Llanfairpwllgwyngyll…, one word) breaks inside the word, and the buttons stay on its first line; before, it widened the page into a sideways scroll on phones. The district is left out when it is the city itself (Warsaw's is Warsaw: it repeats the name, the region or the level below), compared without diacritics and up to two letters apart for names of five or more (in English the provider names the city "Warsaw" but its district "Warszawa", which showed "Warszawa · Mazovia" under "Warsaw") and shown even untranslated, being the difference. The region is left out when it repeats the name (Berlin, Tokyo, Kyiv are their own regions) or has no translation: the provider sends the English name when it has none ("South Aegean" in Russian), and in an interface not written in Latin letters a Latin region is dropped rather than shown in another alphabet. In Latin-script interfaces an English fallback can't be told from a translation and stays. There is no list of region names to translate them ourselves; `Intl.DisplayNames` covers countries only. Favourite tiles and cards add, only for places whose name, kind and country are shared, the first level at which they differ, with words common to the group dropped at the start and end ("Województwo mazowieckie / lubelskie" → "mazowieckie / lubelskie"): otherwise a narrow tile cut both to "Województw…". No per-language word lists. Namesakes are matched in any form of the name: the interface language, English (the same lookup by id, in English, cached a day) or as saved, because a language may name one Józefów and not the other (in Russian the town is "Юзефув", a village keeps "Józefów"). Places saved without an id get their levels from a name search in the interface language (no English alias for them: a second search would cost the provider's quota). Only places whose levels are known are compared, narrowing down level by level to the places sharing a value: with three Józefów, two in Masovia, the Lublin one gets its voivodeship and the Masovian ones their districts.
-- **"You are here" mark:** plain text after the country on its baseline, same colour, a step smaller (0.85em) ("Poland · 📍 You are here"), not a pill: the 24 px pill sat centred, above the text, and looked like the buttons beside it. "Approximate, by IP" has a yellow pin and its own words instead of a dashed border. On a phone the mark moves under the district and region line: under the country it made the column beside the buttons four lines tall. It is drawn twice: the heading keeps it visually hidden, so screen readers still hear it with the name, and the copy below is `aria-hidden`. Rejected: the pin alone (unclear without the word, no hover on phones), a smaller pill (still a button lookalike).
-- **Day column of the 10-day list:** as wide as the longest day name in the list, the rows being subgrids of the list (`max-content`), so every language gets 12 px between the name and the icon. A fixed 3.5rem left "Сегодня" touching the icon and put "Aujourd'hui" 18 px over it; a wider fixed column would leave "Thu" far from its icon. Today's lighter background is a pseudo-element, since padding on a subgrid row would shift its columns. Browsers without subgrid keep the fixed column. Checked in all 19 languages (28–86 px) and on a phone.
-- **Page polish:** several warnings collapse to the most severe one and "3 more warnings" (four cards took half a phone screen; the first is always the most severe and soonest, so nothing urgent is folded); a weather icon next to the temperature was tried (before, then after the number) and removed (the number leads alone, the condition is written below it, the strip and the list have icons), then brought back on 1 November 2026 by the owner's choice of variant A of four mockups: after the number, centred on it and sized from its font (0.62 em), so the weather reads at a glance with the number; rejected: a small icon before the condition (adds little next to the word), a large one at the block's right edge (runs into three-character temperatures such as −12° on a phone), and one above the number (pushes the hourly strip down a line); the icon is decorative (`aria-hidden`), since the condition is the next line. Also: the hourly strip shows the chance of rain under the icon in likely hours (above 30%), sharing one fixed-height slot with the icon so the strip has one height (an empty row that came and went is why it was dropped at first); in a dry hour the icon sits in the slot's middle instead of over an empty row, as in Apple Weather, at the cost of icons not on one line, and sunrise and sunset as cells of their own between the hours; today's row in the 10-day list is lighter, with a dot on its bar for the temperature now (decorative; the bar, and so the dot, is hidden on phones). Deferred: a two-column layout on wide screens.
-- **One word, "favourites":** the section was "Favourites" while the star said "Save" / "Saved" (and the warnings list "Saved cities"), which read as two different things. The star now says "Add to favourites" (tooltip and hidden name) or, when saved, "In favourites" (tooltip) with the hidden name "Remove from favourites"; the full-list hint says "You can add up to 10 cities to favourites". In all 19 languages (Chinese was already consistent). Rejected: "saved" everywhere, as Google Maps does: a star reads as favourites, and the section already had that name. Older bullets below quote the former labels.
-- **Header buttons, second version:** the star as an icon (the sign of favourites everywhere; hidden name and tooltip as in "One word, favourites" above), then the bell. A "⌂ Home" button stood before them until the home city was removed (below).
-- **Header buttons, first version (replaced):** only "Save" kept its label; the home city and the warnings bell were round icon buttons (36 px), their state shown by the filled icon, their name in hidden text (the same words the label had) and in a tooltip on hover and keyboard focus (CSS from `data-tip`; not `title`, which appears late, only for the mouse, and is read twice). In Russian and German the three labels pushed the buttons onto a second line. "Save" and "Saved" share one grid cell, the inactive one invisible, so the button keeps one width. On phones the country goes under the name so the name and the buttons share a line. Considered: icons only (a bare star is unclear, and phones have no hover tooltips), a star plus a "⋯" menu (hides home city and warnings, and whether notifications are on), the buttons on their own row (40 px more before the temperature).
-- **UI:** a bell next to the star by the city name, with its settings below it (all places with notifications on are also listed in the settings, see "Warnings in the settings"): a switch, storms or all, from which level (defaults: storms, from orange; yellow warnings are common, e.g. fog across a country). Permission is asked only when the switch is turned on. A choice shows at once; with notifications on, applying it takes a second or two (token, leaving and joining topics), and until the server answers the options and the switch are `disabled` (the others dimmed), and the control that started the change shows a spinner (next to the switch, if it was the switch); the panel is `aria-busy`. Chosen over a progress line with "Saving…" (19 more translations) and over dimming alone (unclear what is happening). Disabling drops keyboard focus to the page, so when the lock ends focus goes back to the control last used in the panel. `latestOnly` still runs changes one at a time, against a double click before the lock renders. After a failure the panel shows the stored settings again. On an iPhone in the browser the panel explains installing first (web push works only from the Home Screen app, iOS 16.4+); when notifications are blocked, where to allow them. Without Firebase config (the default) there is no bell, nor where MeteoAlarm issues no warnings (`/api/v1/alerts` returns `covered`: a region of the borders file, or a box of a country that draws its areas; Minsk and New York are not covered). The bell appears once coverage is known, so it never flashes away; a place subscribed earlier keeps it, to be turned off. In `npm run dev` the panel says up front that there is no service worker there (only the build has one), instead of failing on the switch. The Firebase SDK is loaded only on demand (a separate ~19 KB gzip chunk), never in the main bundle.
-- **Not verified end to end:** delivery needs a Firebase project and a deployed HTTPS build. The server logic (repeats, updates, warm-up, topics), the store and the service worker's rendering are unit-tested; the panel was checked in a production build with placeholder config (turning on fails cleanly there).
-- **Native apps later:** the same topics reach Android and iOS through FCM; the server would not change.
+Free services only: the server keeps no subscriptions ([ADR 0011](adr/0011-push-via-fcm-topics.md)); what was sent is
+kept in a `StateStore` ([ADR 0018](adr/0018-durable-operational-state.md)).
+
+**Subscribing:**
+
+- Subscriptions are Firebase Cloud Messaging topics, one per area, kind and minimum level (`PL1261.storm.orange`).
+- A device subscribes its push token through `POST /api/v1/push/topics`. The server computes the areas of the place
+  (its MeteoAlarm regions, as for the page, or a 0.25° grid cell where countries draw their warnings) and asks FCM.
+  Nothing is stored on the server.
+- The device keeps its own list in `localStorage`, to change or undo it, renew it when its token changes, and name the
+  place in a notification.
+- Unsubscribing a token FCM no longer knows succeeds (it is on no topic).
+- The client joins the new topic before leaving the old one. If leaving fails, the old topic is remembered in storage
+  (`leave`) and retried on the next change, on turning off and on the next start.
+- Every change to the stored subscriptions (on, off, a new setting, a new token, leaving old topics, retries) runs one
+  at a time in one queue. A pending leave of the setting that is current again is dropped, never sent.
+- A new token: every stored place moves to it before another place is subscribed.
+
+**The scheduled run** (`POST /api/internal/alerts/notify`, called every 5 minutes by cron-job.org):
+
+- The run takes a lease (4 minutes), so overlapping instances during a deploy do not both push. It renews the lease
+  before each send once half of it has passed, and stops if it was lost.
+- It reads the saved state at the start of every run and merges it into memory (not replaces). A failed read fails the
+  run; an unreadable document is ignored with a warning.
+- It saves the state after each warning sent and after every run, failed ones included.
+- Shutdown waits for a run under way (at most 5 seconds); a run cut anyway has already recorded what it sent.
+- It reads all ~39 country feeds (cached 4 minutes) and loads the full text only of warnings not seen yet, all at once
+  (the provider fetches ten at a time). Overlapping runs share one.
+- The broadcast path parses each full warning with its feed entry as fallback and shares the page's cache, so both read
+  one version.
+- With saved state, warnings issued while the server was down are pushed on the next run.
+- Warm-up: without saved state (the first start, or the memory store), the first read of each source (a country's
+  feed) only records the warnings in force. Warm-up is per source: a feed that failed on the first run, or a warning
+  whose full text failed then, is recorded silently when first read.
+- A run in which every feed failed answers 502; a run with some feeds failed answers 200 with `feedsFailed`.
+
+**Sending:**
+
+- A new warning is published to every topic it reaches: each area × (storm, all) × each minimum level up to its own.
+- One notification per warning: a CAP update names the warning it replaces (`references`) and keeps the first
+  version's key, which is the notification's `tag`. An update is pushed again only if its level went up.
+- A device in two areas gets the same warning at most twice; the same tag replaces it quietly (`renotify: false`).
+- Warnings are sent one at a time. A warning counts as sent only once FCM accepted its messages: `sendEach` reports
+  rejections per message, and every rejection except a known permanent one (such as a malformed message) becomes an
+  error. Network errors arrive there as `app/network-error`. A failure retries just that warning on the next run and
+  fails the run.
+- Permanent rejections are not retried. They are counted (`rejected` in the run's answer and in the status), logged as
+  errors and keep the run from counting as a success; their time (`lastRejectedAt`, saved with the state) keeps
+  `/api/health/notify` at 503 for 30 minutes.
+- The data payload stays under FCM's 4 KB: `fitPayload` caps it at 3,800 bytes counted in UTF-8, dropping headlines
+  first, then the area list, then languages other than English and the issuer's first. Headlines are also capped at
+  160 characters.
+
+**Monitoring:** `GET /api/health/notify` (public: feed codes and times only) answers 503 when no run has fully
+succeeded (every feed read, nothing refused) for 30 minutes, or FCM refused messages within them.
+
+**The device** (`public/push-sw.js`, loaded into the generated service worker):
+
+- Messages are data-only: level, type, times, areas, the issuer's texts.
+- The service worker writes the notification in the user's language, reading from IndexedDB the user's places and the
+  strings the page stored for the current language.
+- Title "Orange warning: Thunderstorms · Kraków"; body the time and the issuer's headline. A tap opens the city page.
+- Every push shows a notification. If writing the full one throws (stored state of an older format, IndexedDB
+  unavailable, an invalid locale), a plainer one with the same tag is shown from the message alone (the issuer's event
+  and headline in the browser's language, else "Weather warning"), and the error goes to the worker's console.
+- Reading IndexedDB never rejects nor hangs: unreadable means no saved state.
+- The page and the worker close their IndexedDB connection once done.
+
+**The bell** (next to the star; all places with notifications on are also listed in the settings, see "Warnings in the
+settings"):
+
+- Its panel has a switch, storms or all, and the minimum level. Defaults: storms, from orange.
+- Permission is asked only when the switch is turned on.
+- A choice shows at once. With notifications on, applying it takes a second or two (token, leaving and joining topics);
+  until the server answers, the options and the switch are `disabled` (the others dimmed), the control that started
+  the change shows a spinner (next to the switch, if it was the switch), and the panel is `aria-busy`.
+- When the lock ends, focus goes back to the control last used in the panel. `latestOnly` runs changes one at a time.
+- After a failure the panel shows the stored settings again.
+- On an iPhone in the browser the panel explains installing first (web push works only from the Home Screen app, iOS
+  16.4+); when notifications are blocked, it says where to allow them.
+- There is no bell without Firebase config (the default), nor where MeteoAlarm issues no warnings: `/api/v1/alerts`
+  returns `covered` (a region of the borders file, or a box of a country that draws its areas; Minsk and New York are
+  not covered).
+- The bell appears once coverage is known. A place subscribed earlier keeps it, to be turned off.
+- In `npm run dev` the panel says up front that there is no service worker there (only the build has one).
+- The Firebase SDK loads only on demand (a separate ~19 KB gzip chunk), never in the main bundle.
+
+**Status and tests:** verified end to end on 2026-11-01 on a desktop (Chrome, Safari, Firefox), Android in Chrome and
+an iPhone Home Screen app, with test pushes (`npm run push:test -w server`, README) and the scheduler running; not yet
+with a real warning. The server logic (repeats, updates, warm-up, topics), the store and the service worker's rendering
+are unit-tested.
+
+**Native apps:** none for now ([ADR 0021](adr/0021-no-native-apps-yet.md)). They would use the same topics, with
+`apns`/`android` fields and localization keys added by the server.
+
+Why: [ADR 0026](adr/0026-push-delivery-details.md)
 
 ## Same-named places in search
 
-- **Problem:** a search for "Rhodes" returned two identical lines: the town and the island (Open-Meteo, i.e. GeoNames, lists both, with the same region and country). Search also matches places by old or other names: "rhodes" finds Esmond, North Dakota, which GeoNames also calls Rhodes; kept, since the same matching finds Kyiv for "Kiev". They are different places: the island's point is in its mountainous middle, 33 km from the town.
-- **Island mark:** the server maps GeoNames feature codes (`ISL…`, `ATOL`) to `kind: 'island'` on `Location`; the suggestion reads "Rhodes · island", and so do the tab title and a notification, where the name stands alone. The page heading and favourite tiles and cards put the word on the country line ("island · Greece"): on a narrow tile "Rhodes · island" was cut to "Rhodes · …", losing exactly the difference, and in the large heading it read as part of the name. Rejected for the heading: "Island of Rhodes" (word order and form differ in every language, 19 templates to get right), a small boxed label (looks like a button). An optional field, open to more kinds; clients ignore ones they do not know.
-- **Twins get the level that differs:** `areas` carries GeoNames admin2–admin4 (province, district, municipality; '' where a level is missing, so positions line up). For suggestions that would otherwise read exactly the same (same name, kind, region and country), the first level at which they differ is added (`describePlaces`): two villages "Rode" in one Belgian province and district become "Geetbets, Flanders, Belgium" and "Glabbeek, Flanders, Belgium". The first version added only admin2, the province, which both shared, so the lines stayed identical. Real duplicates (no level differs) stay as they are. Most lists do not get longer.
-- **Rejected:** dropping islands from search (then "Crete" or "Sicily" find nothing).
-- **Cached answers:** the fields are optional, so an older cached `/api/v1/locations/:id` answer (browser `max-age` one day) simply shows no mark until it expires.
+**In search suggestions:**
+
+- Search also matches places by old or other names ("Kiev" finds Kyiv; "rhodes" finds Esmond, North Dakota).
+- The server maps GeoNames feature codes (`ISL…`, `ATOL`) to `kind: 'island'` on `Location`, an optional field open to
+  more kinds; clients ignore kinds they do not know.
+- The suggestion reads "Rhodes · island"; so do the tab title and a notification. The page heading and favourite tiles
+  and cards put the word on the country line ("island · Greece").
+- `areas` carries GeoNames admin2–admin4 (province, district, municipality; '' where a level is missing, so positions
+  line up).
+- Suggestions that would read exactly the same (same name, kind, region and country) get the first level at which they
+  differ (`describePlaces`): two villages "Rode" become "Geetbets, Flanders, Belgium" and "Glabbeek, Flanders,
+  Belgium". Real duplicates (no level differs) stay as they are.
+- An older cached `/api/v1/locations/:id` answer (browser `max-age` one day) shows no island mark until it expires.
+
+**On the page:**
+
+- The lookup by id the page makes also returns the region and the levels below it. The page shows the district and
+  region on a line below the name and buttons ("Powiat otwocki · Masovian Voivodeship").
+- Each part stays whole, so a long line wraps at the dot ("Powiat warszawski zachodni ·" / "Masovian Voivodeship").
+- The district is left out when it is the city itself (it repeats the name, the region or the level below), compared
+  without diacritics and up to two letters apart for names of five or more letters; otherwise it is shown, even
+  untranslated.
+- The region is left out when it repeats the name (Berlin, Tokyo, Kyiv) or has no translation: in an interface not
+  written in Latin letters a Latin region is dropped. In Latin-script interfaces an English fallback stays.
+
+**In favourites:**
+
+- Favourite tiles and cards add, only for places whose name, kind and country are shared, the first level at which they
+  differ, with words common to the group dropped at the start and end ("Województwo mazowieckie / lubelskie" →
+  "mazowieckie / lubelskie").
+- Namesakes are matched in any form of the name: the interface language, English (the same lookup by id, in English,
+  cached a day) or as saved.
+- Places saved without an id get their levels from a name search in the interface language, with no English alias.
+- Only places whose levels are known are compared, narrowing level by level to the places sharing a value: with three
+  Józefów, two in Masovia, the Lublin one gets its voivodeship and the Masovian ones their districts.
+
+Why: [ADR 0025](adr/0025-frontend-search-and-favourites-details.md)
 
 ## Favourites
 
-Saved cities live in the browser (`localStorage`, key `favorites:v1`), with no accounts and no server state. That keeps the backend stateless and avoids sign-in, a database and per-user data protection, at the cost of no sync between devices.
+Saved cities live in the browser (`localStorage`, key `favorites:v1`), with no accounts and no server state
+([ADR 0007](adr/0007-favourites-in-browser.md)).
 
-- **Model and rules in `shared`** (`favorites.ts`): a favourite is coordinates plus display name and country; places are matched by coordinates rounded to ~1 km, like place URLs, so a city is never saved twice. New ones go to the top; the list is capped at 10, and a full list blocks saving instead of silently dropping a city. The star keeps its look (a full list is no concern until someone tries to add a city); pressing it then opens a short message under the buttons, "You can add up to 10 cities to favourites / Remove one to add this city." (a link to the favourites was tried and dropped), in a live region so screen readers announce it, closed by Escape or a click elsewhere. Two lines rather than one sentence, as the full stop between them differs by language. Before, a hint sat in the row of buttons with a dashed star on every page while the list was full; also compared on mockups: a "10" badge on the star, a line under the name, a notice in the page flow. `parseFavorites` validates what comes out of storage, because it is untrusted (edited by hand, an older format). A React Native app can reuse all of it with its own storage.
-- **Client:** `useFavorites` reads storage through `useSyncExternalStore`. The storage work itself (reading, the subscription, the `save` / `remove` actions) is plain functions in `favoritesStore.ts`, so its rules are unit-tested with a stubbed `localStorage`; the hook only connects them to React; the `storage` event keeps every open tab in sync. The city page has a star button by the name, icon only (the star fills in; its hidden name says what pressing does, "Add to favourites" or "Remove from favourites", so no `aria-pressed`; the tooltip says "Add to favourites" or "In favourites"); the start page shows saved cities as a grid of cards (name, country, icon, current temperature, condition, today's high/low; four columns on desktop, two on phones, fixed height so cards do not grow when weather arrives).
-- **Quick switching:** on a city page, saved cities form a scrolling strip of compact tiles (city, country, icon, temperature) between the search and the weather, the same on every screen size. The open city stays in the strip, highlighted with `aria-current="page"`, so tiles never move when switching. The strip shows during loading and errors too. Each row makes the same forecast request as the city page, so they share the server and HTTP caches and opening a saved city is instant.
-- **Cost:** one forecast request per saved city on the start page. A batch forecast endpoint would make it one request.
-- **Home city: built and removed.** One saved city could be the home city ("⌂ Home" next to the star): first in the favourites strip and cards, marked with a house, stored apart (`home-city:v1`). Removed by the author's decision: with at most 10 saved cities, all visible at once, it added a second concept and a button to every city page for little gain, and the row by the name is shorter without it. Order is now simply newest saved first. A value left in `home-city:v1` in a browser that used it is ignored. Before that, opening the app straight on the home city (`/` redirecting to it, cards moved to `/favourites`) had been tried and dropped too: it needed an extra "All favourites" link and made `/` mean different things to different people.
-- **Considered and dropped: pinning.** A pin toggle (pinned cities first) was prototyped and removed. With at most 10 cities, all visible on the start page, it added a second concept and a second button next to "Save" without a real gain; the same argument later removed the home city; "my city first" is better met by geolocation (the crosshair in the search field).
-- **Path to accounts:** keep the same hook API and swap its source for a server; on first sign-in, merge the local list into the account so nothing is lost. The server side would need a `favorite_locations` table, a session cookie, owner checks on every request (IDOR) and `Cache-Control: private, no-store` on personal responses.
+- **Rules in `shared`** (`favorites.ts`): a favourite is coordinates plus display name and country. Places are matched
+  by coordinates rounded to ~1 km, like place URLs, so a city is never saved twice. New ones go to the top; the list is
+  capped at 10. `parseFavorites` validates what comes out of storage.
+- **Full list:** saving is blocked, nothing is dropped. The star keeps its look; pressing it opens a two-line message
+  under the buttons ("You can add up to 10 cities to favourites" / "Remove one to add this city.") in a live region,
+  closed by Escape or a click elsewhere.
+- **Client:** `favoritesStore.ts` holds the storage work as plain functions (reading, the subscription, `save` /
+  `remove`), unit-tested with a stubbed `localStorage`. `useFavorites` connects it to React through
+  `useSyncExternalStore`; the `storage` event keeps every open tab in sync.
+- **Star button** by the city name, icon only: the star fills in when saved; its hidden name says what pressing does,
+  so it has no `aria-pressed`.
+- **Start page:** saved cities as a grid of cards (name, country, icon, current temperature, condition, today's
+  high/low); four columns on desktop, two on phones, fixed height so cards do not grow when weather arrives.
+- **City page:** saved cities form a scrolling strip of compact tiles (city, country, icon, temperature) between the
+  search and the weather, the same on every screen size. The open city stays in the strip, highlighted with
+  `aria-current="page"`. The strip shows during loading and errors too.
+- **Requests:** tiles and cards load their forecasts in one batch request (`/api/v1/forecasts`,
+  `api/forecastBatch.ts`) and share the forecast cache with the city page, so opening a saved city is instant.
+- **Order** is newest saved first. A value left in `home-city:v1` from the removed home city is ignored.
+- **Path to accounts:** keep the hook's API and swap its source for a server; on first sign-in, merge the local list
+  into the account. The server would need a `favorite_locations` table, a session cookie, owner checks on every request
+  (IDOR) and `Cache-Control: private, no-store` on personal responses.
+
+Why: [ADR 0025](adr/0025-frontend-search-and-favourites-details.md)
 
 ## Languages
 
-The app now has 8 languages (en, de, fr, es, it, pl, uk, ru), see [ADR 0016](adr/0016-fewer-languages.md). Notes below
-that mention 19 languages, Arabic or Hebrew describe the earlier set; the right-to-left support they describe is still
-in the code.
+8 languages: en, de, fr, es, it, pl, uk, ru ([ADR 0016](adr/0016-fewer-languages.md)). Right-to-left support stays in the code (for Arabic and Hebrew).
 
-- **Default:** the first of `navigator.languages` the app supports (matched by base language, so `de-AT` picks German), otherwise English. An explicit choice in the switcher is saved in `localStorage` and wins next time.
-- **Translations** live in `client/src/i18n/locales/`, one typed file per language (8 bundled, about 2 KB gzip each). The `Messages` type makes a missing key a compile error. No i18n library: plurals use `Intl.PluralRules`, everything else is plain functions. With many more languages or translators working in a TMS, `i18next`/`FormatJS` with lazy-loaded JSON would be the next step.
-- **No string translation for numbers and dates:** weekdays, clock time (12/24-hour by locale), percent and wind units come from `Intl`, so they are right for every locale, not only the translated ones.
-- **The API stays language-neutral:** it returns condition keys (`partly-cloudy`) and error codes, and the client translates them. Only place search takes `lang`, because Open-Meteo returns city, region and country names in that language; `lang` is part of the search cache key.
-- **One digit system per screen:** every number, including temperatures and the `{n}` in plurals, goes through `Intl.NumberFormat` for the user's full locale. Language files are functions of the formatters (`MessagesFactory`), because digits depend on the locale, not the language: `ar-EG` shows `١٤°`, plain `ar` shows `14°`. In right-to-left languages a temperature is wrapped in a bidi isolate (U+2066…U+2069): otherwise the degree sign drifts to the left of Arabic-Indic digits.
-- **Right-to-left:** `<html dir>` is set for Arabic and Hebrew; CSS uses logical alignment (`text-align: end`), and each day's low, bar and high stay one left-to-right block, so the cold-to-warm bar matches its labels.
-- **Place names follow the UI language:** names are stored (in favourites and in the `?name=` of a place URL) in the language they were searched in, so a city saved in English stayed "Warsaw" in a Russian UI. Places from search now carry the provider id (`?id=` in the URL, `id` in a favourite), and `useLocalizedPlace` fetches the names in the current language from `GET /api/v1/locations/:id?lang=` (Open-Meteo `/v1/get`; cached for a day on the server and in the client). Favourites saved before ids existed fall back to a search by the stored name, keeping only a result at the same coordinates. The stored name is shown while loading or if the lookup fails. The id comes from the URL, so it is untrusted (an edited or stale link): a name is used only if the place found is at the same coordinates, and "Save" keeps the id only once it is confirmed (`withVerifiedId`), otherwise the city is saved without one and found by name search. The buttons stay enabled during the check: a click waits for it (it shares the page's request and has almost always finished), and clicks made meanwhile run in order (a removal clicked after a save is not overtaken by it). Provider ids are positive 32-bit integers (`isValidLocationId`): Open-Meteo rejects larger ones, so they are dropped by the server schema (400 without a provider call), by `parsePlace` and by `parseFavorites`. The hook's actions say what they do (`save`, `remove`) instead of toggling: a save that waited for the check may find the city already saved (a click on a remounted button, another tab), and must not remove it then. Disabling the buttons until then was considered and rejected: they would flicker on every city opened, and a failed check must not block saving.
+- **Default:** the first of `navigator.languages` the app supports, matched by base language (`de-AT` → German), else English. A choice in the switcher is saved in `localStorage` and wins next time.
+- **Translations:** `client/src/i18n/locales/`, one typed file per language, about 2 KB gzip each, all bundled. The `Messages` type makes a missing key a compile error. No i18n library: plurals use `Intl.PluralRules`, the rest are plain functions.
+- **Numbers and dates** (weekdays, 12/24-hour time, percent, wind units) come from `Intl`, not from translated strings.
+- **The API is language-neutral:** it returns condition keys (`partly-cloudy`) and error codes; the client translates them. Only place search takes `lang` (Open-Meteo returns names in it); `lang` is part of the search cache key.
+- **One digit system per screen:** every number, including temperatures and `{n}` in plurals, goes through `Intl.NumberFormat` for the full locale. Language files are functions of the formatters (`MessagesFactory`): `ar-EG` shows `١٤°`, `ar` shows `14°`. In right-to-left languages a temperature is wrapped in a bidi isolate (U+2066…U+2069).
+- **Right-to-left:** `<html dir>` follows the language (`isRtl`); CSS uses logical alignment (`text-align: end`); each day's low, bar and high stay one left-to-right block.
+- **Place names follow the UI language:**
+  - Places from search carry the provider id (`?id=` in the URL, `id` in a favourite). `useLocalizedPlace` fetches names in the current language from `GET /api/v1/locations/:id?lang=` (Open-Meteo `/v1/get`), cached for a day on the server and in the client.
+  - Favourites without an id fall back to a search by the stored name, keeping only a result at the same coordinates.
+  - The stored name (from the search language, in favourites and `?name=`) is shown while loading or if the lookup fails.
+  - The id from the URL is untrusted: a name is used only if the place found is at the same coordinates. "Save" keeps the id only once confirmed (`withVerifiedId`); otherwise the city is saved without it and found by name.
+  - Save and remove stay enabled during the check: a click waits for it (same request as the page), and clicks run in order. The hook's actions are `save` and `remove`, not a toggle; a waiting save that finds the city already saved does nothing.
+  - Provider ids are positive 32-bit integers (`isValidLocationId`); larger ones are dropped by the server schema (400, no provider call), `parsePlace` and `parseFavorites`.
+- **Names in another script:** a place's name and country on favourite tiles and cards have `dir="auto"`, so a Latin name in a right-to-left UI is cut at its own end. Alignment and room for the warning mark follow the page via `[dir='rtl']` rules.
 
-- **Names in another script:** a place's name and country on favourite tiles and cards carry `dir="auto"`, so a Latin name in an Arabic or Hebrew interface is cut at its own end ("Węgorze…"); before, it inherited right-to-left and lost its beginning ("…gorzewo"). Alignment (right in RTL) and the room for the warning mark follow the page via `[dir='rtl']` rules: the name's own direction would put them on the wrong side, and `text-align: match-parent` did not right-align them in Chrome.
+Why: [ADR 0008](adr/0008-languages-and-units.md), [ADR 0027](adr/0027-languages-units-and-charts-details.md)
 
 ## Temperature units
 
-- **Default from the locale and the time zone, then the user's choice:** `defaultTemperatureUnit` (shared) gives Fahrenheit only when the region of the first system locale is the US, Bahamas, Belize, Cayman Islands, Palau, Liberia, Marshall Islands or Micronesia _and_ the device's time zone is one of theirs (`America/Chicago`, `Pacific/Honolulu`, `America/Nassau`…); Celsius otherwise, and when either is missing (a locale without a region, `en`). The region, not the language: `en-GB` and `en-US` speak the same language but use different units. The first version used the locale alone and was wrong for a common case: `en-US` is the default English of many browsers, and Safari on a Mac reports it whatever the system region, so a reader in Warsaw got °F. A page can't read the system region; the time zone is the one other hint it gets without asking. The cost: an American travelling in Europe sees °C until they switch. A switcher next to the language one overrides it; the choice is saved in `localStorage` (`temperature-unit`).
-- **Way home:** the logo on a line of its own above the search links to the start page: the app icon on a small blue tile, as on the Home Screen once installed (`#1d4f86` in the light theme, `#3468a0` in the dark one), and a short product name, "Weather" (19 languages; the descriptive "Weather forecast" stays the tab title). It links to the start page, as the logo does on most sites (yr.no, AccuWeather, weather.com; Google puts its logo left of the search). Before, the only way back was the browser's, and none at all after opening a shared city link. The search and the gear stay on one line below; the name line costs about 46 px of height on a phone. Tried first: the icon alone left of the search, bare and then on a blue tile with a "Home" tooltip; without its name it read as a control nobody knew the purpose of. Also compared on mockups: a house button, the logo combined with a house, "Home" written in a button, a "‹ All cities" link, a house tile in the favourites strip, and the name left of the search (it narrowed the search). No frame (a logo, not a control); on the start page it is `aria-current="page"`. The start page stays: it is the entry point for a first visit and the overview of several saved cities (cards with condition, high and low, warnings), which the strip on a city page only abbreviates.
-- **Settings behind a gear:** language and °C/°F sit in a panel opened by a gear button next to the search field (no visible "Settings" label; the name is hidden text), so the header is one line on a phone too: the two switches used to take a line of their own there. A disclosure (`aria-expanded`), not an ARIA menu: the panel holds a row and a two-button switch, and Tab moves through them as usual. °C/°F is a switch right in the panel (`aria-pressed`, two values need no list); the language row opens the list inside the panel, with a back button. Rows with an arrow are the way to add wind or pressure units later, which have more than two values. Escape steps back (list → panel → closed), a click outside or Tab past the end closes it, and focus returns to the gear or the language row. Cost: the chosen language is no longer visible with the panel closed; the gear is recognised in any language, which matters for someone landing in one they don't read. Compared on mockups: language codes on the buttons ("RU", with a globe or "文A"), the language in the footer, one "RU · °C" button, a menu like yr.no's. In the light theme the pop-up panels (settings, search suggestions) are pale blue (`#e8eff7`), not white, which glared on the blue page; soft text on it stays at 4.7:1, and highlighted rows are one step darker.
-- **Warnings in the settings:** the bell by a city name stays (turning on is one tap where people look), and the settings add a "Warnings" row ("2 cities" / "Off", counting places with notifications on). Inside: saved cities first, marked with a star, in the favourites' order, always listed (notifications can be turned on right there, with the default "storms from orange"); then other places with notifications on. Each row has the place's settings ("Storms · From level: Orange", or "Off") and a switch (`role="switch"`); the name is a link to the city's page, where the bell sets which warnings come. Above the list, two short lines: which cities it shows ("Saved cities ★ always stay in the list. Others stay while their notifications are on.") and how to set a city's warnings ("…tap its name, then the bell"). A place that is not saved and is switched off here stays, switch off, until the menu closes (rows don't jump, the same switch turns it back on with its settings), and a line under the list names it ("Kraków will leave the list when you close the menu"). Before, a place turned on and never saved could only be turned off by finding it again. Places turned on meanwhile in another tab join at the end; one change at a time (`aria-disabled` while one applies, not `disabled`, so the focused switch keeps keyboard focus). No saved city and nothing on: a line on where to turn notifications on. No row where notifications can never work (no Firebase config, no Push API). Compared on mockups: removing at once with "Undo", a "Recently turned off" section, a cross with a confirmation; two sections ("Saved" / "Other cities") and on-first ordering for saved cities; the rule in two paragraphs up top. The hint is in the app's polite "you" form, like the rest of the Russian text. Switches appear only where they can work: notifications available (otherwise the bell's explanation: install on iPhone, allow them, use the build) and the place covered by MeteoAlarm (the `covered` the bell uses, same cached `/api/v1/alerts` answer; otherwise "No data from MeteoAlarm" (not "No warnings", which read as "all calm right now"), and, only when the list has such a place, a line above it: "Warnings are available only for MeteoAlarm countries (Europe, except Belarus, Russia and a few others)". Minsk in Europe without warnings looked like a bug); a place already on can always be turned off. Turning on from the list passes the place's time zone, read from the shared forecast cache after the permission prompt (Safari shows it only straight from a click). Saved cities are named in the interface language.
-- **Custom list, not a native `<select>`:** on macOS a native select opens its menu over the field so that the selected option sits on it, so the list grew upwards for anything but the first option. The language list is our own listbox (`aria-activedescendant`, arrows, Home/End, Enter/Space, Escape goes back). It also does what a native select gives for free: the list scrolls within a max height (scrolling the list itself, not the page) and typed letters jump to an option ("po" → Polski, "p" again → the next language on "p"). Each language name is in its own language and carries `lang`, so screen readers pronounce it. The cost is our own code for what the browser did before; the gain is the same look and behaviour in every browser.
-- **Converted on the client:** the API and both caches stay in Celsius. Asking Open-Meteo for Fahrenheit would double the cache keys and provider requests for the same place, and a cached forecast could not be re-shown in the other unit.
-- **Convert, then round:** `useUnits().temp(celsius)` returns the whole number to show; `deg` only formats. Rounding first would be off by a degree (14.4 °C is 58 °F, rounded-first 14 °C gives 57 °F). The day-over-day comparison compares converted values, so "4° warmer" is a difference in °F, without the +32 offset. Range bars need no change: the conversion is linear.
-- **Trade-offs:** the visible "14°" has no unit letter, as in most weather apps; the unit is in the settings. Screen readers say "14 degrees" (the settings say which). Wind keeps its own unit: a separate setting if needed, since many people mix them (°C with mph in the UK).
+- **Default:** `defaultTemperatureUnit` (shared) gives °F only when the region of the first system locale is the US, Bahamas, Belize, Cayman Islands, Palau, Liberia, Marshall Islands or Micronesia _and_ the device's time zone is one of theirs (`America/Chicago`, `Pacific/Honolulu`, `America/Nassau`…); °C otherwise, and when either is missing (`en` without a region). The choice in the settings is saved in `localStorage` (`temperature-unit`) and wins.
+- **Converted on the client:** the API and both caches are in °C. `useUnits().temp(celsius)` converts, then rounds to the whole number shown; `deg` only formats. The day-over-day comparison compares converted values. Range bars are unchanged (linear conversion).
+- **Display:** "14°" without a unit letter; screen readers say "14 degrees"; the unit is in the settings. Wind has its own unit, independent of temperature.
+  Why: [ADR 0008](adr/0008-languages-and-units.md), [ADR 0027](adr/0027-languages-units-and-charts-details.md)
+
+## Header and settings
+
+- **Way home:** a line above the search holds the logo: the app icon on a small blue tile (`#1d4f86` light, `#3468a0` dark) and the short name "Weather" (the tab title stays "Weather forecast"). It links to the start page, has no frame, and is `aria-current="page"` on the start page. It takes about 46 px on a phone. The start page is the entry point and the overview of saved cities (cards with condition, high and low, warnings).
+- **Settings behind a gear** next to the search field (name in hidden text):
+  - a disclosure (`aria-expanded`), not an ARIA menu; Tab moves through it;
+  - °C/°F is a two-button switch (`aria-pressed`); the language row opens the list inside the panel, with a back button; rows with an arrow are where more units (wind, pressure) would go;
+  - Escape steps back (list → panel → closed); a click outside or Tab past the end closes it; focus returns to the gear or the language row;
+  - pop-up panels (settings, search suggestions) are pale blue `#e8eff7` in the light theme; soft text on it is 4.7:1; highlighted rows are one step darker.
+- **Warnings row in the settings** ("2 cities" / "Off", counting places with notifications on); the bell by a city name stays:
+  - saved cities first (★, favourites' order, always listed; turning on uses the default "storms from orange"), then other places with notifications on;
+  - each row: the place's settings ("Storms · From level: Orange" or "Off") and a switch (`role="switch"`); the name links to the city page, where the bell sets which warnings come;
+  - two lines above the list say which cities it shows and how to set a city's warnings;
+  - an unsaved place switched off stays (switch off) until the menu closes, with a line naming it ("Kraków will leave the list when you close the menu");
+  - places turned on in another tab join at the end; one change at a time (`aria-disabled`, not `disabled`, so focus stays);
+  - no saved city and nothing on: a line on where to turn notifications on; no row at all without Firebase config or Push API;
+  - switches appear only when notifications are available (otherwise the bell's explanation) and the place is `covered` by MeteoAlarm (same cached `/api/v1/alerts` answer); otherwise "No data from MeteoAlarm", plus, only if the list has such a place, a line that warnings cover MeteoAlarm countries only; a place already on can always be turned off;
+  - turning on passes the place's time zone, read from the shared forecast cache after the permission prompt;
+  - saved cities are named in the interface language; the Russian hint uses the polite "you".
+- **Language list:** our own listbox (`aria-activedescendant`, arrows, Home/End, Enter/Space, Escape goes back), not a native `<select>`. It scrolls within a max height (the list, not the page), and typed letters jump to an option ("po" → Polski, "p" again → next on "p"). Each name is in its own language with `lang`.
+
+Why: [ADR 0027](adr/0027-languages-units-and-charts-details.md)
 
 ## Current location
 
-- **Coordinates from the browser** (Geolocation API), only on demand: the crosshair in the search field. Asking on page load was rejected: people refuse a prompt they don't understand yet, a refusal can't be asked again, Chrome hides such prompts, and the first thing a visitor would see is a permission dialog. `enableHighAccuracy: false` (city level is enough, faster, less battery), 10 s timeout, a position up to 10 minutes old is reused. Coordinates are rounded to ~1 km at once, so the exact position never reaches the URL, the server or its logs.
-- **Considered and dropped: a "Near you" card on the start page.** It showed the local weather at once when location had been allowed before (Permissions API, no prompt), and a button otherwise. It was built and removed: it sat among the saved cities without being one, and the crosshair already covers the need from any page. Showing the local weather to everyone on the first visit by IP was left out too: it is wrong behind VPNs and office proxies, and it would happen without the user asking.
-- **When the browser can't locate ("Try again" and "Looks like you're in Warsaw"):** macOS sometimes answers `kCLErrorLocationUnknown` for a while, in Chrome more often, even with location services on; retries inside one request did not help. So the error message offers two things instead: "Try again" (it often works a few seconds later) and the city guessed from the IP address. The guess is offered, not opened: behind a VPN or an office proxy it can be another city (the author's own office traffic goes through a Zscaler node, which happens to be in Warsaw). It is not offered after a refusal: guessing the place anyway would go around the user's "no". `GET /api/v1/places/approximate` asks ipwho.is (HTTPS, no key, low non-commercial traffic, results cached per IP for a day) behind an `IpLocator` interface, then turns the position into the city through `PlaceService`, so it is the same Warsaw as from search (and the saved one wins on the client). The answer depends on who asks, so it is `private, no-store`. The user's IP is `req.ip` with Express `trust proxy` set to the number of proxies in front (`TRUST_PROXY`, 1 behind Caddy on the VM): trusting `X-Forwarded-For` from anyone would let a client fake its address. A private address means local development, where the server's own public address is looked up instead, but only with `IP_SELF_LOOKUP=1` (set in the local `.env` only): opt-in rather than "unless NODE_ENV is production", because a server where nobody set `NODE_ENV` and the proxy setting is wrong would otherwise offer its data centre's city to every user. Without it a private address gets 404. ipwho.is reports quota and rate limits in the body (`success: false`), not as HTTP errors: only "can't place this address" answers are cached, anything else is an error and is not. The city page marks such a place "Approximate, by IP" (dashed) instead of "You are here".
-- **Names (reverse geocoding):** Open-Meteo has none, so `GET /api/v1/places/reverse` asks OpenStreetMap's Nominatim behind a `ReverseGeocoder` interface (a separate interface from `WeatherProvider`, swappable on its own). Nominatim is free and gives names in any language (`accept-language`); its policy (1 request per second, an identifying `User-Agent`, attribution) is met by spacing requests in the adapter (a request that would wait more than 3 s is refused at once, so a burst of uncached requests cannot delay everyone; the client gives up on the name after 4 s anyway), a 7-day cache by rounded coordinates and language ("no place here", e.g. the sea, is cached too), and "© OpenStreetMap" in the footer. Heavy traffic would need a paid geocoder or an own Nominatim: another `ReverseGeocoder`. The search waits up to 4 s for the answer, then opens the forecast for the position without a name (the page shows coordinates).
-- **The position becomes the city:** a place is identified by coordinates rounded to ~1 km, so the user's own cell (52.25,21.05) was a different place from Warsaw saved from search (52.23,21.01): its page showed "Save", and saving added Warsaw a second time. `PlaceService` therefore looks the name from Nominatim up in the Open-Meteo search (the weather service's cached search) and takes the nearest result within 25 km: `/api/v1/places/reverse` returns that city's coordinates and id, exactly what search gives. The forecast is then for the city centre, a few km away, which is what the page's name says anyway. With the id, the name also follows the UI language. No match (a village unknown to search): the position itself, without an id. If search fails, the position is still returned, but not cached on the server and sent with `no-store`: a fallback forced by an error must not pin the unmatched place for everyone nearby for a week (errors are never cached). The client's own cache likewise keeps only final answers: a city with an id, or "no place here".
-- **A late answer is dropped:** a lookup can take long (the permission prompt waits for the user, then the position, then the name). If meanwhile the user picks a city in search, types, or opens another page, the lookup is cancelled, so its answer does not take them away from what they chose.
-- **A saved city wins (`findSavedCity`, client):** before opening, the crosshair checks the favourites: same coordinates, same id, or the same name within 25 km opens the saved entry. The server match alone did not stop the duplicate for a real user: an answer from before the match was still in the browser's HTTP cache, and a city saved earlier from the user's own position has their coordinates, not the centre's. The client check needs neither the server nor the cache, and costs no request.
-- **Responses are checked, not trusted (`toFoundPlace`):** when `/api/reverse` started returning coordinates, a browser still had the old answer (name only) in its HTTP cache for a day, and the page crashed on the missing coordinates. The client now opens the position if the answer has no valid coordinates. The general lesson for a long `max-age`: a change of a response's shape must stay backward compatible (clients tolerate missing fields) or get a new URL (API versioning, `/api/v1`), because cached old answers outlive a deploy. Tolerating the old answer was not enough here: it has no id, so a saved city named in another language ("Варшава" saved, "Warsaw" found) still looked new, and the page offered "Save" again. So the endpoint moved from `/api/reverse` to `/api/places/reverse`: old cached answers are simply never asked for again, in every browser, including after a deploy.
-- **"You are here":** the last position found is kept in `sessionStorage`, and the city page marks a place at those coordinates. Not a URL flag: a shared link would tell the recipient they are there.
-- **Limitation:** a place found by location that search does not know keeps the name in the language it was found in after a language switch (no id to look it up by).
-- **macOS "location unknown":** Chrome on a Mac sometimes answered with `kCLErrorLocationUnknown` (code 2) for a while even with location services on; watching the position, retrying and asking for high accuracy were tried and did not help while it lasted, so the single request stays. It is a system state, not the app's: the same code worked again later.
+- **Coordinates from the browser** (Geolocation API), only from the crosshair in the search field: `enableHighAccuracy: false`, 10 s timeout, a position up to 10 minutes old is reused, one request (no watching or retries). Coordinates are rounded to ~1 km at once, so the exact position never reaches the URL, the server or logs.
+- **Name (reverse geocoding):** `GET /api/v1/places/reverse` asks OpenStreetMap Nominatim behind a `ReverseGeocoder` interface (separate from `WeatherProvider`), with `accept-language`.
+  - The adapter spaces requests to 1 per second and refuses at once one that would wait over 3 s; it sends an identifying `User-Agent`; the footer shows "© OpenStreetMap".
+  - Cache: 7 days by rounded coordinates and language, including "no place here" (e.g. the sea).
+  - The client waits up to 4 s, then opens the forecast for the position without a name (the page shows coordinates).
+- **The position becomes the city:** `PlaceService` looks the Nominatim name up in the cached Open-Meteo search and takes the nearest result within 25 km, returning its coordinates and id, as search does. No match: the position itself, without an id. Search failed: the position, not cached on the server and sent `no-store`. The client caches only final answers (a city with an id, or "no place here").
+- **A saved city wins (`findSavedCity`, client):** before opening, same coordinates, same id, or the same name within 25 km opens the saved entry. No request.
+- **Responses are checked (`toFoundPlace`):** an answer without valid coordinates opens the position.
+- **A late answer is dropped:** picking a city in search, typing, or opening another page cancels the lookup.
+- **When the browser can't locate:** the message offers "Try again" and the city guessed from the IP address (offered, not opened). Not offered after a refusal.
+  - `GET /api/v1/places/approximate` asks ipwho.is (HTTPS, no key) behind an `IpLocator` interface, cached per IP for a day, then turns the position into the city through `PlaceService`. Sent as `private, no-store`.
+  - The IP is `req.ip` with Express `trust proxy` = number of proxies in front (`TRUST_PROXY`, 1 behind Caddy on the VM; required in production).
+  - A private address: the server's own public address is looked up only with `IP_SELF_LOOKUP=1` (local `.env` only; refused in production); otherwise 404.
+  - ipwho.is reports quota and rate limits in the body (`success: false`): only "can't place this address" is cached; anything else is an error and is not.
+  - The city page marks such a place "Approximate, by IP" (dashed).
+- **"You are here":** the last position found is kept in `sessionStorage`; the city page marks a place at those coordinates.
+- **Limitation:** a place found by location that search does not know (no id) keeps its name in the language it was found in after a language switch.
+
+Why: [ADR 0013](adr/0013-current-location.md), [ADR 0028](adr/0028-current-location-details.md)
 
 ## Detail charts
 
-- **Where:** every value in the current details is a button; it opens what is behind it below the list, in the slot the pollutants already used: a 24-hour chart for precipitation (chance), wind and humidity, the pollutants for air quality. One is open at a time, and the open item has a lighter fill and outline (its label turns full white, which keeps 4.5:1 on the lighter fill where the soft label colour would not); all share one arrow, turned up on the open one (air quality's "⋯" became that arrow: once every item expands, one sign means one action). Considered and dropped: tabs above the hourly strip (a fourth "Hours" tab would have hidden the charts by default, but the numbers and their charts would sit apart), a separate "Charts ▾" menu after air quality (two similar controls next to each other, an extra step, and a menu pattern to build), and a section under the 10-day list (long page, repeats the list).
-- **Easy to hit, hard to lose:** an accidental tap only opens a panel, closed by tapping again, so no confirmation. But the targets were small for touch (26 px tall, "8°" 34 px wide; WCAG 2.5.8's 24 px minimum met, Apple's and Google's 44–48 px not), so the button's hit area is stretched over the whole item, label included (~55 px tall), with the hover tint and focus ring on that area. A panel opened below the bottom of the screen looked like nothing happened, so opening (from closed) scrolls it into view, only as far as needed (`scrollIntoView({ block: 'nearest' })`), smoothly unless reduced motion is on; switching between details and closing don't move the page. The chart reserves its height before measuring its width, so the scroll lands right.
-- **Pollutants against WHO guidelines:** the air quality panel is as tall as a chart (four 30 px rows = the chart's 120 px), so switching details doesn't move the page below (it used to jump by ~90 px). The space is used, not padded: each pollutant is a bar with a mark at its WHO 2021 guideline (PM2.5 15, PM10 45, NO₂ 25 µg/m³ for 24 hours, ozone 100 for 8 hours; `WHO_GUIDELINES`, `guidelineBar` in shared), so "19 µg/m³" reads as "above the guideline" without knowing the numbers. The bar spans twice the guideline (mark in the middle) unless the value is higher. It compares the current hour with a daily guideline, a guide rather than a measurement over the same period, hence "daily guideline" in the label. Padding to the same height with empty space was rejected (looks unfinished), and so was a 24-hour AQI chart for now (needs hourly air quality data and would be taller anyway). Bars fill from the inline start, so right to left in Arabic and Hebrew; screen readers get each row as a sentence with value and guideline.
-- **"Feels like" is not a detail:** it qualifies the temperature, so it is a small caption right under it ("Feels like 8°", soft colour, pulled up by the number's font descent), and the day (condition, high/low, change since yesterday) follows as a separate group after a clear gap; before, four lines of different sizes with equal gaps read as one undivided column. As in Apple's and Google's weather; its chart mostly repeated the hourly strip. That leaves four details, one row on a computer. Later, with the details moved to tiles, it moved again (variant A of three): the number alone, then the condition a little larger, then the details in one size and the soft colour, one step apart: "Feels like 17° · High 19°, low 16°" and the change since yesterday. Glued to the number in small type it read as a footnote, and the three lines below were three different sizes. Considered: two even lines (the second wraps on a phone in Russian), a column beside the number (too narrow on a phone). Later the details got a little larger (0.9 → 0.95rem) and their own colour between the soft one and white (`--ink-detail`, 5.4:1 on the light page, 9.5:1 on the dark one; variant E of five on mockups): at 0.9rem in the soft colour they were hard to read. Rejected: 1rem (the details came close to the 1.1rem condition line and the order blurred), only brighter (tried first, still small), and bright numbers in soft words (busier).
-- **Details moved to tiles below the 10-day forecast:** the top of the page is "now and the next days" (temperature, condition, the hourly strip, the 10 days), and the details are tiles for those who scroll (`WeatherTiles`; four in a row, two on a phone), like Apple Weather. Each tile with hourly data is a button that opens its 24-hour chart below the grid, with the same behaviour as before (one open, scroll into view, reserved height). Outline only, no fill: a fill on the blue background drops the soft text below 4.5:1. The tiles carry more than the old row could fit: wind direction (an arrow) and gusts, millimetres expected in the next 24 hours. Same forecast request: Open-Meteo returns the extra fields (`wind_gusts_10m`, `wind_direction_10m`, hourly `precipitation`), optional in the contract since cached answers lack them. The cost of moving them down: the chance of rain left the first screen. At first a line under the condition said it ("60% chance of rain from 6 PM"); once the hourly strip showed the chance under each likely hour, that line repeated it and was removed. Considered: tiles below the 10 days in addition to the row on top (wind, humidity, precipitation twice), and keeping the row (Google's choice).
-- **More tiles, each with a short explanation:** UV index (the WHO band in words, a dot on a bar in the WHO colours, "Use sun protection 11 AM–4 PM" for the run of hours at UV 3 or above, or "No sun protection needed"), sunrise and sunset (the tile leads with whichever comes next, the other under it; days without one, polar day or night, are skipped), pressure ("1011 hPa", no thousands separator; rising, falling or steady over the next 3 hours, at 1 hPa or more: falling pressure is what people read a barometer for), visibility (km; fog under 1 km, haze or mist under 4 km, moderate under 10 km, good), and the dew point in the humidity tile with how the air feels (fresh under 10 °C, comfortable under 16, humid under 21, muggy above: a better "muggy" than relative humidity; "fresh", not "dry", since "dry air" next to "74%" read as a mistake). Eight tiles, two full rows; the dew point went into the humidity tile rather than a ninth (it explains the humidity, and nine would leave one alone in a row). UV and pressure open 24-hour charts too. The rules are plain functions in shared (`details.ts`: `uvLevel`, `uvProtectionWindow`, `pressureTrend`, `visibilityLevel`, `dewPointComfort`, `nextSunEvents`), tested; the words are 25 strings per language. Same forecast request, more fields (hourly `uv_index`, `pressure_msl`, `visibility`, `dew_point_2m`; daily `sunrise`, `sunset`), all optional in the contract. Not done: imperial units for visibility (miles) and pressure (inHg) — km and hPa everywhere for now.
-- **Data:** the same forecast request, a few more hourly fields (humidity, wind speed); no extra provider calls, the cache key is unchanged.
-- **Drawing:** plain SVG (`HourlyChart`), no chart library: a line or bars over 24 points needs ~150 lines, while Recharts would nearly double the bundle. One series and one axis per chart, so no legend (the title names it) and never two scales on one picture. The y range (`chartScale`): fixed 0–100 for percentages, from zero for wind (a breeze must not look like a storm), fitted but at least 4° tall for temperature (a flat day stays flat). Values are drawn unrounded (whole degrees made stairs), labels rounded. The chart measures its own width (ResizeObserver) so text keeps its size on phones; hour labels thin out on narrow screens. Time runs left to right in every language. Hover shows the exact value; on touch a tapped hour stays shown until another hour or something outside is tapped (a finger has no hover, and `pointerleave` follows the tap at once). Screen readers get the same numbers as a hidden table, hidden through a wrapper `div`: a table ignores `height: 1px`, grew to ~700 px and made the page that much longer, so opening a chart near the bottom scrolled far past it. The width is read before the first paint and then followed by a ResizeObserver. Missing hourly values are gaps, never NaN: a forecast cached before a field existed (client and server deploy separately, answers stay cached for minutes) may lack it, and then that detail is a plain value without a chart.
+- **Tiles** (`WeatherTiles`) below the 10-day forecast: eight, four in a row (two on a phone), outline only, no fill. A tile with hourly data is a button that opens its 24-hour chart below the grid (precipitation chance, wind, humidity, UV, pressure); air quality opens its pollutants.
+  - One open at a time; the open item has a lighter fill and outline and a full-white label (4.5:1); all share one arrow, turned up on the open one.
+  - The button's hit area covers the whole item, label included (~55 px), with hover tint and focus ring on it.
+  - Opening from closed scrolls the panel into view only as needed (`scrollIntoView({ block: 'nearest' })`), smoothly unless reduced motion is on; switching and closing don't scroll. The chart reserves its height before measuring width.
+- **Tile contents:**
+  - wind with direction (arrow) and gusts; precipitation with millimetres expected in the next 24 hours; humidity with the dew point and how the air feels (fresh under 10 °C, comfortable under 16, humid under 21, muggy above);
+  - UV index: WHO band in words, a dot on a bar in WHO colours, "Use sun protection 11 AM–4 PM" for the run of hours at UV ≥ 3, or "No sun protection needed";
+  - sunrise and sunset: the next one leads, the other under it; skipped on days without one (polar day or night);
+  - pressure: "1011 hPa" (no thousands separator), rising, falling or steady over the next 3 hours at ≥ 1 hPa;
+  - visibility in km: fog under 1 km, haze or mist under 4, moderate under 10, else good.
+  - Rules are plain, tested functions in shared `details.ts` (`uvLevel`, `uvProtectionWindow`, `pressureTrend`, `visibilityLevel`, `dewPointComfort`, `nextSunEvents`); 25 strings per language.
+- **Pollutants against WHO guidelines:** the air quality panel is four 30 px rows (= the chart's 120 px). Each pollutant is a bar with a mark at its WHO 2021 guideline (PM2.5 15, PM10 45, NO₂ 25 µg/m³ for 24 hours, ozone 100 for 8 hours; `WHO_GUIDELINES`, `guidelineBar` in shared). The bar spans twice the guideline (mark in the middle) unless the value is higher. The label says "daily guideline" (current hour against a daily value). Bars fill from the inline start; screen readers get each row as a sentence.
+- **Top of the page:** the temperature, then the condition a little larger, then details in one size: "Feels like 17° · High 19°, low 16°" and the change since yesterday, at 0.95rem in `--ink-detail` (5.4:1 light, 9.5:1 dark). The chance of rain shows under each likely hour in the hourly strip.
+- **Data:** the same forecast request with more fields: hourly humidity, wind speed, `wind_gusts_10m`, `wind_direction_10m`, `precipitation`, `uv_index`, `pressure_msl`, `visibility`, `dew_point_2m`; daily `sunrise`, `sunset`. All optional in the contract. No extra provider calls; cache key unchanged.
+- **Drawing:** plain SVG (`HourlyChart`), no chart library, ~150 lines.
+  - One series and one axis per chart, no legend (the title names it).
+  - y range (`chartScale`): 0–100 for percentages, from zero for wind, fitted but at least 4° tall for temperature.
+  - Values drawn unrounded, labels rounded.
+  - Width read before first paint, then followed by a ResizeObserver; text keeps its size, hour labels thin out on narrow screens.
+  - Time runs left to right in every language.
+  - Hover shows the exact value; on touch a tapped hour stays shown until another hour or something outside is tapped.
+  - Screen readers get a hidden table, hidden through a wrapper `div`.
+  - Missing hourly values are gaps, never NaN; a detail without hourly data is a plain value without a chart.
+- **Not done:** imperial units for visibility (miles) and pressure (inHg); km and hPa everywhere.
+
+Why: [ADR 0027](adr/0027-languages-units-and-charts-details.md)
 
 ## Installable app (PWA)
 
-- **Tooling:** `vite-plugin-pwa` (Workbox, `generateSW`): the manifest and the service worker are generated at build time. The service worker is off in `npm run dev` (it would cache the dev server's modules and confuse hot reload); try it with `npm run build && npm run preview -w client`.
-- **Icons:** one source, `client/public/logo.svg` (the "partly cloudy" icon on the app's blue). `@vite-pwa/assets-generator` renders the PNGs (64, 192, 512, maskable 512, Apple touch 180) and `favicon.ico` during the build and adds their `<link>` tags, so no binaries live in the repository. Maskable and Apple icons are padded with the same blue, so the OS crop never cuts the picture.
+- **Tooling:** `vite-plugin-pwa` (Workbox, `generateSW`) generates the manifest and the service worker at build time. The service worker is off in `npm run dev`; try it with `npm run build && npm run preview -w client`.
+- **Icons:** one source, `client/public/logo.svg`. `@vite-pwa/assets-generator` renders the PNGs (64, 192, 512, maskable 512, Apple touch 180) and `favicon.ico` during the build and adds their `<link>` tags; no binaries are in the repository. Maskable and Apple icons are padded with the app's blue.
 - **What is cached:**
-  - the app shell (HTML, JS, CSS, icons) is precached; any page URL opens it offline, as `vercel.json` does online (`/api/*` excluded);
-  - `/api/v1/forecast`, `/api/v1/air-quality` and `/api/v1/locations/:id` (localized names) go **network first**: online the network always answers, so the API's `Cache-Control` and the in-memory caches decide freshness as before; the saved copy is used only when the network fails or takes longer than 6 seconds (`networkTimeoutSeconds`; without it a stalled request on a weak signal hung for tens of seconds before the copy showed — found by roborev). Without a saved copy Workbox keeps waiting for the network. A late answer is stored for the next view, but the open page keeps the copy and its banner until then. The same applies to a backend that is slow or restarting: returning users see their last forecast with the banner after 6 seconds instead of a skeleton, new users wait as before. 6 seconds is above a normal slow-3G answer, so a working network still wins. Only `200` answers are stored (errors are never cached, the same rule as on the server), at most 50 for a day;
-  - search, `/api/v1/places/reverse` and `/api/v1/places/approximate` are not cached: search is useless offline, and the approximate place depends on who asks (`private, no-store`);
-  - the font files are part of the build (served from the site, not Google Fonts) and precached with the app shell.
-- **Stale data must be visible:** a saved forecast's "Now" and "Today" may be hours old. A banner under the header says so ("You're offline. Showing the last loaded forecast, which may be out of date."); it lives in a `role="status"` region that is always in the page, so screen readers announce it. It shows when `navigator.onLine` is false **or** the last API answer came from the service worker's cache. The second case matters because the saved copy is used whenever the request fails, and that happens while the browser still reports a network: Wi-Fi without internet (a hotel login page), a weak signal. The service worker marks such answers with an `X-From-Cache` header (a Workbox `cachedResponseWillBeUsed` plugin), the API client remembers which parsed values came from such answers (a `WeakSet` in `api/savedResponses.ts`, filled when the body is parsed), so the value itself says where it came from wherever it travels: caches, state, props. The hooks that put data on screen (`useForecast`, used by favourite tiles and cards too, and `useAirQuality`) report a saved value while they are mounted with it (`useReportSaved`, a counter), and the banner shows while the counter is above zero. So the banner lasts exactly as long as old data is on screen: a fresh air-quality answer does not hide an old forecast, and an old forecast no longer shown does not keep the warning up. The in-memory caches do not keep saved values (`keep`), so the next view of that place asks the network again. History: the first version looked only at `navigator.onLine` (no warning on Wi-Fi without internet); the second used one global flag set by the last response (a parallel fresh answer hid an old forecast); the third tracked URLs (the warning outlived old data no longer shown). The first two were found in code review with roborev; the third was a known trade-off, replaced by tying the banner to what is on screen. When the API itself is down but the site is reachable, the proxy answers 502 — a response, not a network failure — so the page shows the usual error with "Try again", not old data. Rejected: a per-forecast "updated at" stamp — a second state in every view.
-- **Updates:** `registerType: 'autoUpdate'` with `skipWaiting` and `clientsClaim`: a new version installs in the background and takes over without a prompt, and the next page load runs it. The two options are set by hand: with `injectRegister: 'script-defer'` the plugin does not add them, and without them the new worker waited until every tab was closed, so an installed app that stays open, or a tab that is only reloaded, kept the old code (and the API version it calls) indefinitely; found while moving the API to `/api/v1`. An open page keeps running its old code until reloaded. Two chunks are loaded lazily and may be gone from the server after a deploy: the Firebase SDK for notifications, so turning notifications on in a page opened before it can fail (the panel shows its usual error; a reload fixes it), and the privacy policy, which the footer therefore opens with a full page load rather than an in-app link (found by roborev), so it always comes with the current build. A "New version — reload" prompt was rejected: nothing in the page is lost by waiting, and it would be another UI state with 19 translations.
-- **Install hint on iOS:** Chrome, Edge and Android offer installation themselves (an icon in the address bar, a banner); iOS never does, so users would not know the app can go on the Home Screen. The start page shows a card under the greeting: the app icon, "Add to your Home Screen" and "Tap [Share icon] Share, then “Add to Home Screen”" (`InstallHint`). It shows only on iOS (iPadOS poses as a Mac: touch points tell it apart), in any iOS browser (since iOS 16.4 all of them can add to the Home Screen from Share), not when already opened from the Home Screen, and never again after the cross (`install-hint-dismissed:v1` in `localStorage`). The rules are plain functions (`installHint.ts`) with tests. The card names the Share icon instead of pointing at it: where Safari puts the Share button depends on the iOS version and the user's tab bar layout (bottom, top, or inside "…"), so an arrow to the toolbar could point at nothing. Only on the start page: city pages are usually opened from a link, for the weather. The translations carry `{icon}` where the icon goes (word order differs) and must name the buttons exactly as iOS does in that language.
-- **Not done:** an own install button for Chrome and Android (`beforeinstallprompt`: it duplicates the browser's own offer and is not available in Safari or Firefox), push notifications (see the backlog). The manifest is in English only: one manifest per language would need a server-side choice; it only affects the name under the icon ("Weather").
-- **Saved cities offline:** the cards on the start page load the same forecast as a city page, so a city opened within the last day shows its weather offline too; nothing extra was needed.
+  - the app shell (HTML, JS, CSS, icons, font files) is precached; any page URL opens it offline (`/api/*` excluded), as `vercel.json` does online;
+  - `/api/v1/forecast`, `/api/v1/air-quality` and `/api/v1/locations/:id` are **NetworkFirst** with `networkTimeoutSeconds: 6`: the saved copy is used when the network fails or takes longer than 6 s; without a copy Workbox waits for the network. A late answer is stored for the next view; the open page keeps the copy and its banner;
+  - only `200` answers are stored, at most 50, for a day (`client/vite.config.ts`);
+  - a 5xx counts as a failed network when a saved copy exists (`src/sw/savedCopyOnServerError.ts`, a `fetchDidSucceed` plugin); 4xx answers are never replaced. Without a copy the error reaches the page: the API client reads a 5xx without the API's error body as `NETWORK_ERROR`, and a batch falls back to one request per city, so each city's saved copy can answer;
+  - search, `/api/v1/places/reverse` and `/api/v1/places/approximate` (`private, no-store`) are not cached.
+- **Stale-data banner** in an always-present `role="status"` region under the header (`useStaleReason`). It shows when `navigator.onLine` is false **or** old data is on screen, with one of two texts:
+  - "You're offline. Showing the last loaded forecast, which may be out of date." (no-signal icon): offline, or a copy used because the network failed or timed out;
+  - "The weather server isn't responding. Showing the last loaded forecast, which may be out of date." (clock icon): only copies used because our server answered 5xx, the connection working; if both kinds are on screen, the offline text wins;
+  - the service worker marks cached answers with `X-From-Cache`: `server` when `savedCopyOnServerError` made it use the copy (`markServerErrorCopy`, in the same plugin: they share Workbox's per-request `state`), `1` otherwise (a later `cachedResponseWillBeUsed` plugin);
+  - the API client records values parsed from such answers, with the reason, in a `WeakMap` (`api/savedResponses.ts`); a batch's forecasts inherit it;
+  - `useForecast` (also used by favourite tiles and cards) and `useAirQuality` report a saved value and its reason while mounted with it (`useReportSaved`, a counter per reason);
+  - the in-memory caches do not keep saved values (`keep`), so the next view asks the network again.
+- **API down, site up:** the proxy answers 502/504. With a saved copy the page shows it with the server banner; without one it shows `SERVER_UNAVAILABLE` ("The weather server isn't responding") with "Try again".
+- **Updates:** `registerType: 'autoUpdate'` with `skipWaiting` and `clientsClaim` set by hand (`injectRegister: 'script-defer'` does not add them): a new version installs in the background, takes over without a prompt and runs from the next page load. An open page keeps its old code until reloaded. Two lazily loaded chunks may be gone after a deploy:
+  - the Firebase SDK: turning notifications on in an older page can fail (the panel shows its usual error; a reload fixes it);
+  - the privacy policy: the footer opens it with a full page load, not an in-app link.
+- **Install hint on iOS** (`InstallHint`, rules in `installHint.ts` with tests): a card under the greeting on the start page only, with the app icon, "Add to your Home Screen" and "Tap [Share icon] Share, then “Add to Home Screen”". It shows:
+  - only on iOS, in any browser (iPadOS, which poses as a Mac, is told apart by touch points);
+  - not when opened from the Home Screen;
+  - never again after the cross (`install-hint-dismissed:v1` in `localStorage`).
+
+  Translations carry `{icon}` where the icon goes and must name the buttons exactly as iOS does in that language.
+
+- **Not done:** an own install button for Chrome and Android (`beforeinstallprompt`). The manifest is in English only (the name under the icon: "Weather").
+- **Saved cities offline:** start-page cards load the same forecast as a city page, so a city opened within the last day shows its weather offline too.
+
+Why: [ADR 0009](adr/0009-offline-pwa.md), [ADR 0029](adr/0029-pwa-and-offline-details.md)
 
 ## Weather warnings
 
-- **Source:** MeteoAlarm (EUMETNET), the official warnings of ~38 European national weather services in one format (CAP). Open-Meteo has none. Behind its own interface, `AlertsProvider` (`providers/meteoAlarm.ts`), separate from `WeatherProvider`, like the reverse geocoder: the US National Weather Service would be a second implementation.
-- **No lookup by coordinates exists.** Checked on 27 Oct 2026: the newer MeteoGate API only lists a whole country (boxes, not shapes, texts behind further links, a 24-hour window on when warnings were sent, 50 requests an hour without a key). So the app places a city in a warning area itself:
-  - MeteoAlarm's own region borders (EMMA_ID codes, ~2000 regions in 30 countries, published in their GitLab) are simplified to ~100 m by `scripts/buildAlertRegions.ts` into `server/data/meteoalarm-regions.json.gz` (0.9 MB; loaded on the first warnings request, ~45 ms, ~25 MB of memory). The borders change a few times a year; rerun the script with the new file's date.
-  - The country's Atom feed (one request, no key) lists what is in force or announced, area by area: a region code, or for countries that draw their areas (UK, Norway, Sweden, …) a polygon. Those countries are found by rough boxes; the polygon decides.
-  - Coasts are drawn coarsely in the borders file: Kos town lies 1.7 km beyond the island's outline, Reykjavik 2–3 km, and both got no warnings at all (Kos missed the red warnings in force on Rhodes, same region). So when no region is within 1.5 km, the search widens to 5 km (`COAST_FALLBACK_KM`); only then, so it adds nothing elsewhere. A point truly at sea near a coast gets that coast's warnings. Checked on 15 seaside towns: the others were already matched.
-  - A place counts as in an area within 1.5 km of it: places are rounded to ~1 km and borders simplified, and a warning too many beats a missed one (Vienna touches several districts; all are Vienna).
-  - The matched warnings' full CAP documents give the type (wind, thunderstorm, fog, …), the level, and the texts in every language the issuer wrote (usually the national language and English).
-- **Freshness:** MeteoAlarm's terms allow on average 5 and at most 10 minutes' delay. A country's feed is kept 4 minutes on the server (shared by every place in it), answers 1 minute in browsers. A full warning is kept an hour: an update is a new warning that names the one it replaces, and only the latest is shown. Expired warnings stay in the feed for a while, so expiry is checked. An open page keeps up too (`useAlerts`): it asks again once its answer is 4 minutes old (`ALERTS_REFRESH_MS`, the server's feed TTL: asking every minute mostly got the same answer, at one request per place shown, ten a minute for a start page with ten favourites, through both free hosts; found by roborev), only while the tab is visible (a hidden tab spends no requests; coming back with an older answer asks at once), and when the connection returns with the tab in view; after a failed refresh the next try is a whole interval later, not a loop. Every component showing a place (the city page, its favourite tile and card) shares the client cache, so they ask at the same moment and send one request; a value one of them loaded reaches the others. The page and the favourite marks drop a warning by the clock (checked every minute) once its `expires` has passed, without waiting for the next answer, and a failed refresh keeps the last answer minus its expired warnings. Before, warnings were loaded only when the place or language changed, so a page left open missed new warnings and kept showing ended ones.
-- **Texts:** levels and types are keys the client translates (every interface language); the issuer's headline, description and instruction are shown as written (the terms require them unmodified), in the user's language if the issuer has it, else English (`pickText`), marked with `lang` and `dir="auto"` so English reads correctly in an Arabic interface.
-- **Neighbour feeds:** the rough boxes of the polygon countries overlap their neighbours (Helsinki is inside Norway's box, Dublin inside the UK's, Lublin inside Ukraine's). A failed feed fails the request only if it may hold the place's own warnings: a country the region borders put the place near, or a box-found one unless the place lies _well inside_ (more than 1.5 km from the edge) a region of the border file. Otherwise Norway's outage would hide Helsinki's warnings. Neither "near" nor plain "inside" was enough: Kreuzlingen (Switzerland) is within 1.5 km of Germany, and with places rounded to ~1 km and borders simplified it can even land inside Germany; a failed Swiss feed would have left it, silently, with Germany's warnings only (found in two rounds of review). (Found in code review with roborev, like the next two points.)
-- **Untrusted dates:** CAP's `onset` is optional; the server falls back to `effective`, the feed, then `sent`, and a warning with no readable start is passed on as in force now. The client never formats an unreadable date (`Intl` throws, and a render error would blank the page).
-- **Time zone:** times are shown in the place's zone, which comes with the forecast; until it arrives (or if the forecast failed) the warning shows without its times rather than in the reader's zone, which would jump a moment later, "today" included.
-- **Errors:** `/api/v1/alerts` is separate from `/forecast`, so a warnings outage never touches the forecast; the banner just does not appear. A feed failure is not cached. If a warning's full text fails to load, the feed's own summary still shows it (type unknown, English name): hiding an official warning is worse. Not cached by the service worker: an old warning shown offline as current is worse than none.
-- **Placement:** above the city name, right under the favourites strip, in every state (loading, error, forecast): the most prominent place. Chosen knowing its cost: warnings are a separate request, so with a cached forecast they arrive 0.1–0.3 s later and the page below moves down. Considered: under the current weather (no jump, end of the first phone screen; the first version), inside the current-weather block (always on the first screen, details and hourly strip jump), a detail item like air quality (no jump, but a red warning looks like humidity), markers on forecast days (a warning is an interval, markers overlap).
-- **Favourites:** tiles and cards show only the triangle of the most severe warning (`AlertMark`, `useAlertLevel`): on the city page's tiles inside the top corner (end side, so top-left in Arabic and Hebrew), where only a tile with a warning gives up ~16 px at the end of its name; on the start page's cards next to the temperature for now (a badge on the card's corner was the other candidate), so a storm in a saved city is visible without opening it; the screen-reader sentence of the tile names the level. Same request and cache as the city page (one per saved city; cheap for the source, feeds are cached per country).
-- **UI:** each warning: a triangle and stripe in MeteoAlarm's colour, the level and type in words ("Orange warning: Thunderstorm"), when ("From today 20:00 to tomorrow 10:00", in the place's time zone; "today"/"tomorrow" from `Intl.RelativeTimeFormat`), and a native `<details>` with the issuer's text and name. Credit: "Source: EUMETNET – MeteoAlarm". All types are shown, not only storms: official warnings for fog, heat or floods matter as much.
+- **Source:** MeteoAlarm (EUMETNET), CAP warnings of ~38 European national weather services. Behind its own interface, `AlertsProvider` (`providers/meteoAlarm.ts`), separate from `WeatherProvider`.
+- **Locating a place** (MeteoAlarm has no lookup by coordinates):
+  - MeteoAlarm's region borders (EMMA_ID codes, ~2000 regions in 30 countries, from their GitLab) are simplified to ~100 m by `server/scripts/buildAlertRegions.ts` into `server/data/meteoalarm-regions.json.gz` (0.9 MB; loaded on the first warnings request, ~45 ms, ~25 MB of memory). The borders change a few times a year: rerun the script with the new file's date;
+  - the country's Atom feed (one request, no key) lists each warning's area: a region code, or a polygon for countries that draw their areas (UK, Norway, Sweden, …), which are found by rough boxes and decided by the polygon;
+  - a place counts as in an area within 1.5 km of it; when no region is that close, the search widens to 5 km (`COAST_FALLBACK_KM`);
+  - the matched warnings' full CAP documents give the type, the level and the texts in every language the issuer wrote.
+- **Freshness:**
+  - server: a country's feed is cached 4 minutes (shared by every place in it), browsers 1 minute; a full warning an hour. An update names the warning it replaces; only the latest is shown. Expiry is checked, since expired warnings stay in the feed;
+  - client (`useAlerts`): asks again once the answer is 4 minutes old (`ALERTS_REFRESH_MS`, the server's feed TTL), only while the tab is visible; at once on returning to a tab with an older answer, and when the connection returns; after a failure, the next try is a whole interval later;
+  - every component showing a place (city page, favourite tile, card) shares the client cache: one request, one value;
+  - warnings past `expires` are dropped by the clock (checked every minute); a failed refresh keeps the last answer minus expired warnings.
+- **Texts:** levels and types are keys the client translates. The issuer's headline, description and instruction are shown unmodified, in the user's language if the issuer has it, else English (`pickText`), with `lang` and `dir="auto"`.
+- **Neighbour feeds:** a failed feed fails the request only if it may hold the place's own warnings: a country the region borders put the place near, or a box-found country unless the place lies more than 1.5 km inside a region of the border file.
+- **Untrusted dates:** a missing `onset` falls back to `effective`, the feed, then `sent`; a warning with no readable start is treated as in force now. The client never formats an unreadable date.
+- **Time zone:** times are shown in the place's zone, which comes with the forecast; until it arrives (or if the forecast failed) the warning shows without times.
+- **Errors:**
+  - `/api/v1/alerts` is separate from `/forecast`; on failure the banner does not appear;
+  - a failed feed or full warning is not cached as an answer, but remembered for a minute (`FAILURE_TTL_MS`), so requests fail at once instead of each waiting out the 8-second timeout;
+  - calls are counted (`instrumentFetch`) but have no `Metrics.budget`;
+  - if a full text fails to load, the feed's summary still shows the warning (type unknown, English name);
+  - the service worker does not cache warnings.
+- **Placement:** above the city name, right under the favourites strip, in every state (loading, error, forecast). With a cached forecast, warnings arrive 0.1–0.3 s later and the page below moves down.
+- **Favourites:** tiles and cards show only the most severe warning's triangle (`AlertMark`, `useAlertLevel`), with the same request and cache as the city page:
+  - city-page tiles: inside the top corner on the end side (top-left in Arabic and Hebrew); a tile with a warning gives up ~16 px at the end of its name;
+  - start-page cards: next to the temperature for now;
+  - the tile's screen-reader sentence names the level.
+- **UI:** each warning has a triangle and stripe in MeteoAlarm's colour, the level and type in words ("Orange warning: Thunderstorm"), when ("From today 20:00 to tomorrow 10:00", in the place's zone; "today"/"tomorrow" from `Intl.RelativeTimeFormat`), and a native `<details>` with the issuer's text and name. All types are shown. Credit: "Source: EUMETNET – MeteoAlarm".
+
+Why: [ADR 0010](adr/0010-meteoalarm-warnings.md), [ADR 0030](adr/0030-weather-warnings-details.md)
 
 ## API versions
 
-The contract between the server and its clients is versioned in the path: `/api/v1/...` (`API_PREFIX` in `@weather/shared`). Operations endpoints (`/api/health`, `/api/internal/*`) are not part of it and have no version. Why: clients are not updated together with the server. The client (Vercel) and the server (a VM on AWS) deploy separately, an open tab runs its old code until reloaded, the browser's HTTP cache and the service worker keep answers for up to a day, and a mobile app would run old code for months. This already broke once: after the shape of the reverse-geocoding answer changed, a day-old cached answer without coordinates crashed the page, and moving the endpoint to a new URL was what fixed it.
+- The contract is under `/api/v1/...` (`API_PREFIX` in `@weather/shared`). Operations endpoints (`/api/health`,
+  `/api/internal/*`) have no version.
+- Within a version only compatible changes: an optional field, a new endpoint, a new error code (clients show an
+  unknown code as a general error). Removing, renaming or retyping a field, adding a required one or changing a
+  parameter needs a new version.
+- Answers are strict zod schemas (`responseSchemas.ts` in `shared`); a field the contract does not list fails the
+  server's tests. `contract.test.ts` calls every endpoint (success and errors); the Open-Meteo adapter's output is
+  checked in its own tests.
+- The interfaces in `types.ts` are the documented source; a compile-time check fails when a schema and its interface
+  differ. Clients never import the schemas.
+- `docs/openapi.json` is generated by `npm run openapi` (`server/scripts/openapi.ts`, OpenAPI 3.0: parameters and
+  bodies from the request schemas, answers from the response schemas).
+- CI fails when it is out of date (`openapi:check`). On pull requests the `api-compatibility` job compares it with the
+  target branch using oasdiff and fails on breaking changes; nothing is uploaded and oasdiff's review link is off. When
+  the major version differs, the comparison is skipped.
+- The API client checks the shape of what it uses in each answer (`responseChecks.ts`, plain functions). A wrong
+  shape is requested once more with `cache: 'reload'`; if still wrong, it becomes an ordinary `INTERNAL` error. POST
+  is not repeated.
+- The service worker caches per version (`api-v1`). Once the current version stores an answer, the other versions'
+  caches and the old unversioned `api` cache are deleted (`deleteOldApiCaches`).
+- A breaking version: the server serves the new one next to the old (shared services, separate routes and answer
+  mapping), the client moves to it, and the old one is removed once almost nobody calls it.
+- `apiVersions` in the metrics counts requests per version: "none" for `/api` paths without one, "other" for versions
+  not served. Requests refused for not coming through the proxy are not counted.
 
-- **Version in the path, not a header:** the path is the key of every cache (browser, service worker, CDN), so a new version never sees answers of the old shape. A version in `Accept` would need `Vary` and makes caching worse.
-- **Rules within a version:** compatible changes only, an optional field, a new endpoint, a new error code (clients show an unknown one as a general error). A field removed, renamed or retyped, a required one added, a parameter changed: a new version.
-- **The contract is checked, not only typed:** the answers are zod schemas (`responseSchemas.ts` in `shared`), strict, so a field the server sends but the contract does not list fails the server's tests (`contract.test.ts` calls every endpoint, success and errors; the Open-Meteo adapter's output is checked in its tests). The interfaces in `types.ts` stay the documented source; a compile-time check fails when a schema and its interface differ. Clients never import the schemas (zod would add ~12 KB gzip to the web bundle).
-- **OpenAPI from the schemas:** `docs/openapi.json` (`npm run openapi`, script `server/scripts/openapi.ts`, OpenAPI 3.0: parameters and bodies from the request schemas, answers from the response schemas). CI fails if it is out of date (`openapi:check`), and on pull requests compares it with the target branch's with oasdiff (`api-compatibility` job, fails on breaking changes; nothing is uploaded, oasdiff's review link is off). When the major version differs between the two, the comparison is skipped: breaking the old version is what a new one is for.
-- **A tolerant client:** the API client checks the shape of what it relies on in each answer (`responseChecks.ts`, plain functions, no zod). An answer of the wrong shape is asked for once more with `cache: 'reload'`, past the HTTP cache it usually comes from; if the fresh one is no better, it is an ordinary error (`INTERNAL`) instead of a crash. POST is not repeated.
-- **The service worker's cache is per version** (`api-v1`): a new version starts empty, and once it stores an answer the other versions' caches (and the unversioned `api` of before) are deleted (`deleteOldApiCaches`).
-- **Releasing a breaking version:** the server serves the new version next to the old one (shared services, separate routes and answer mapping), then the client moves to it, then the old one goes once next to nobody calls it: `apiVersions` in the metrics counts requests per version ("none" for `/api` paths without one, "other" for versions not served, so made-up ones cannot grow it; requests refused for not coming through the proxy are left out). For the web that is a day or two (caches and open tabs), for a mobile app months.
-- **Considered:** a version in a header (worse for caches), a version per endpoint (more to track for no gain at this size), no version with only additive changes (works until the first unavoidable break, which is exactly when it is needed).
+Why: [ADR 0012](adr/0012-api-versioning.md), [ADR 0031](adr/0031-api-testing-and-shared-package-details.md)
 
 ## Testing
 
-- **Logic** (most of the ~360 tests): plain functions in `shared`, the server's services and providers (on mocked answers; MeteoAlarm on recorded feeds and CAP files), routes through Supertest with a fake provider, and the client's non-React modules (URLs, stores, caches, labels). Keeping rules out of components is what makes this cheap.
-- **Components** (`client/tests/components`, Vitest + Testing Library in jsdom): the interactive pieces, through what a user sees and does: roles, names, keys. Search (debounce, keyboard choice, namesakes, no results), the favourite star (confirmed id, full list), settings (focus, Escape steps back, units, typing to pick a language, RTL), current weather (°F converted before rounding), warnings (folded, opening the issuer's text). The API module is mocked.
-- **End to end** (`client/e2e`, Playwright): the production build in Chromium, at desktop and phone sizes. Scenarios: search → city → favourites (and the start page card, after a reload); settings (°F and German, kept after a reload; no right-to-left language since [ADR 0016](adr/0016-fewer-languages.md), so a test forces `dir="rtl"` on a city page and checks for sideways scrolling and with axe); the privacy page from the footer, and font files coming only from the site; links (`/weather/756135-warsaw`, a link in another language moving to the canonical one without a Back step, unknown id, broken link). `/api` is answered in the browser from the same fixtures the component tests use (`tests/fixtures/weather.ts`, built around the current time at the place, so "Now" and "Today" are real): the server has its own tests, and real Open-Meteo would make runs slow, flaky and spend the provider's quota. A request the mocks don't know, or an error in the console, fails the test. The service worker is blocked, or it would answer from its cache past the mocks.
-- **Accessibility:** axe-core checks WCAG 2.1 A and AA in each state worth seeing (start page, suggestions open, city page, settings and the language list open, a chart open, not found), in light and dark themes. On the first run it found two real problems, both fixed: the country of the highlighted search suggestion was 4.26:1 (soft text darkened, light and dark), and the language list scrolled but could not be reached with Tab (now in the Tab order). axe catches about a third of WCAG problems; screen reader and keyboard checks by hand remain.
-- **Not covered by e2e:** geolocation, offline and the service worker, push notifications (they need a Firebase project and a deployed build).
+- **Logic** (most of the ~360 tests): plain functions in `shared`; the server's services and providers on mocked
+  answers (MeteoAlarm on recorded feeds and CAP files); routes through Supertest with a fake provider; the client's
+  non-React modules (URLs, stores, caches, labels).
+- **Components** (`client/tests/components`, Vitest + Testing Library in jsdom): the interactive pieces, tested
+  through roles, names and keys, with the API module mocked:
+  - search: debounce, keyboard choice, namesakes, no results;
+  - the favourite star: confirmed id, full list;
+  - settings: focus, Escape steps back, units, typing to pick a language, RTL;
+  - current weather: °F converted before rounding;
+  - warnings: folded, opening the issuer's text.
+- **End to end** (`client/e2e`, Playwright): the production build in Chromium at desktop and phone sizes.
+  - Search → city → favourites, and the start page card after a reload.
+  - Settings: °F and German, kept after a reload.
+  - Right-to-left: a test forces `dir="rtl"` on a city page and checks for sideways scrolling and with axe.
+  - The privacy page from the footer; font files come only from the site.
+  - Links: `/weather/756135-warsaw`; a link in another language moves to the canonical one without a Back step;
+    unknown id; broken link.
+  - `/api` is answered in the browser from the component tests' fixtures (`tests/fixtures/weather.ts`, built around
+    the current time at the place, so "Now" and "Today" are real).
+  - A request the mocks don't know, or a console error, fails the test.
+  - The service worker is blocked, except in `offline.spec.ts`, which runs the build's real one (the mocks are on the
+    browser context, which sees its requests). Offline, the saved city opens with the offline banner; with the API
+    down behind the site (a 502 page), the saved copy is shown instead of the error with the server banner (not the offline one), and without one the page says
+    the server is not responding; a forecast over an hour old shows "Forecast last updated".
+  - `geolocation.spec.ts`: an allowed position opens the city with "You are here"; a blocked one explains how to allow
+    it and asks nothing by IP; a position not found offers the city guessed from the address, opened only on a click.
+- **Accessibility:** axe-core checks WCAG 2.1 A and AA in light and dark themes in each state: start page, suggestions
+  open, city page, settings and the language list open, a chart open, not found. Screen reader and keyboard checks
+  are done by hand.
+- **Not covered by e2e:** push notifications; the service worker's own update to a new version.
+- **Real providers, daily** (`.github/workflows/providers.yml`, `server/scripts/checkProviders.ts`): the server's own
+  adapters call the real forecast, air quality, search, every MeteoAlarm feed, a few full warnings and one place's
+  warnings. The run fails when an answer no longer reads or more than a quarter of the feeds fail at once; a 429 is
+  skipped. About five Open-Meteo calls a day.
+
+Why: [ADR 0015](adr/0015-testing-strategy.md), [ADR 0031](adr/0031-api-testing-and-shared-package-details.md)
 
 ## Alternatives considered
 
-- Next.js full-stack: simpler deploy, but blurs the client/server boundary
-- Serverless functions: cheap and scalable, but cold starts and no in-memory cache
-- Calling Open-Meteo directly from the browser: fastest to build, but no caching or provider abstraction
+See [ADR 0001](adr/0001-backend-for-frontend.md) and
+[ADR 0031](adr/0031-api-testing-and-shared-package-details.md).
 
 ## Shared package
 
-`packages/shared` (`@weather/shared`) is used by the server and the web client, and is ready for a future mobile app.
+`packages/shared` (`@weather/shared`) is used by the server and the web client.
 
-Included: API types, error codes and error body shape, the API prefix (`API_PREFIX`), Zod schemas for request parameters and answers (server and tests only), light answer checks for clients, limits and defaults, weather helpers (`describeWeather`, which returns a condition key and an icon kind such as `partly-cloudy`, `rangePosition`, `formatDay`, `formatHour`, `compareWithYesterday`) language helpers (`matchLanguage`, `isRtl`) and an environment-neutral API client created with `createApiClient({ baseUrl })`.
+- **Included:** API types; error codes and the error body shape; the API prefix (`API_PREFIX`); Zod schemas for
+  request parameters and answers (server and tests only); light answer checks for clients; limits and defaults;
+  weather helpers (`describeWeather`, which returns a condition key and an icon kind such as `partly-cloudy`,
+  `rangePosition`, `formatDay`, `formatHour`, `compareWithYesterday`); language helpers (`matchLanguage`, `isRtl`);
+  an environment-neutral API client, `createApiClient({ baseUrl })`.
+- **Excluded:** the `WeatherProvider` interface, Open-Meteo response types, cache and services (server internals);
+  React components, hooks and CSS (client-specific); environment configuration.
+- **Rule:** code in `shared` runs unchanged in Node.js, browsers and React Native: no Node APIs, DOM, Express or
+  bundler-specific features.
 
-Excluded on purpose: the `WeatherProvider` interface, Open-Meteo response types, cache and services (server internals), React components, hooks and CSS (client-specific), environment configuration.
+Why: [ADR 0002](adr/0002-monorepo-shared-contract.md)
 
-Rule: code in `shared` must run unchanged in Node.js, browsers and React Native — no Node APIs, DOM, Express or bundler-specific features.
+## Key parameters
+
+The numbers other documents refer to, with where each is set. Change them there; this table and the ADRs name the
+constant so they can be found again.
+
+| Parameter                                           | Value                                                                | Where                                                                         |
+| --------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Coordinate rounding (cache keys, URLs, places)      | 2 decimals, ~1 km                                                    | `COORDINATE_DECIMALS`, `shared/src/coordinates.ts`                            |
+| Forecast cache on the server                        | 15 min; +5 min answered at once; up to 1 h if the provider fails     | `FORECAST_CACHE_TTL` (`server/src/config.ts`), `weatherService.ts`            |
+| Air quality cache on the server                     | 1 h; +10 min at once; up to 2 h if the provider fails                | `server/src/services/weatherService.ts`                                       |
+| Search and place names cache                        | 24 h; +1 day at once; up to a week if the provider fails             | `server/src/services/weatherService.ts`                                       |
+| Forecast days                                       | 10 (default), up to 16                                               | `FORECAST_DEFAULT_DAYS`, `FORECAST_MAX_DAYS`, `shared/src/constants.ts`       |
+| Browser cache (`Cache-Control: max-age`)            | forecast 300 s, air quality 900 s, stale answers 60 s, places 1 day  | `server/src/routes/weather.ts`                                                |
+| Client cache                                        | forecast 5 min, air quality 15 min, warnings 1 min                   | `useForecast.ts`, `useAirQuality.ts`, `useAlerts.ts` (`client/src/hooks`)     |
+| Reload on return to the page                        | forecast after 15 min, air quality after 1 h                         | `FORECAST_REFRESH_MS`, `AIR_QUALITY_REFRESH_MS`                               |
+| Warnings: server feed cache, open page refresh      | 4 min                                                                | `ALERTS_FEED_TTL_SECONDS`, `shared/src/constants.ts`                          |
+| A failed MeteoAlarm document is not asked again for | 1 min                                                                | `FAILURE_TTL_MS`, `server/src/providers/meteoAlarm.ts`                        |
+| "Forecast last updated" notice                      | data older than 60 min                                               | `FORECAST_OUTDATED_MINUTES`, `shared/src/weather.ts`                          |
+| Client request timeout                              | 15 s                                                                 | `REQUEST_TIMEOUT_MS`, `shared/src/apiClient.ts`                               |
+| Service worker wait for the network                 | 6 s, then the saved copy; copies kept a day, 50 at most              | `networkTimeoutSeconds`, `client/vite.config.ts`                              |
+| Open-Meteo limits (per IP address)                  | 600/min, 5,000/h, 10,000/day; a forecast counts 2.2                  | `OPEN_METEO_LIMITS`, `openMeteoWeight`, `server/src/observability/metrics.ts` |
+| Budget: warn, refuse new calls                      | at 80 %, at 90 % of a limit                                          | `WARN_AT`, `BUDGET_SHARE`, `metrics.ts`                                       |
+| Requests per IP address, per minute                 | API 300, batches 30, search 60, places 10, push 60, client errors 10 | `DEFAULT_RATE_LIMITS`, `server/src/rateLimits.ts`                             |
+| New places (provider calls) per IP address          | 30/min, 150/h                                                        | `DEFAULT_LOAD_LIMITS`, `server/src/rateLimits.ts`                             |
+| Favourites                                          | 10                                                                   | `MAX_FAVORITES`, `shared/src/favorites.ts`                                    |
+| Notifier lease; scheduler interval                  | 4 min; every 5 min                                                   | `LEASE_MS` (`alertNotifier.ts`); cron-job.org                                 |
+| Push payload                                        | 3,800 bytes, headlines 160 characters                                | `MAX_PAYLOAD_BYTES`, `MAX_HEADLINE`, `alertNotifier.ts`                       |
+| Secrets                                             | 32 characters at least                                               | `MIN_SECRET_LENGTH`, `server/src/config.ts`                                   |

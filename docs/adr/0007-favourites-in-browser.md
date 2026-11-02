@@ -1,6 +1,6 @@
 # 0007. Favourites stored in the browser, no accounts
 
-- Status: Accepted
+- Status: Accepted; details and later refinements in [0025](0025-frontend-search-and-favourites-details.md)
 - Date: 2026-10-31 (recorded)
 
 ## Context

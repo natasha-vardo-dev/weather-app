@@ -64,6 +64,8 @@ The start's log line `operational state store` says which (`"store":"firestore"`
     `https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-<country>`); warnings there are not pushed meanwhile;
   - `lastRejectedAt` within the last 30 minutes: FCM refused messages for good (log line `FCM refused messages for good` names the warning);
     usually a payload problem, a code fix;
+  - `lastError` says `lease lost mid-run`: a run outlived its lease (stalled sending) and another instance took over;
+    it sends what is left, nothing to do unless it repeats (then FCM or Firestore is slow: their status pages);
   - `PERMISSION_DENIED` or `NOT_FOUND` from Firestore in the log: the database is not created or the service account
     lacks **Cloud Datastore User** (README, "Deployment"). Runs fail until fixed, rather than forgetting what was sent.
 
@@ -71,6 +73,22 @@ A server refusing to start with `Invalid configuration:` lists every setting to 
 `journalctl -u weather-api`. `deploy.sh` switches back to the previous build by itself when the new one does not
 answer within 30 s, and fails, so the new commit's problem is still to fix. A problem in `/etc/weather-api.env` (shared
 by all builds) stops the previous build too; the log says which setting.
+
+## Daily provider check
+
+The **Providers** workflow (GitHub Actions, daily at 05:30 UTC, or by hand) asks the real Open-Meteo and MeteoAlarm
+through the server's adapters; GitHub emails a failed scheduled run. The log names the failed check:
+
+- **Open-Meteo forecast, air quality or search failed** with `response failed validation` or a missing field: the
+  provider changed its answer. The site shows errors for new places meanwhile (cached ones still answer); fix the
+  adapter (`server/src/providers/openMeteo.ts`) and its recorded answers in `server/tests/fixtures`.
+- **MeteoAlarm feeds failed**, many at once: the feed format or addresses changed (`server/src/providers/meteoAlarm.ts`);
+  warnings are neither shown nor pushed meanwhile. One country failing is not reported here; the notify monitor
+  catches it when it lasts.
+- **skipped** (HTTP 429): the runner's shared address was over Open-Meteo's limit, nothing to do; run it again by hand
+  later if in doubt. Our own server is not affected.
+
+Locally: `npm run providers:check -w server`.
 
 ## Notification scheduler
 
@@ -88,7 +106,9 @@ notifications"). It goes through FCM, not through the scheduler or the API.
 Warnings are the only thing an open page asks for by itself: once every 4 minutes per place shown, while the tab is
 visible (`client/src/hooks/useAlerts.ts`). A start page with ten favourites left open in view is about 3,600 requests a
 day through Vercel to the API, each answered from the server's feed cache (no MeteoAlarm call of its own). Forecasts and
-air quality are not refreshed on an open page (the outdated-forecast notice covers that).
+air quality are not refreshed while a page stays in view, only when it comes back into view or online with data at least
+as old as the server keeps it (15 minutes, an hour): a request per place shown, as a new visit would make, and from the
+server's cache when anyone else looked at the place since (`client/src/hooks/useRevalidateOnReturn.ts`).
 
 ## Secrets
 

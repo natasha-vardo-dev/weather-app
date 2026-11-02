@@ -1,6 +1,6 @@
 # 0017. A privacy policy in English, and the font served by the site
 
-- Status: Accepted
+- Status: Accepted; details and later refinements in [0024](0024-server-hardening-observability-privacy.md)
 - Date: 2026-10-31
 
 ## Context

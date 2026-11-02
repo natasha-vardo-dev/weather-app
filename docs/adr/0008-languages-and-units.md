@@ -1,6 +1,6 @@
 # 0008. Languages and units on the client, without an i18n library
 
-- Status: Accepted; the list of languages superseded by [0016](0016-fewer-languages.md)
+- Status: Accepted; the list of languages superseded by [0016](0016-fewer-languages.md); details and later refinements in [0027](0027-languages-units-and-charts-details.md)
 - Date: 2026-10-31 (recorded)
 
 ## Context

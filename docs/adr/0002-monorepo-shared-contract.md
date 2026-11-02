@@ -1,6 +1,6 @@
 # 0002. One repository with a shared contract package
 
-- Status: Accepted
+- Status: Accepted; details and later refinements in [0031](0031-api-testing-and-shared-package-details.md)
 - Date: 2026-10-31 (recorded; decided at the start of the project)
 
 ## Context

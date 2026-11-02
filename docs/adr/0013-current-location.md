@@ -1,6 +1,6 @@
 # 0013. Location only on request, matched to a searched city
 
-- Status: Accepted
+- Status: Accepted; details and later refinements in [0028](0028-current-location-details.md)
 - Date: 2026-10-31 (recorded)
 
 ## Context
