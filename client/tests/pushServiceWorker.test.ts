@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
+import { memoryIndexedDB } from './memoryIndexedDB';
 
 const request = <T>(result: T) => {
   const req: { result: T; onsuccess?: () => void; onerror?: () => void } = { result };
@@ -247,6 +248,47 @@ describe('notification click', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  // An iPhone brought a running app forward without the message or navigate() reaching it:
+  // the page picks the place up from storage when it shows (useOpenFromNotification).
+  it('records the place for the page', async () => {
+    const db = memoryIndexedDB();
+    const sw = loadServiceWorker(null, db);
+    sw.clients.matchAll.mockResolvedValueOnce([] as never);
+    const before = Date.now();
+    await click(sw);
+    expect(db.data.get('open')).toEqual({ path: '/weather/50.06,19.94', at: expect.any(Number) });
+    expect((db.data.get('open') as { at: number }).at).toBeGreaterThanOrEqual(before);
+    expect(sw.clients.openWindow).toHaveBeenCalledWith(URL_);
+  });
+
+  // Browsers allow openWindow() and focus() only shortly after the click: a slow IndexedDB must
+  // not use that time up. (Found by roborev.)
+  it('opens the window at once, not after recording the place', async () => {
+    vi.useFakeTimers();
+    try {
+      const stuck = { open: () => ({}) }; // never answers
+      const sw = loadServiceWorker(null, stuck);
+      sw.clients.matchAll.mockResolvedValueOnce([] as never);
+      void click(sw);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(sw.clients.openWindow).toHaveBeenCalledWith(URL_);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // A record still there after the page opened the place would open it again on a later return.
+  // (Found by roborev.)
+  it('removes the record once the page has opened the place', async () => {
+    const db = memoryIndexedDB();
+    const sw = loadServiceWorker(null, db);
+    const window = openWindow({ answers: true });
+    sw.clients.matchAll.mockResolvedValueOnce([window] as never);
+    await click(sw);
+    expect(window.messages).toHaveLength(1);
+    expect(db.data.has('open')).toBe(false);
   });
 
   it('closes its database connection after reading, so the database can be upgraded later', async () => {

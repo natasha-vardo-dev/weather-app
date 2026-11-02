@@ -233,7 +233,8 @@ English only. It describes what the code does: a new service that receives anyth
 means editing it. As built:
 
 - no accounts, cookies, analytics or ads; favourites and settings stay in the browser, and so do the last loaded
-  forecasts, air quality and place names (the service worker's cache, up to 50 for a day; the policy lists it);
+  forecasts, air quality and place names (the service worker's cache, up to 50 for a day; the policy lists it), and,
+  after a tapped notification, the page it opens (IndexedDB `open`, removed when used or after two minutes);
 - the server sees places and searches and passes them to Open-Meteo and Nominatim as itself; it sees the IP address for
   rate limiting (memory, a minute; not in logs) and browser error reports (message, stack, page kind, user agent);
   places, searches and error reports reach the logs, which journald on the VM keeps 14 days (`MaxRetentionSec`, set by
@@ -466,7 +467,7 @@ succeeded (every feed read, nothing refused) for 30 minutes, or FCM refused mess
 - Title "Orange warning: Thunderstorms · Kraków"; body the time and the issuer's headline. A tap opens the city page:
   with no window of the app open, a new one; with one open, the worker focuses it and asks its page to open the city
   (`open-place` message, `useOpenFromNotification`, the app's router, no reload), and navigates the window itself
-  (`WindowClient.navigate`) only when the page does not confirm within a second, a new window as the last resort. Focusing runs alongside, and every step has a 3 s limit (`within`), so the click event always ends.
+  (`WindowClient.navigate`) only when the page does not confirm within a second, a new window as the last resort. Focusing runs alongside, and every step has a 3 s limit (`within`), so the click event always ends. Alongside, the worker records the page to open (`recordOpen`, IndexedDB `open`, with the time; waited for at most 500 ms, and only before messaging the page, so focus() and openWindow() start at once), and the app opens a record under two minutes old when it loads or shows again, checking once more a second later, and removes it (`takePendingOpen`); the message route removes it too. A page already at the place does not navigate again (no second history entry). Each route taken is logged to the worker's console (`notification click: …`), for Safari's Web Inspector.
 - Every push shows a notification. If writing the full one throws (stored state of an older format, IndexedDB
   unavailable, an invalid locale), a plainer one with the same tag is shown from the message alone (the issuer's event
   and headline in the browser's language, else "Weather warning"), and the error goes to the worker's console.

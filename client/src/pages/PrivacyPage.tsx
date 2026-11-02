@@ -48,7 +48,8 @@ export function PrivacyPage() {
         </li>
         <li>
           if you turn on warning notifications: the places and settings you chose, and the texts used to write
-          notifications in your language.
+          notifications in your language; after you tap a notification, the page it opens, until the app shows it (at
+          most two minutes).
         </li>
       </ul>
 

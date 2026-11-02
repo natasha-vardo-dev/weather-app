@@ -84,6 +84,15 @@ The forces:
 - **Every step of a click has a time limit** (3 s), and focusing does not hold up opening the place: in Safari on a
   Mac a `focus()` that never settled, awaited first, left nothing opened and the click event unfinished, after which
   no more notifications came (2026-11-02).
+- **The worker also records the page to open, and the app picks it up when it shows** (2026-11-02): with both
+  changes above an iPhone still showed Rhodes when the app was running, while a closed app opened Warsaw. The likely
+  reason is that iOS brings a running app forward without the message, `navigate()` or the URL of `openWindow()`
+  reaching it. Storage reaches it whatever iOS does with windows. The record holds a path and a time, is used once,
+  and is ignored after two minutes, so returning to the app later never jumps to an old warning's city. The worker
+  logs which route it took, since a phone cannot be watched otherwise. Not yet seen working on the iPhone itself.
+  Recording runs alongside focusing and opening a window, never before them (browsers allow those only shortly after
+  the click), and a page already at the place does not navigate to it again, which would add a history entry and make
+  Back seem broken (both found by roborev).
 
 ## Consequences
 
