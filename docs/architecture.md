@@ -468,6 +468,8 @@ succeeded (every feed read, nothing refused) for 30 minutes, or FCM refused mess
   with no window of the app open, a new one; with one open, the worker focuses it and asks its page to open the city
   (`open-place` message, `useOpenFromNotification`, the app's router, no reload), and navigates the window itself
   (`WindowClient.navigate`) only when the page does not confirm within a second, a new window as the last resort. Focusing runs alongside, and every step has a 3 s limit (`within`), so the click event always ends. Alongside, the worker records the page to open (`recordOpen`, IndexedDB `open`, with the time; waited for at most 500 ms, and only before messaging the page, so focus() and openWindow() start at once), and the app opens a record under two minutes old when it loads or shows again, checking once more a second later, and removes it (`takePendingOpen`); the message route removes it too. A page already at the place does not navigate again (no second history entry). Each route taken is logged to the worker's console (`notification click: …`), for Safari's Web Inspector.
+- **iPhone, app running:** iOS does not dispatch `notificationclick` then, so a tap only brings the app forward on the
+  page it showed; a closed app is launched and opens the city.
 - Every push shows a notification. If writing the full one throws (stored state of an older format, IndexedDB
   unavailable, an invalid locale), a plainer one with the same tag is shown from the message alone (the issuer's event
   and headline in the browser's language, else "Weather warning"), and the error goes to the worker's console.
