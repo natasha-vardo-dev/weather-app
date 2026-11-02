@@ -7,6 +7,7 @@ import { ClockIcon, NoSignalIcon } from './components/NoticeIcons';
 import { WeatherIcon } from './components/WeatherIcon';
 import { useStaleReason } from './hooks/useOffline';
 import { usePushMaintenance } from './hooks/useAlertNotifications';
+import { useOpenFromNotification } from './hooks/useOpenFromNotification';
 import { useI18n } from './i18n/I18nProvider';
 import { placePath } from './locationUrl';
 import { HomePage } from './pages/HomePage';
@@ -22,6 +23,7 @@ export function App() {
   const { t } = useI18n();
   const stale = useStaleReason();
   usePushMaintenance();
+  useOpenFromNotification();
 
   return (
     <div className="page">

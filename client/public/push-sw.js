@@ -150,21 +150,53 @@ self.addEventListener('push', (event) => {
   );
 });
 
+/** How long an open page has to confirm it went to the place itself. */
+const PAGE_ANSWER_MS = 1000;
+
+/**
+ * Asks a window of the app to open `path` itself, with its router (no reload); true once the
+ * page confirmed (useOpenFromNotification). False without an answer in time: a page of an older
+ * version, or one the browser has not resumed.
+ */
+function askPageToOpen(client, path) {
+  return new Promise((resolve) => {
+    try {
+      const channel = new MessageChannel();
+      const timer = setTimeout(() => resolve(false), PAGE_ANSWER_MS);
+      channel.port1.onmessage = () => {
+        clearTimeout(timer);
+        resolve(true);
+      };
+      client.postMessage({ type: 'open-place', path }, [channel.port2]);
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = new URL(event.notification.data?.url ?? '/', self.location.origin).href;
-  // Reuse a window of the app this worker controls: navigate() rejects for one it doesn't
-  // (opened before the worker, or after a hard reload), and then a new one opens. A failed
-  // focus() after a navigation that worked is ignored: the page is already there, and
-  // opening another window would show it twice.
+  const url = new URL(event.notification.data?.url ?? '/', self.location.origin);
+  // A window of the app already open is reused: focused first (while the click still counts as
+  // the user's), then asked to open the place itself. WindowClient.navigate() alone was not
+  // enough: on an iPhone the app resumed from the background on the page it showed before (seen
+  // 2026-11-02: Rhodes stayed open after tapping a warning for Warsaw). It remains the fallback
+  // for a page that does not answer, and a new window the last one. A failed focus() is ignored.
   event.waitUntil(
-    self.clients.matchAll({ type: 'window' }).then((windows) => {
-      const open = windows.find((w) => 'navigate' in w);
-      if (!open) return self.clients.openWindow(url);
-      return open.navigate(url).then(
-        (w) => (w ?? open).focus().catch(() => {}),
-        () => self.clients.openWindow(url),
-      );
+    self.clients.matchAll({ type: 'window' }).then(async (windows) => {
+      const open = windows[0];
+      if (!open) return self.clients.openWindow(url.href);
+      await Promise.resolve(open.focus?.()).catch(() => {});
+      if (await askPageToOpen(open, url.pathname + url.search)) return undefined;
+      if ('navigate' in open) {
+        try {
+          const navigated = await open.navigate(url.href);
+          if (navigated) return undefined;
+        } catch {
+          // Not this worker's window (opened before it, or after a hard reload): a new one.
+        }
+      }
+      return self.clients.openWindow(url.href);
     }),
   );
 });
