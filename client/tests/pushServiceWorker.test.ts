@@ -129,6 +129,7 @@ describe('push service worker', () => {
             transaction: () => {
               throw new Error('InvalidStateError');
             },
+            close: () => {},
           }),
       }),
     ],
