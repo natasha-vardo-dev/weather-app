@@ -37,7 +37,7 @@ export const FEED_LIMITS = { entries: 5000, polygonsPerEntry: 50, pointsPerPolyg
 /**
  * Downloads at a time, per queue. The notifier's full warnings have a queue of their own: after
  * downtime it asks for hundreds at once, and in the pages' queue a visitor's warning would wait
- * behind all of them, past the client's 15 s timeout. (Found by roborev.)
+ * behind all of them, past the client's 15 s timeout.
  */
 const MAX_CONCURRENT = { feeds: 40, caps: 10, notifierCaps: 5 } as const;
 

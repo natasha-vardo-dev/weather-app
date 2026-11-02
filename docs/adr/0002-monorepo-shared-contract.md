@@ -6,8 +6,8 @@
 ## Context
 
 The client and the server change together: most features touch the API, the server and the page in one go. A
-mismatch between them should fail at compile time, not in a user's browser. A mobile app (React Native) may come
-later and should reuse the same logic.
+mismatch between them should fail at compile time, not in a user's browser. The same logic is meant to serve a
+mobile app (React Native) as well.
 
 ## Decision
 

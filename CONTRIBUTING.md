@@ -30,7 +30,8 @@ npm run build && npm run preview -w client   # http://localhost:4173
 | `server/src/services`     | Logic and caches                                                                                     |
 | `server/src/providers`    | One adapter per external API (Open-Meteo, MeteoAlarm, Nominatim, ipwho.is, FCM)                      |
 | `client/src/hooks`        | Data loading (`useForecast`, `useAirQuality`, `useAlerts`, …)                                        |
-| `client/src/components`   | UI; `pages/` for the routes                                                                          |
+| `client/src/pages`        | One component per route: start page, city page, `/privacy`, not found                                |
+| `client/src/components`   | The UI the pages are made of                                                                         |
 | `client/src/i18n/locales` | The 8 languages: en, de, fr, es, it, pl, uk, ru                                                      |
 | `client/e2e`              | Playwright tests on the production build                                                             |
 | `deploy/vm`               | The API's VM: `setup.sh`, `deploy.sh`, the systemd unit                                              |
@@ -47,9 +48,12 @@ npm run openapi             # after changing a schema in shared: regenerates doc
 npm run providers:check -w server   # the real Open-Meteo and MeteoAlarm still read (daily in CI)
 ```
 
+One test file, in watch mode, from its package: `cd server && npx vitest cache` (any part of the file name). One
+e2e scenario with the browser visible: `cd client && npx playwright test offline --headed`; after a failed run,
+`npx playwright show-report` opens the report with traces.
+
 CI runs all but the last on every pull request and push to `main` (and every Monday), and on pull requests also fails
-on a breaking API change within `/api/v1` (oasdiff; not yet run on a real one, see
-[Not verified live](docs/operations.md#not-verified-live)). The provider check runs daily on its own
+on a breaking API change within `/api/v1` (oasdiff). The provider check runs daily on its own
 (`.github/workflows/providers.yml`).
 
 ## Rules that are easy to miss
@@ -77,7 +81,7 @@ in a response all the same; a code only the client makes stays out of the API's 
 
 - every new text goes into all 8 locale files (the `Messages` type will not compile without them); numbers and dates
   through `Intl` (`num`, `deg`);
-- text contrast at least 4.5:1, icons 3:1 (axe in e2e catches it); fills on the blue background usually break it;
+- text contrast at least 4.5:1, icons 3:1 (axe in e2e catches it); most fills on the blue background fall below it;
 - React Compiler rules are errors: derive state while rendering instead of copying it in an effect; read the clock
   through `useNow`, not `Date.now()` in render;
 - `localStorage` and API answers are untrusted input: check them when read;
@@ -118,21 +122,32 @@ Tests mock Firebase, so check push by hand after updating `firebase` or `firebas
 
 When you choose between options, write a record in [docs/adr/](docs/adr/README.md) from `template.md`: the context,
 the choice, its cost and what was rejected. [docs/architecture.md](docs/architecture.md) only says how things work,
-with a `Why:` link to the record. Records are not rewritten later; a new one supersedes them.
+with a `Why:` link to the record. A changed decision is not edited into the old record: a new record supersedes it.
+The text of a record may be corrected or shortened as long as its decision stays the same.
 
 ## Done means
 
 - it works in the deployed version, not only locally;
 - it is covered by tests;
 - it was checked in a browser (a production build for anything the service worker touches);
-- it is described in the README or `docs/`;
-- anything not checked live is written down as such.
+- it is described in the README or `docs/`.
 
 ## Branches and merging
 
-Work on a short-lived branch and open a pull request into `main`; merge it with a **merge commit**
-(`.git-blame-ignore-revs` relies on the history), then deploy ([docs/deploy-aws.md](docs/deploy-aws.md#updating-and-rolling-back)).
+Work on a short-lived branch and open a pull request into `main` (the template lists what "done" means); merge it
+with a **merge commit** (`.git-blame-ignore-revs` relies on the history), then deploy
+([docs/deploy-aws.md](docs/deploy-aws.md#updating-and-rolling-back)) and tag the commit `deploy.sh` printed:
+
+```bash
+t=deploy/$(date +%F-%H%M) && git fetch origin && git tag -a "$t" -m "Deployed to the VM" <commit> && git push origin "$t"
+```
+
 There is no long-lived `dev` branch ([ADR 0032](docs/adr/0032-dependabot-into-main.md)).
+
+**Commit messages:** `<area>: <what changed>`, lower case, imperative, under 72 characters; the body says why when
+the diff does not. Areas: `client`, `server`, `shared`, `e2e`, `docs`, `deploy`, `ci`, `deps` (Dependabot uses the
+last two). A commit that touches several areas names the main one. Examples: `server: refuse a blank lat or lon`,
+`docs: how it works in architecture.md, why in ADRs`.
 
 Dependabot opens its pull requests against `main` too. When one fails CI, comment `@dependabot rebase` rather than
 pressing "Update branch". A Firebase update needs a live push check before merging (above).

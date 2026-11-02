@@ -11,7 +11,7 @@ import { takePendingOpen } from '../push/pendingOpen';
  *   or shows again: an iPhone brought a running app forward without either reaching it.
  * The record is removed when used either way, so coming back later never jumps to it again.
  * A page already at the place stays as it is: navigating to it again would add a second history
- * entry, and Back would seem to do nothing. (Found by roborev.)
+ * entry, and Back would seem to do nothing.
  */
 
 /** The worker records the place alongside opening the window: checked again a moment later. */
@@ -22,7 +22,7 @@ export function useOpenFromNotification(): void {
   // The page shown now and the router's navigate, read by the listeners below: the effect runs
   // once. navigate() changes with every pathname under BrowserRouter, and as a dependency it
   // subscribed everything again, and read IndexedDB twice, on every move; a record taken just
-  // then was dropped by the cleanup and the place never opened. (Found by roborev.)
+  // then was dropped by the cleanup and the place never opened.
   const shown = useRef('');
   const go = useRef(navigate);
   useEffect(() => {

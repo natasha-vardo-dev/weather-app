@@ -1,5 +1,9 @@
 # Weather Forecast App
 
+[![CI](https://github.com/natasha-vardo-dev/weather-app/actions/workflows/ci.yml/badge.svg)](https://github.com/natasha-vardo-dev/weather-app/actions/workflows/ci.yml)
+[![Providers](https://github.com/natasha-vardo-dev/weather-app/actions/workflows/providers.yml/badge.svg)](https://github.com/natasha-vardo-dev/weather-app/actions/workflows/providers.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Current weather, the next 24 hours and a 10-day forecast for any place, with official European weather warnings, in 8
 languages, installable and usable offline.
 
@@ -50,13 +54,15 @@ flowchart LR
 
 The browser talks only to our API (backend for frontend), which caches provider answers and guards their free limits.
 
-| Read                                         | For                                                    |
-| -------------------------------------------- | ------------------------------------------------------ |
-| [docs/architecture.md](docs/architecture.md) | how each part works, and the key parameters            |
-| [docs/adr/](docs/adr/README.md)              | why it is built this way, and what was rejected        |
-| [CONTRIBUTING.md](CONTRIBUTING.md)           | set-up, checks, code rules, push set-up                |
-| [docs/operations.md](docs/operations.md)     | monitoring, alerts, secrets, what is not verified live |
-| [docs/deploy-aws.md](docs/deploy-aws.md)     | deploying the API, updates and rollback                |
+| Read                                         | For                                             |
+| -------------------------------------------- | ----------------------------------------------- |
+| [docs/architecture.md](docs/architecture.md) | how each part works, and the key parameters     |
+| [docs/adr/](docs/adr/README.md)              | why it is built this way, and what was rejected |
+| [CONTRIBUTING.md](CONTRIBUTING.md)           | set-up, checks, code rules, push set-up         |
+| [docs/operations.md](docs/operations.md)     | monitoring, alerts, secrets, dependency updates |
+| [docs/deploy-aws.md](docs/deploy-aws.md)     | deploying the API, updates and rollback         |
+| [docs/backlog.md](docs/backlog.md)           | what comes next, in order                       |
+| [SECURITY.md](SECURITY.md)                   | reporting a vulnerability                       |
 
 ## Project structure
 
@@ -83,6 +89,28 @@ npm run dev
 
 Push notifications are optional and need a free Firebase project:
 [CONTRIBUTING.md](CONTRIBUTING.md#push-notifications-optional).
+
+### Configuration
+
+The server reads `server/.env` (on the VM `/etc/weather-api.env`); every setting is explained in
+[`server/.env.example`](server/.env.example). In production the server refuses to start with a missing or unsafe one.
+
+| Variable                                           | Required    | What                                                                                                             |
+| -------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| `PORT`, `LISTEN_HOST`                              | no          | `3001`; all interfaces, `127.0.0.1` behind Caddy                                                                 |
+| `CORS_ORIGIN`                                      | no          | origins allowed in development, default `http://localhost:5173`; unset in production (same origin via the proxy) |
+| `FORECAST_CACHE_TTL`                               | no          | seconds a forecast is cached, `900`                                                                              |
+| `NOMINATIM_USER_AGENT`                             | no          | identifies the app to Nominatim, as its policy requires; the default names this repository, a fork sets its own  |
+| `PROXY_SECRET`                                     | production  | shared with the Vercel middleware; requests without it get 404                                                   |
+| `TRUST_PROXY`                                      | production  | proxies in front that set `X-Forwarded-For` (`1` on the VM)                                                      |
+| `IP_SELF_LOOKUP`                                   | development | look up this machine's own address for the approximate location; never in production                             |
+| `FIREBASE_SERVICE_ACCOUNT`, `ALERTS_NOTIFY_SECRET` | with push   | the Firebase key (JSON or base64) and the scheduler's bearer secret                                              |
+| `METRICS_SECRET`                                   | no          | enables `GET /api/internal/metrics`                                                                              |
+| `LOG_LEVEL`                                        | no          | `info`; `debug` logs every provider call                                                                         |
+
+The site: `VITE_FIREBASE_*` (public, only with push) and `VITE_API_URL` (empty: same origin) in `client/.env`
+([`client/.env.example`](client/.env.example)); on Vercel also `API_ORIGIN` and `PROXY_SECRET` for the proxy
+([docs/deploy-aws.md](docs/deploy-aws.md#6-the-site-and-the-scheduler)).
 
 ```bash
 npm test           # unit and component tests
@@ -114,8 +142,9 @@ Versioned in the path (`/api/v1`); within a version only compatible changes are 
 | GET    | `/api/internal/metrics`                                  | Cache and provider metrics (bearer secret)         |
 | GET    | `/api/health`, `/api/health/quota`, `/api/health/notify` | Health checks for uptime monitors                  |
 
-Errors: `{ "error": { "code": "INVALID_REQUEST", "message": "..." } }`. Requests are rate-limited per IP; over the limit
-the answer is `429 RATE_LIMITED` with `Retry-After` ([limits](docs/architecture.md#key-parameters)).
+Errors: `{ "error": { "code": "INVALID_REQUEST", "message": "..." } }`; the codes and the status each comes with are
+described in the OpenAPI file. Requests are rate-limited per IP; over the limit the answer is `429 RATE_LIMITED` with
+`Retry-After` ([limits](docs/architecture.md#key-parameters)).
 
 ## Deployment
 
@@ -127,21 +156,19 @@ the answer is `429 RATE_LIMITED` with `Retry-After` ([limits](docs/architecture.
   setting.
 - **Monitoring:** four UptimeRobot monitors ([docs/operations.md](docs/operations.md)).
 
-## Assumptions
+## Scope and limits
 
 - No accounts: favourites live in the browser and do not sync between devices.
-- 10 days of forecast: Open-Meteo returns up to 16, but accuracy drops sharply after 10.
+- 10 days of forecast by default; the API accepts up to 16 (`days`).
 - Only temperature has a unit switch; wind stays in km/h.
-- The 8 translations are machine-quality drafts that need native speakers before a real release.
-- Warnings cover Europe only (MeteoAlarm's 39 countries); no banner means no warning was found, not a promise of calm
-  weather.
+- The 8 translations are machine translations; a review by native speakers is in the backlog.
+- Warnings cover Europe only (MeteoAlarm's 39 countries); no banner means no warning was found for the place.
 - Free data sources and hosting only, so their limits are product requirements
-  ([ADR 0004](docs/adr/0004-provider-limits.md)); the API host is free for the first 6 months, then about $10–12 a
-  month ([ADR 0020](docs/adr/0020-api-on-aws-ec2.md)).
-- Availability is best effort: one API instance, deployed by hand; a deploy is a few seconds without it.
+  ([ADR 0004](docs/adr/0004-provider-limits.md)); the API host is on the AWS free plan, which ends after 6 months
+  ([ADR 0020](docs/adr/0020-api-on-aws-ec2.md)).
+- One API instance, deployed by hand; a deploy restarts it, a few seconds without the API.
 - On an iPhone with the app already open, tapping a notification only brings the app forward
   ([ADR 0026](docs/adr/0026-push-delivery-details.md)).
-- Not everything was verified on the deployed app: [the list](docs/operations.md#not-verified-live).
 
 ## Trade-offs and decisions
 
@@ -155,10 +182,21 @@ the answer is `429 RATE_LIMITED` with `Retry-After` ([limits](docs/architecture.
 - **EC2, not Render:** free Render shares outgoing addresses, and Open-Meteo, which limits per address, refused every
   forecast there ([ADR 0019](docs/adr/0019-api-on-oracle-free-vm.md), [ADR 0020](docs/adr/0020-api-on-aws-ec2.md)).
 
-## What I would do next
+## Next steps
+
+The full list, in order, is [docs/backlog.md](docs/backlog.md). First:
 
 - Deploy the API from `main` automatically
 - A second forecast source (MET Norway) for when Open-Meteo fails or its free limits are outgrown
+- A coverage threshold and branch protection on `main`
 - A wind unit setting; accounts so favourites sync between devices
-- More e2e scenarios (notifications, the service worker's update)
-- With a second API instance: Redis for the cache and rate limits
+
+## Licence and credits
+
+The code is under the [MIT licence](LICENSE) ([ADR 0033](docs/adr/0033-mit-licence.md)). The deployed service is
+non-commercial: Open-Meteo's free tier allows only that, and the data stays under its providers' terms, credited in
+the app (Open-Meteo, © OpenStreetMap contributors for Nominatim, EUMETNET – MeteoAlarm).
+
+Author: [Natallia Savastsenia](https://github.com/natasha-vardo-dev). Questions and bugs go to
+[GitHub issues](https://github.com/natasha-vardo-dev/weather-app/issues); a security problem to
+[SECURITY.md](SECURITY.md).

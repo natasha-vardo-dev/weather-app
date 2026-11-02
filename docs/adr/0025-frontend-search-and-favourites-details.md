@@ -5,9 +5,8 @@
 
 ## Context
 
-This ADR records, after the fact, the reasoning that used to live in `docs/architecture.md` next to the description of
-the client ("Frontend", "Same-named places in search", "Favourites" and the page-layout notes). Architecture now
-describes only how these parts work; the reasons, trade-offs and rejected options are kept here. The larger decisions
+This record holds the smaller decisions about the client ("Frontend", "Same-named places in search", "Favourites" and
+the page layout); `docs/architecture.md` describes only how these parts work. The larger decisions
 have their own ADRs: links by id ([0006](0006-place-urls-by-id.md)), favourites in the browser
 ([0007](0007-favourites-in-browser.md)), fewer languages ([0016](0016-fewer-languages.md)).
 
@@ -89,7 +88,7 @@ The forces behind these smaller choices:
   is always the most severe and soonest, so nothing urgent is folded. The chance of rain shares one fixed-height slot
   with the icon so the strip keeps one height (an empty row that came and went is why it was dropped at first); a dry
   hour's icon sits in the middle, as in Apple Weather, at the cost of icons not on one line.
-- **Weather icon after the current temperature.** Chosen by the owner on 1 November 2026, variant A of four mockups:
+- **Weather icon after the current temperature.** Variant A of four mockups (1 November 2026):
   after the number, centred and sized from its font, so the weather reads at a glance with the number. It is
   decorative because the condition is the next line. History: an icon was tried before, then after the number, and
   removed (the number led alone, the condition written below, the strip and the list having icons) before this.
@@ -104,8 +103,8 @@ The forces behind these smaller choices:
 - **No home city, no pinning, newest first.** With at most 10 saved cities, all visible at once, either added a second
   concept and a button on every city page for little gain, and the row by the name is shorter without it. "My city
   first" is better met by geolocation (the crosshair in the search field).
-- **On phones the greeting sits right under the search**, with the page's usual spacing (2026-11-02, the owner's pick
-  from four mockups). The 12vh gap above it left an empty band under the search bar on a small screen and pushed
+- **On phones the greeting sits right under the search**, with the page's usual spacing (2026-11-02, one of four
+  mockups). The 12vh gap above it left an empty band under the search bar on a small screen and pushed
   favourites down by about 100 px. Only the gap goes, so it is one CSS rule with nothing to translate; on wider screens,
   where the gap balances the large greeting, it stays.
 
@@ -152,7 +151,7 @@ The forces behind these smaller choices:
 - **Full-list feedback:** a link to the favourites in the message (tried and dropped); a "10" badge on the star, a line
   under the name, a notice in the page flow (compared on mockups); the earlier always-visible hint with a dashed star.
 - **A home city** ("⌂ Home" next to the star, first in the strip and cards, stored in `home-city:v1`): built and
-  removed by the author's decision. Before it, opening the app straight on the home city (`/` redirecting to it, cards
+  removed. Before it, opening the app straight on the home city (`/` redirecting to it, cards
   moved to `/favourites`) was tried and dropped: it needed an extra "All favourites" link and made `/` mean different
   things to different people.
 - **Pinning** (pinned cities first): prototyped and removed for the same reason as the home city.

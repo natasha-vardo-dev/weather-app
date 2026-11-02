@@ -18,7 +18,7 @@ export function isPrivateIp(ip: string): boolean {
  * What the cache keeps instead of an IP address: a keyed hash, the same for one address while
  * the process lives, and with the key never stored, not to be turned back into the address
  * (unlike a plain hash: there are few enough IPv4 addresses to hash them all). So a day's
- * cache does not hold who asked from where (privacy policy; found by roborev).
+ * cache does not hold who asked from where (privacy policy).
  */
 export function ipFingerprint(ip: string, key: Buffer): string {
   return createHmac('sha256', key).update(ip).digest('base64url');

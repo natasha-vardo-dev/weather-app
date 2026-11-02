@@ -8,7 +8,7 @@ import type { Logger } from '../observability/logger.js';
  *
  * A refresh refused by the budget (BusyError) is not logged here: the budget logs refusals
  * once a minute, and every request for a stale value starts a refresh, so a line each would
- * flood the logs while the budget is spent. (Found by roborev.) Likewise a refresh refused by
+ * flood the logs while the budget is spent. Likewise a refresh refused by
  * the requester's own allowance (RateLimitedError, LoadLimiter): the stale value goes out to them.
  */
 export function staleErrorLogger(logger: Logger | undefined, cache: string) {

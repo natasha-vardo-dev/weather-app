@@ -81,7 +81,7 @@ export function weatherRouter(service: WeatherService, logger?: Logger, loads?: 
       if (failed.length === settled.length) throw failed[0]!.reason;
       for (const { reason } of failed) {
         // A budget refusal is logged by the budget, once a minute: here it would be up to ten
-        // lines a request while the budget is spent. (Found by roborev.)
+        // lines a request while the budget is spent.
         // Likewise a refused allowance, logged by the limiter.
         if (reason instanceof BusyError || reason instanceof RateLimitedError) continue;
         // A bug (not an AppError) keeps its stack in the log, as it would on /forecast.

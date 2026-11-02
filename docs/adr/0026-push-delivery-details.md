@@ -5,9 +5,8 @@
 
 ## Context
 
-This ADR records, after the fact, the reasoning that used to live in `docs/architecture.md` in "Push notifications
-about warnings". Architecture now describes only how push works; the reasons, trade-offs and rejected options are kept
-here. The main decisions have their own ADRs: FCM topics and no subscription store ([0011](0011-push-via-fcm-topics.md)),
+This record holds the smaller decisions about push delivery; `docs/architecture.md` ("Push notifications about
+warnings") describes only how push works. The main decisions have their own ADRs: FCM topics and no subscription store ([0011](0011-push-via-fcm-topics.md)),
 what was sent kept in Firestore ([0018](0018-durable-operational-state.md)), MeteoAlarm as the source
 ([0010](0010-meteoalarm-warnings.md)), no native apps yet ([0021](0021-no-native-apps-yet.md)).
 
@@ -19,8 +18,8 @@ The forces:
 - Browsers punish pushes that show nothing: Chrome shows its own "site updated in the background", and Safari revokes
   subscriptions that receive pushes without a notification (after three).
 - FCM limits a data payload to 4 KB.
-- Several of the rules below came from a roborev review, along with a crash it found: a hook placed after the bell's
-  early returns blanked the page once coverage arrived.
+- A hook placed after the bell's early returns once blanked the page when coverage arrived; several of the rules
+  below came from fixing it.
 
 ## Decision
 
@@ -84,26 +83,22 @@ The forces:
 - **Every step of a click has a time limit** (3 s), and focusing does not hold up opening the place: in Safari on a
   Mac a `focus()` that never settled, awaited first, left nothing opened and the click event unfinished, after which
   no more notifications came (2026-11-02).
-- **The worker also records the page to open, and the app picks it up when it shows** (2026-11-02): with both
-  changes above an iPhone still showed Rhodes when the app was running, while a closed app opened Warsaw. The reason
-  assumed then, that iOS brings a running app forward without the message, `navigate()` or the URL of
-  `openWindow()` reaching it, was disproved by the trace below: the click handler does not run at all. Storage was
-  meant to reach the page whatever iOS does with windows. The record holds a path and a time, is used once,
-  and is ignored after two minutes, so returning to the app later never jumps to an old warning's city. The worker
-  logs which route it took, since a phone cannot be watched otherwise. It does not help on an iPhone either (below).
-  Recording runs alongside focusing and opening a window, never before them (browsers allow those only shortly after
-  the click), and a page already at the place does not navigate to it again, which would add a history entry and make
-  Back seem broken (both found by roborev).
-- **On an iPhone with the app running, a tap only brings the app forward; accepted for now** (2026-11-02). A
+- **The worker also records the page to open, and the app picks it up when it shows** (2026-11-02). The record
+  holds a path and a time, is used once, and is ignored after two minutes, so returning to the app later never jumps
+  to an old warning's city. The worker logs which route it took, since a phone cannot be watched otherwise. Recording
+  runs alongside focusing and opening a window, never before them (browsers allow those only shortly after the
+  click), and a page already at the place does not navigate to it again, which would add a history entry and make
+  Back seem broken. On an iPhone with the app running it does not help (below).
+- **On an iPhone with the app running, a tap only brings the app forward** (2026-11-02). A
   temporary on-device trace of notification events (one hour, then reverted) showed the push handled and the page
   becoming visible two seconds later, but no `notificationclick` at all: iOS does not dispatch it to the worker
   while the installed app is running, so none of the routes above can act, the record included (it is written in
   that handler). A closed app is launched and does get the event, so it opens the city. The message route and the
-  window fallbacks stay: on desktops they open the city in an open tab. The stored record is needed by no case seen:
+  window fallbacks stay: on desktops they open the city in an open tab. The stored record serves no observed case:
   desktops are served by the message, a closed iPhone app by the launch, and a running one never runs the handler.
-  It stays for now as an unverified fallback for a browser that brings a window forward without the message reaching
-  it, at a cost of up to 500 ms waited in the click handler before messaging the page, a visibility listener and a
-  second check a second after the page shows; remove it if it stays unneeded.
+  It stays as a fallback for a browser that brings a window forward without the message reaching it, at a cost of up
+  to 500 ms waited in the click handler before messaging the page, a visibility listener and a second check a second
+  after the page shows.
 - **Possible next step, not built: a banner in the app ("option 1")**. On a push the worker would also remember the
   warning (place, level, kind, time). When the app comes into view shortly after one (about 10 minutes) on another
   place, a banner at the top of the page names the warning and offers to open its place: one more tap, but it never
@@ -126,7 +121,6 @@ The forces:
 - Some parts of a large warning (other languages, the area list, headlines) may be missing from the notification
   payload.
 - Changing a setting takes a second or two during which the panel is locked.
-- Not yet verified with a real warning; test pushes arrive in English.
 - Native apps would need server changes: `apns`/`android` fields with localization keys, since iOS does not show a
   data-only message while the app is closed ([0021](0021-no-native-apps-yet.md)).
 

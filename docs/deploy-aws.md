@@ -1,15 +1,15 @@
 # Deploying the API to AWS EC2
 
 Why EC2: [ADR 0020](adr/0020-api-on-aws-ec2.md). The site is on Vercel (step 6). Commands run on
-your computer unless marked "on the VM". `203.0.113.10` below stands for your Elastic IP.
+your computer unless marked "on the VM". `203.0.113.10` below stands for your Elastic IP and `~/.ssh/weather-api.pem`
+for wherever you keep the key pair's file. Commands are for macOS and Linux; on Windows use WSL.
 
 ## 1. Account and budget
 
 1. Sign up at [aws.amazon.com/free](https://aws.amazon.com/free/) and choose the **free plan**. A card is asked for.
 2. Top right, pick the region: **Europe (Stockholm) eu-north-1** (or Frankfurt). Everything below is created in it.
 3. Note the date the free plan ends (Billing home page). The plan does not turn into charges: at that date, or when
-   the credits run out, the account is suspended and the API stops. Before it, upgrade to the paid plan (about
-   $10–12 a month) or move; put the date in your calendar.
+   the credits run out, the account is suspended and the API stops. Before it, upgrade to the paid plan or move; put the date in your calendar.
 4. **Billing and Cost Management → Budgets → Create budget → Use a template → Zero spend budget**, with your email:
    after an upgrade, it warns of the first charge.
 
@@ -47,8 +47,8 @@ resolves to `203.0.113.10`, with nothing to register. Check: `nslookup 203-0-113
 ## 5. Set up the VM
 
 ```bash
-chmod 600 ~/Downloads/weather-api.pem
-ssh -i ~/Downloads/weather-api.pem ubuntu@203.0.113.10
+chmod 600 ~/.ssh/weather-api.pem
+ssh -i ~/.ssh/weather-api.pem ubuntu@203.0.113.10
 ```
 
 On the VM:
@@ -69,8 +69,9 @@ sudo nano /etc/weather-api.env
 - `FIREBASE_SERVICE_ACCOUNT` and `ALERTS_NOTIFY_SECRET`: for push.
 
 To copy a value without showing it, on your computer: `openssl rand -base64 48 | tr -d '\n' | pbcopy` for a new
-secret, `base64 -i <key>.json | tr -d '\n' | pbcopy` for the Firebase key. Paste into nano with Cmd+V, save with
-Ctrl+O, Enter, Ctrl+X. Then build and start:
+secret, `base64 -i <key>.json | tr -d '\n' | pbcopy` for the Firebase key (Linux: `base64 -w0 <key>.json` and
+`xclip -selection clipboard` or `wl-copy` instead of `pbcopy`). Paste into nano (Cmd+V, or Shift+Ctrl+V in a Linux
+terminal), save with Ctrl+O, Enter, Ctrl+X. Then build and start:
 
 ```bash
 sudo bash /opt/weather-app/deploy/vm/deploy.sh
@@ -100,17 +101,26 @@ states it) is in force: the output of `systemd-analyze cat-config systemd/journa
 
 ## Updating and rolling back
 
-A deploy is manual for now: after merging to `main`,
+A deploy is manual: after merging to `main`,
 
 ```bash
-ssh -i ~/Downloads/weather-api.pem ubuntu@203.0.113.10 sudo bash /opt/weather-app/deploy/vm/deploy.sh
+ssh -i ~/.ssh/weather-api.pem ubuntu@203.0.113.10 sudo bash /opt/weather-app/deploy/vm/deploy.sh
 ```
+
+It prints `Deployed <commit>.` Then tag that commit, so `git log --tags` lists every deploy:
+
+```bash
+t=deploy/$(date +%F-%H%M) && git fetch origin && git tag -a "$t" -m "Deployed to the VM" <commit> && git push origin "$t"
+```
+
+`<commit>` is the one `deploy.sh` printed, so the tag names what runs even if `main` moved on meanwhile; the time in
+the name keeps several deploys a day apart.
 
 A failed pull or build stops before anything changes, and a build that does not answer within 30 s is replaced by the
 previous one at once (the script then fails, with the log to read). The last three builds are kept in
-`/opt/weather-app-releases`: to go back, `ls -t /opt/weather-app-releases` on the VM and
-`sudo bash /opt/weather-app/deploy/vm/deploy.sh <commit>`. Not yet tried on the live VM (see
-[Not verified live](operations.md#not-verified-live)).
+`/opt/weather-app-releases`: to go back, `ls -t /opt/weather-app-releases` on the VM (or `git rev-parse 'deploy/<tag>^{commit}'`
+on your computer for the commit a tag names) and `sudo bash /opt/weather-app/deploy/vm/deploy.sh <commit>`. A kept
+build is switched to without a pull, so this works with GitHub unreachable; any other commit is pulled first.
 
 ## On the VM
 

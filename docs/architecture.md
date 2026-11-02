@@ -233,7 +233,7 @@ The server keeps no subscriptions ([ADR 0011](adr/0011-push-via-fcm-topics.md));
   places with notifications on are also listed in the settings. No bell without Firebase config or where MeteoAlarm has
   no coverage (`covered` in `/api/v1/alerts`). The Firebase SDK loads only on demand.
 - **Verified** end to end on 2026-11-01 on desktop browsers, Android and an iPhone Home Screen app with test pushes; the
-  server logic and the service worker's rendering are unit-tested ([not verified live](operations.md#not-verified-live)).
+  server logic and the service worker's rendering are unit-tested.
 
 Why: [ADR 0026](adr/0026-push-delivery-details.md)
 

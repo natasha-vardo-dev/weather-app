@@ -9,7 +9,7 @@ Redis was in the backlog for two jobs: a second cache level behind the in-memory
 so a restart or a deploy does not start with an empty cache, and a shared store for the per-IP limits
 (`express-rate-limit` and the per-address provider-call allowance, `LoadLimiter`), so several instances count together.
 
-A review on 1 November 2026 weighed what that would buy now:
+What that buys with one instance:
 
 - **The API is one instance** ([0020](0020-api-on-aws-ec2.md)). Its limits in memory are already exact; a shared
   counter adds nothing until there is a second instance.

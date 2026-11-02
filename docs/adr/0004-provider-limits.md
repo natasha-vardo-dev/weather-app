@@ -38,6 +38,6 @@ Growing past these limits means another source or a paid plan, never working aro
 
 ## Alternatives considered
 
-- Several places in one Open-Meteo call: unclear gain (heavy requests count as several calls) and the cache would have
-  to be split per place.
-- A second forecast source (for example MET Norway) behind `WeatherProvider`: not done yet; the way to lift the limit.
+- Several places in one Open-Meteo call: heavy requests count as several calls, and the cache would have to be split
+  per place.
+- A second forecast source (for example MET Norway) behind `WeatherProvider`: not implemented; the way to lift the limit.

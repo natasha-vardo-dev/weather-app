@@ -13,7 +13,7 @@ export interface RateLimits {
    * Batches of forecasts (/api/forecasts, up to 10 places each). A batch is one request but up to
    * ten provider calls, so it has its own allowance in batches: 30 is 300 places, as many as
    * single forecasts. Under the general one only, a script sending batches of new places could
-   * cause ten times as many provider calls. (Found by roborev.)
+   * cause ten times as many provider calls.
    */
   forecasts: number;
   /** City search: most of it misses the cache (a long tail of queries), so each costs provider quota. */

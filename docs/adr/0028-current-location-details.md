@@ -6,21 +6,19 @@
 ## Context
 
 [0013](0013-current-location.md) sets the main rules: location only on request, named with Nominatim and matched to a
-searched city, an IP guess when the browser fails. The details below came from bugs found in use (duplicate cities,
-crashes on cached answers, macOS failing to locate) and from the providers' terms. This ADR records, after the fact,
-the reasoning that used to live in `architecture.md`, which now describes only how current location works.
+searched city, an IP guess when the browser fails. This record holds the details: duplicate cities, cached answers,
+macOS failing to locate, and the providers' terms; `architecture.md` describes only how current location works.
 
 ## Decision
 
-- **Only on demand, low accuracy.** Asking on page load is refused by people who don't understand the prompt yet, a
-  refusal can't be asked again, Chrome hides such prompts, and a permission dialog would be the first thing a visitor
-  sees. City level is enough, and `enableHighAccuracy: false` is faster and uses less battery.
+- **Only on demand, low accuracy.** A permission prompt on page load comes before the visitor has seen the page, a
+  refusal can't be asked again, and Chrome hides such prompts. City level is enough, and `enableHighAccuracy: false` is faster and uses less battery.
 - **One position request.** Chrome on a Mac sometimes answers `kCLErrorLocationUnknown` (code 2) for a while even with
   location services on. Retries within one request, watching the position and high accuracy were tried and did not
   help while it lasted; it is a system state (the same code worked again later). So the error message offers "Try
-  again" (it often works a few seconds later) and a city guessed from the IP address instead.
+  again" and a city guessed from the IP address instead.
 - **The IP guess is offered, not opened, and never after a refusal.** Behind a VPN or an office proxy it can be another
-  city (the author's office traffic goes through a Zscaler node that happens to be in Warsaw). Guessing after a "no"
+  city. Guessing after a "no"
   would go around the user's refusal. The guess goes through `PlaceService` so it is the same Warsaw as from search, and
   a saved one wins on the client. The answer depends on who asks, so it is `private, no-store`.
 - **ipwho.is for the IP guess:** HTTPS, no key, low non-commercial traffic; behind `IpLocator` so it can be swapped.

@@ -49,8 +49,8 @@ zero-spend budget only warns of charges after an upgrade.
 - **Quota:** the body names the provider, window (`perMinute`, `perHour`, `perDay`) and share used. At 90% the server
   itself refuses new calls to that provider (cached answers still go out, the rest gets `503 SERVICE_BUSY`), so the
   alert is the time to look: `GET /api/internal/metrics` with `Authorization: Bearer <METRICS_SECRET>` shows cache hit
-  rates and calls per provider. A per-minute alert usually clears by itself; a daily one that repeats means the app has
-  outgrown the free tier (see [ADR 0004](adr/0004-provider-limits.md)).
+  rates and calls per provider. A per-minute alert ends when the minute window moves on; a daily one that repeats means the daily
+  limit is reached (see [ADR 0004](adr/0004-provider-limits.md)).
 
 With push configured, the quota counters are saved to Firestore once a minute and restored at start
 ([ADR 0018](adr/0018-durable-operational-state.md)), so a restart loses at most a minute of counts. Without Firebase they
@@ -63,7 +63,7 @@ The start's log line `operational state store` says which (`"store":"firestore"`
   - `feedsFailed` lists the same countries for long: MeteoAlarm's feed for them is down or changed (open
     `https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-<country>`); warnings there are not pushed meanwhile;
   - `lastRejectedAt` within the last 30 minutes: FCM refused messages for good (log line `FCM refused messages for good` names the warning);
-    usually a payload problem, a code fix;
+    a payload problem, fixed in code;
   - `lastError` says `lease lost mid-run`: a run outlived its lease (stalled sending) and another instance took over;
     it sends what is left, nothing to do unless it repeats (then FCM or Firestore is slow: their status pages);
   - `PERMISSION_DENIED` or `NOT_FOUND` from Firestore in the log: the database is not created or the service account
@@ -86,7 +86,7 @@ through the server's adapters; GitHub emails a failed scheduled run. The log nam
   warnings are neither shown nor pushed meanwhile. One country failing is not reported here; the notify monitor
   catches it when it lasts.
 - **skipped** (HTTP 429): the runner's shared address was over Open-Meteo's limit, nothing to do; run it again by hand
-  later if in doubt. Our own server is not affected.
+  later. Our own server is not affected.
 
 Locally: `npm run providers:check -w server`.
 
@@ -126,6 +126,13 @@ Admin** and **Cloud Datastore User**, nothing project-wide. On the VM they are i
 `sudo systemctl restart weather-api`. Logs never print a secret; journald on the VM keeps them 14 days (setup.sh; the privacy
 policy states it), and only users with SSH access to the VM can read them.
 
+## Security reports
+
+[SECURITY.md](../SECURITY.md) points reporters to GitHub's private vulnerability reporting, which must be turned on
+once in the repository's settings (Code security → Private vulnerability reporting); reports arrive under the Security
+tab and email the owner. Answer within 7 days, fix and deploy before the advisory is published, then rotate any secret
+the report touched (above).
+
 ## Dependency updates
 
 Dependabot (`.github/dependabot.yml`) opens weekly pull requests into `main` ([ADR 0032](adr/0032-dependabot-into-main.md)): minor and patch updates grouped (production and development apart), each major version alone, Firebase alone (its tests use a fake, so check push notifications live before merging), GitHub Actions monthly. CI also runs every Monday with no change at all, so a newly published vulnerability (the production audit fails on high ones) or a test that depends on the date shows up anyway. In the repository's settings (Code security), turn on Dependabot alerts and security updates: those pull requests come as soon as an advisory is out. Not automated: the Node version in `.nvmrc` (once a year, at a new LTS) and the `@grpc/grpc-js` override in `package.json` (drop it once `firebase` updates grpc itself).
@@ -142,14 +149,3 @@ development tools) is reviewed when the weekly CI run is read; known exceptions,
 
 Do not run `npm audit fix --force`: it proposes downgrades by years. The `@grpc/grpc-js` override in `package.json`
 goes when `firebase` depends on a fixed version itself.
-
-## Not verified live
-
-Everything else in these documents was checked on the deployed app (last on 2026-11-01). These parts work in tests or
-on paper only; check them when the chance comes, then remove the line:
-
-- **A real MeteoAlarm warning pushed in the user's language.** The test notification (`npm run push:test`) arrives in
-  English; one for a real warning, written by the service worker from the stored strings, has not been seen yet.
-- **Rollback with `deploy.sh <commit>`** ([deploy-aws.md](deploy-aws.md#updating-and-rolling-back)): the automatic
-  return to the previous build on a failed start and the manual one by commit have not been tried on the VM.
-- **The oasdiff breaking-change check in CI** has not run on a pull request that changes the API yet.

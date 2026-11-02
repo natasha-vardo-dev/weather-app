@@ -6,9 +6,8 @@
 ## Context
 
 [ADR 0010](0010-meteoalarm-warnings.md) chose MeteoAlarm warnings located by region borders. The details around it
-came from real misses (coastal towns, border towns, pages left open) and from code review with roborev. This ADR
-records, after the fact, the reasoning that used to live in `docs/architecture.md` ("Weather warnings"); that section
-now describes only how the parts work.
+came from real misses (coastal towns, border towns, pages left open). This record holds them; `docs/architecture.md`
+("Weather warnings") describes only how the parts work.
 
 ## Decision
 
@@ -26,7 +25,7 @@ now describes only how the parts work.
 - **Refresh on an open page every 4 minutes (the server's feed TTL):** warnings used to load only when the place or
   language changed, so a page left open missed new warnings and kept showing ended ones. Asking every minute mostly
   got the same answer, at one request per place shown (ten a minute for a start page with ten favourites) through
-  both free hosts (found by roborev). A hidden tab spends no requests; after a failure the next try waits a whole
+  both free hosts. A hidden tab spends no requests; after a failure the next try waits a whole
   interval, not a loop. Components showing the same place share the client cache so they send one request.
 - **Drop expired warnings by the clock:** ended warnings disappear without waiting for the next answer, also after a
   failed refresh.
@@ -37,11 +36,11 @@ now describes only how the parts work.
   Ukraine's); otherwise Norway's outage would hide Helsinki's warnings. The test is "more than 1.5 km inside a region",
   because neither "near" nor plain "inside" was enough: Kreuzlingen (Switzerland) is within 1.5 km of Germany, and
   with rounding and simplification can even land inside Germany, so a failed Swiss feed would have silently left it
-  with Germany's warnings only (found in two rounds of review with roborev).
-- **Untrusted dates:** CAP's `onset` is optional, so the server falls back to other dates (found by roborev). The
-  client never formats an unreadable date: `Intl` throws, and a render error would blank the page (found by roborev).
+  with Germany's warnings only.
+- **Untrusted dates:** CAP's `onset` is optional, so the server falls back to other dates. The
+  client never formats an unreadable date: `Intl` throws, and a render error would blank the page.
 - **No times until the place's time zone is known:** showing them in the reader's zone first would make them jump a
-  moment later, "today" included (found by roborev).
+  moment later, "today" included.
 - **A separate `/alerts` endpoint:** a warnings outage never touches the forecast.
 - **Remember failures for a minute:** while MeteoAlarm is down, requests fail at once instead of each waiting out the
   8-second timeout again.

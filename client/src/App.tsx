@@ -93,7 +93,7 @@ export function App() {
         </a>
         {' · '}
         {/* A full page load, not an in-app link: the page is a chunk loaded on demand, and a tab
-            opened before a deploy would ask for the old chunk, gone by then (found by roborev).
+            opened before a deploy would ask for the old chunk, gone by then.
             Loading the page anew brings the current build; for a page this rare, one reload is
             no cost. */}
         <a href="/privacy">{t.privacy}</a>

@@ -96,7 +96,7 @@ export default defineConfig({
                   // What the API marks no-store is not kept either: a partial batch of forecasts
                   // (one city failed) would otherwise replace the last complete copy, and that
                   // city would show an error offline instead of its last forecast. Returned to
-                  // the page as usual. (Found by roborev.)
+                  // the page as usual.
                   cacheWillUpdate: async ({ response }) =>
                     /no-store/.test(response.headers.get('Cache-Control') ?? '') ? null : response,
                 },

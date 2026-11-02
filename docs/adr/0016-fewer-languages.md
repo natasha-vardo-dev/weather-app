@@ -5,8 +5,8 @@
 
 ## Context
 
-The interface had 19 languages, all machine-quality drafts that nobody had reviewed. An unreviewed translation looks
-careless and, in a weather warning, can mislead. Every new string cost 19 translations. The app's distinctive feature,
+The interface had 19 languages, all machine translations that nobody had reviewed; in a weather warning a wrong
+translation can mislead. Every new string cost 19 translations. The app's distinctive feature,
 official warnings, covers Europe only (see [0010](0010-meteoalarm-warnings.md)), so most of its audience is there.
 
 ## Decision
@@ -15,8 +15,8 @@ Keep English, German, French, Spanish, Italian, Polish, Ukrainian and Russian:
 
 - English is the default and the fallback;
 - German, French, Spanish and Italian cover the largest MeteoAlarm countries;
-- Polish is the first audience (the author is in Poland), and reviewers are within reach;
-- Ukrainian and Russian are widely spoken in Poland and the rest of Europe, and Russian can be reviewed by the author.
+- Polish is the first audience;
+- Ukrainian and Russian are widely spoken in Poland and the rest of Europe.
 
 Removed: Portuguese, Dutch, Swedish, Czech, Turkish (smaller audiences that mostly read English), Arabic, Hebrew,
 Hindi, Japanese, Korean and Chinese (audiences mostly outside the area with warnings, and the hardest to review).

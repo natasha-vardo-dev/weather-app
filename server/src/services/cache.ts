@@ -64,7 +64,7 @@ export interface CacheOptions<T> {
   /**
    * Called once per failed load while a stale value is still kept (in the background, or
    * answered instead of the error). Such errors never reach the error handler, so without a
-   * log an outage behind stale answers would leave no cause anywhere. (Found by roborev.)
+   * log an outage behind stale answers would leave no cause anywhere.
    */
   onStaleError?: (err: unknown) => void;
   now?: () => number;
@@ -203,7 +203,7 @@ export class TtlCache<T> {
     // The entry was usable when the request came, so it is the answer if loading fails, even
     // when the provider's timeout ends past the window, and if the new value is one `keep`
     // refuses (a fallback forced by an error elsewhere): the old real value is better, as in a
-    // background refresh. (Both found by roborev.)
+    // background refresh.
     const old = (): Cached<T> => {
       this.counts.staleOnError += 1;
       return { value: entry.value, stale: true };
@@ -238,7 +238,7 @@ export class TtlCache<T> {
       .finally(() => this.inFlight.delete(key));
     // A failure with no old value reaches the callers and the error handler, which logs it.
     // Decided when the load starts, not when it fails: the old entry may be evicted meanwhile,
-    // and its callers still get it. (Found by roborev.)
+    // and its callers still get it.
     promise.catch((err: unknown) => {
       if (withStale) this.onStaleError?.(err);
     });

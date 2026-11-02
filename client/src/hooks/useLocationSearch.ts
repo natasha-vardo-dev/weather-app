@@ -27,7 +27,7 @@ export function useLocationSearch(query: string, language: string) {
   const key = `${language}:${debounced}`;
   // A query too short drops the answer, not just hides it: otherwise, after choosing a city
   // (the query becomes ''), the next search showed the old list while loading, with its old
-  // highlighted row, and Enter opened the previous city. (Found by roborev.)
+  // highlighted row, and Enter opened the previous city.
   if (tooShort && answer) setAnswer(null);
 
   useEffect(() => {

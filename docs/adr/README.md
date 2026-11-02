@@ -5,8 +5,9 @@ How each part works is in [architecture.md](../architecture.md), with no reasons
 lesson from history is here. Start with the decisions; the design notes below hold the smaller choices
 per area. Each record's own status line has its full history.
 
-A new record copies [template.md](template.md) and takes the next number. A record is not edited when the
-decision changes: a new record supersedes it, and the old one's status says so.
+A new record copies [template.md](template.md) and takes the next number. When a decision changes, the old record
+is not edited to the new one: a new record supersedes it, and the old one's status says so. Correcting or shortening a
+record's text while its decision stays the same is fine.
 
 ## Decisions
 
@@ -35,11 +36,11 @@ decision changes: a new record supersedes it, and the old one's status says so.
 | [0021](0021-no-native-apps-yet.md)          | No native mobile apps for now: the installable site serves phones | Accepted                                                                                                              |
 | [0022](0022-no-redis-while-one-instance.md) | No Redis while the API runs as one instance                       | Accepted                                                                                                              |
 | [0032](0032-dependabot-into-main.md)        | Dependency updates go straight into main                          | Accepted                                                                                                              |
+| [0033](0033-mit-licence.md)                 | MIT licence for the code; the service stays non-commercial        | Accepted                                                                                                              |
 
 ## Design notes
 
-The smaller decisions per area, collected after the fact on 2026-11-02 from what architecture.md used to explain
-inline. Read the one for the area you change.
+The smaller decisions per area. Read the one for the area you change.
 
 | No.                                                    | Area                                                                                           |
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |

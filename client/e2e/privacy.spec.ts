@@ -18,7 +18,7 @@ test('the font is served from the site itself', async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => document.fonts.ready);
   // fonts.check() is true for a family nothing declares too (taken as a system font), so ask
-  // for a declared face of ours that actually loaded. (Found by roborev.)
+  // for a declared face of ours that actually loaded.
   const loaded = await page.evaluate(() =>
     [...document.fonts].some(
       (f) => f.family.replace(/"/g, '') === 'Bricolage Grotesque Variable' && f.status === 'loaded',

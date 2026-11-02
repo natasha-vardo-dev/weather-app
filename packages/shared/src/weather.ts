@@ -187,7 +187,7 @@ export function placeTimeToInstant(localTime: string, timeZone: string): number 
  * now. 0 if the time zone or the time is not readable: better no warning than a wrong one.
  * From the data's instant, not two wall-clock times: those were an hour off across a
  * daylight-saving change (at 03:00 on the spring night, data from 01:45 read 75 minutes old
- * after 15). (Found by roborev.)
+ * after 15).
  */
 export function forecastAgeMinutes(currentTime: string, timeZone: string, now: Date = new Date()): number {
   const instant = placeTimeToInstant(currentTime, timeZone);
