@@ -817,7 +817,8 @@
           "isDay": { "type": "boolean", "description": "Whether it is daytime at the place now." }
         },
         "required": ["time", "temperature", "apparentTemperature", "humidity", "windSpeed", "weatherCode", "isDay"],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "The current hour at the place."
       },
       "DailyForecast": {
         "type": "object",
@@ -917,10 +918,7 @@
             "additionalProperties": false,
             "description": "Units of the numbers in this answer, as the provider names them."
           },
-          "current": {
-            "description": "The current hour.",
-            "allOf": [{ "$ref": "#/components/schemas/CurrentWeather" }]
-          },
+          "current": { "$ref": "#/components/schemas/CurrentWeather" },
           "yesterday": {
             "nullable": true,
             "description": "Yesterday's weather at the place, for comparison; null when the provider has none.",
@@ -1002,17 +1000,12 @@
                             "RATE_LIMITED",
                             "SERVICE_BUSY",
                             "NETWORK_ERROR"
-                          ],
-                          "description": "What went wrong, for the client to act on: INVALID_REQUEST (400): a parameter or body is missing or out of range; the message names it. NOT_FOUND (404): no such place, or no such endpoint. RATE_LIMITED (429): this address sent too many requests, or asked for too many new places; Retry-After says when to try again. PROVIDER_ERROR (502): the data provider did not answer or answered wrongly; worth a retry in a minute. SERVICE_BUSY (503): the server is near a provider's free limit for everyone; cached data is still served, new places wait. INTERNAL (500): our bug. NETWORK_ERROR: made by the client only when no answer came; never sent by the API."
+                          ]
                         },
-                        "message": {
-                          "type": "string",
-                          "description": "Plain English, safe to show to the user; clients translate by code where they can."
-                        }
+                        "message": { "type": "string" }
                       },
                       "required": ["code", "message"],
-                      "additionalProperties": false,
-                      "description": "What went wrong: a code to act on and a message to show."
+                      "additionalProperties": false
                     }
                   },
                   "required": ["error"],

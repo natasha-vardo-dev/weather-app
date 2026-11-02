@@ -65,7 +65,7 @@ const currentWeatherSchema = z
     weatherCode: z.int().describe('WMO weather interpretation code (0 clear sky … 99 thunderstorm with hail).'),
     isDay: z.boolean().describe('Whether it is daytime at the place now.'),
   })
-  .meta({ id: 'CurrentWeather' });
+  .meta({ id: 'CurrentWeather', description: 'The current hour at the place.' });
 
 const dailyForecastSchema = z
   .strictObject({
@@ -121,7 +121,9 @@ export const forecastSchema = z
         precipitation: z.string().optional().describe('"mm".'),
       })
       .describe('Units of the numbers in this answer, as the provider names them.'),
-    current: currentWeatherSchema.describe('The current hour.'),
+    // No .describe() on a plain reference: it would wrap the $ref in allOf, which oasdiff
+    // reads as the required properties removed (a breaking change).
+    current: currentWeatherSchema,
     yesterday: dailyForecastSchema
       .nullable()
       .describe("Yesterday's weather at the place, for comparison; null when the provider has none."),
@@ -154,6 +156,9 @@ const errorDetail = z
     message: z.string().describe('Plain English, safe to show to the user; clients translate by code where they can.'),
   })
   .describe('What went wrong: a code to act on and a message to show.');
+// The same shape without descriptions, for the batch answer below: oasdiff matches the branches
+// of an anyOf by content, so a description added inside one counts as a new (breaking) branch.
+const errorDetailPlain = z.strictObject({ code: z.enum(errorCode.options), message: z.string() });
 
 /** Every error answer, whatever the endpoint. */
 export const apiErrorBodySchema = z
@@ -163,7 +168,7 @@ export const apiErrorBodySchema = z
 export const forecastsResponseSchema = z
   .strictObject({
     forecasts: z
-      .array(z.union([z.strictObject({ forecast: forecastSchema }), z.strictObject({ error: errorDetail })]))
+      .array(z.union([z.strictObject({ forecast: forecastSchema }), z.strictObject({ error: errorDetailPlain })]))
       .describe(
         'In the order the places were asked for: the forecast, or the error for that place alone (the others still come).',
       ),

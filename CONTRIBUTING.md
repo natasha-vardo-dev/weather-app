@@ -75,7 +75,11 @@ server's internals goes there. The client imports plain functions only, not Zod 
 
 **API:** within `/api/v1` only compatible changes: an optional field, a new endpoint, a new error code. Removing,
 renaming, retyping or making something required needs a new version. Note that oasdiff in CI fails on a new error code
-in a response all the same; a code only the client makes stays out of the API's schema (`ApiErrorCode`).
+in a response all the same; a code only the client makes stays out of the API's schema (`ApiErrorCode`). Two more
+oasdiff traps when describing schemas: `.describe()` on a plain reference (`current: currentWeatherSchema`) wraps the
+`$ref` in `allOf`, which oasdiff reads as every required property removed, so describe the component in its `.meta()`
+instead; and a description added inside a branch of a union (`ForecastsResponse`) counts as a new `anyOf` subschema.
+`brew install oasdiff`, then `oasdiff breaking <main's openapi.json> docs/openapi.json --fail-on ERR` runs the check locally.
 
 **Client:**
 
