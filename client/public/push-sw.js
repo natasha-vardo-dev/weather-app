@@ -43,6 +43,71 @@ function readState() {
   });
 }
 
+/**
+ * Records the place a tapped notification opens (`open` in the same store), for the page to
+ * pick up when it shows (useOpenFromNotification): on an iPhone a running app was neither
+ * navigated nor reached by a message, and openWindow() only brought it forward on the page it
+ * showed. Never rejects nor hangs; true once stored.
+ */
+function recordOpen(path) {
+  return new Promise((resolve) => {
+    try {
+      const open = indexedDB.open(DB, 1);
+      open.onupgradeneeded = () => open.result.createObjectStore(STORE);
+      open.onerror = () => resolve(false);
+      open.onsuccess = () => {
+        const db = open.result;
+        db.onversionchange = () => db.close();
+        const done = (stored) => {
+          resolve(stored);
+          db.close();
+        };
+        try {
+          const tx = db.transaction(STORE, 'readwrite');
+          tx.objectStore(STORE).put({ path, at: Date.now() }, 'open');
+          tx.oncomplete = () => done(true);
+          tx.onerror = () => done(false);
+          tx.onabort = () => done(false);
+        } catch {
+          done(false);
+        }
+      };
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+/** Removes the record of the place to open once it is not needed. Never rejects nor hangs. */
+function forgetOpen() {
+  return new Promise((resolve) => {
+    try {
+      const open = indexedDB.open(DB, 1);
+      open.onupgradeneeded = () => open.result.createObjectStore(STORE);
+      open.onerror = () => resolve();
+      open.onsuccess = () => {
+        const db = open.result;
+        db.onversionchange = () => db.close();
+        const done = () => {
+          resolve();
+          db.close();
+        };
+        try {
+          const tx = db.transaction(STORE, 'readwrite');
+          tx.objectStore(STORE).delete('open');
+          tx.oncomplete = done;
+          tx.onerror = done;
+          tx.onabort = done;
+        } catch {
+          done();
+        }
+      };
+    } catch {
+      resolve();
+    }
+  });
+}
+
 function parse(json, fallback) {
   try {
     return JSON.parse(json);
@@ -198,24 +263,48 @@ function within(promise, ms, { onTimeout, onReject }) {
   });
 }
 
+/** How long the click waits for the place to be recorded, and only before messaging the page. */
+const RECORD_MS = 500;
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = new URL(event.notification.data?.url ?? '/', self.location.origin);
-  // A window of the app already open is reused: focused (started at once, while the click still
-  // counts as the user's, but never waited on alone), and asked to open the place itself.
-  // WindowClient.navigate() alone was not enough: on an iPhone the app resumed from the
-  // background on the page it showed before (2026-11-02: Rhodes stayed open after tapping a
-  // warning for Warsaw). It remains the fallback for a page that does not answer, and a new
-  // window the last one. Every step has a time limit, so the event always ends.
+  const path = url.pathname + url.search;
+  // The place is recorded for the page to pick up when it shows (useOpenFromNotification): an
+  // iPhone brought a running app forward without any route below reaching it (2026-11-02:
+  // Rhodes stayed open after tapping a warning for Warsaw). Recorded alongside, never before:
+  // browsers allow focus() and openWindow() only shortly after the click (Firefox about a
+  // second), so they start at once. (Found by roborev.)
+  // A window of the app already open is reused: focused, and asked to open the place itself;
+  // WindowClient.navigate() is the fallback for a page that does not answer, a new window the
+  // last one. Every step has a time limit, so the event always ends. Each route taken is
+  // logged (Safari's Web Inspector shows the worker's console): a phone cannot be watched otherwise.
+  const record = recordOpen(path);
+  const recording = within(record, RECORD_MS, { onTimeout: false });
   event.waitUntil(
-    self.clients.matchAll({ type: 'window' }).then(async (windows) => {
+    within(self.clients.matchAll({ type: 'window' }), STEP_MS, { onTimeout: [], onReject: [] }).then((windows) => {
       const open = windows[0];
-      if (!open) return within(self.clients.openWindow(url.href), STEP_MS, {});
-      // Side by side: the place is opened whatever focus() does; the event ends when both have.
+      console.info('notification click', { path, windows: windows.length });
+      if (!open) {
+        console.info('notification click: new window');
+        return Promise.all([recording, within(self.clients.openWindow(url.href), STEP_MS, {})]);
+      }
+      // Side by side: the place is opened whatever focus() does; the event ends when all have.
       const focused = within(open.focus?.(), STEP_MS, {});
       const opened = (async () => {
-        if (await askPageToOpen(open, url.pathname + url.search)) return undefined;
+        // A page that picks the record up as it shows must find it already there.
+        await recording;
+        if (await askPageToOpen(open, path)) {
+          console.info('notification click: the page opened it');
+          // Opened: a record written after the page cleared it would open the place again later.
+          return within(
+            record.then(() => forgetOpen()),
+            STEP_MS,
+            {},
+          );
+        }
         if ('navigate' in open) {
+          console.info('notification click: no answer, navigating the window');
           // Pending past the limit: it may still happen, so no second window over it.
           const navigated = await within(
             Promise.resolve().then(() => open.navigate(url.href)),
@@ -225,6 +314,7 @@ self.addEventListener('notificationclick', (event) => {
           if (navigated) return undefined;
         }
         // Not this worker's window (opened before it, or after a hard reload), or no navigate().
+        console.info('notification click: could not navigate, new window');
         return within(self.clients.openWindow(url.href), STEP_MS, {});
       })();
       return Promise.all([focused, opened]);
