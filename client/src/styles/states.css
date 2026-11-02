@@ -2,6 +2,12 @@
 .empty {
   padding-top: 12vh;
 }
+/* On a phone the gap left the greeting far below the search, pushing favourites down. */
+@media (max-width: 480px) {
+  .empty {
+    padding-top: 0;
+  }
+}
 
 .empty__title {
   margin: 0 0 0.5rem;

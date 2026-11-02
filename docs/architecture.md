@@ -466,7 +466,7 @@ succeeded (every feed read, nothing refused) for 30 minutes, or FCM refused mess
 - Title "Orange warning: Thunderstorms · Kraków"; body the time and the issuer's headline. A tap opens the city page:
   with no window of the app open, a new one; with one open, the worker focuses it and asks its page to open the city
   (`open-place` message, `useOpenFromNotification`, the app's router, no reload), and navigates the window itself
-  (`WindowClient.navigate`) only when the page does not confirm within a second, a new window as the last resort.
+  (`WindowClient.navigate`) only when the page does not confirm within a second, a new window as the last resort. Focusing runs alongside, and every step has a 3 s limit (`within`), so the click event always ends.
 - Every push shows a notification. If writing the full one throws (stored state of an older format, IndexedDB
   unavailable, an invalid locale), a plainer one with the same tag is shown from the message alone (the issuer's event
   and headline in the browser's language, else "Weather warning"), and the error goes to the worker's console.
@@ -558,8 +558,10 @@ Saved cities live in the browser (`localStorage`, key `favorites:v1`), with no a
   `useSyncExternalStore`; the `storage` event keeps every open tab in sync.
 - **Star button** by the city name, icon only: the star fills in when saved; its hidden name says what pressing does,
   so it has no `aria-pressed`.
-- **Start page:** saved cities as a grid of cards (name, country, icon, current temperature, condition, today's
-  high/low); four columns on desktop, two on phones, fixed height so cards do not grow when weather arrives.
+- **Start page:** the greeting (heading and a line on what to search for), then saved cities as a grid of cards (name,
+  country, icon, current temperature, condition, today's high/low); four columns on desktop, two on phones, fixed
+  height so cards do not grow when weather arrives. The greeting starts 12vh below the search; on screens up to 480 px
+  it follows the search with the page's usual spacing.
 - **City page:** saved cities form a scrolling strip of compact tiles (city, country, icon, temperature) between the
   search and the weather, the same on every screen size. The open city stays in the strip, highlighted with
   `aria-current="page"`. The strip shows during loading and errors too.

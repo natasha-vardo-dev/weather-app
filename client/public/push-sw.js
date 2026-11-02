@@ -174,29 +174,60 @@ function askPageToOpen(client, path) {
   });
 }
 
+/** How long one step of a click (focusing, navigating, opening a window) may take. */
+const STEP_MS = 3000;
+
+/**
+ * The value of `promise`, or `onTimeout` if it neither resolves nor rejects within `ms` (a
+ * rejection gives `onReject`). Safari can leave focus() pending: awaited without a limit, the
+ * click never finished, nothing opened, and the worker received no more pushes. (2026-11-02)
+ */
+function within(promise, ms, { onTimeout, onReject }) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(onTimeout), ms);
+    Promise.resolve(promise).then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(onReject);
+      },
+    );
+  });
+}
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = new URL(event.notification.data?.url ?? '/', self.location.origin);
-  // A window of the app already open is reused: focused first (while the click still counts as
-  // the user's), then asked to open the place itself. WindowClient.navigate() alone was not
-  // enough: on an iPhone the app resumed from the background on the page it showed before (seen
-  // 2026-11-02: Rhodes stayed open after tapping a warning for Warsaw). It remains the fallback
-  // for a page that does not answer, and a new window the last one. A failed focus() is ignored.
+  // A window of the app already open is reused: focused (started at once, while the click still
+  // counts as the user's, but never waited on alone), and asked to open the place itself.
+  // WindowClient.navigate() alone was not enough: on an iPhone the app resumed from the
+  // background on the page it showed before (2026-11-02: Rhodes stayed open after tapping a
+  // warning for Warsaw). It remains the fallback for a page that does not answer, and a new
+  // window the last one. Every step has a time limit, so the event always ends.
   event.waitUntil(
     self.clients.matchAll({ type: 'window' }).then(async (windows) => {
       const open = windows[0];
-      if (!open) return self.clients.openWindow(url.href);
-      await Promise.resolve(open.focus?.()).catch(() => {});
-      if (await askPageToOpen(open, url.pathname + url.search)) return undefined;
-      if ('navigate' in open) {
-        try {
-          const navigated = await open.navigate(url.href);
+      if (!open) return within(self.clients.openWindow(url.href), STEP_MS, {});
+      // Side by side: the place is opened whatever focus() does; the event ends when both have.
+      const focused = within(open.focus?.(), STEP_MS, {});
+      const opened = (async () => {
+        if (await askPageToOpen(open, url.pathname + url.search)) return undefined;
+        if ('navigate' in open) {
+          // Pending past the limit: it may still happen, so no second window over it.
+          const navigated = await within(
+            Promise.resolve().then(() => open.navigate(url.href)),
+            STEP_MS,
+            { onTimeout: 'pending', onReject: null },
+          );
           if (navigated) return undefined;
-        } catch {
-          // Not this worker's window (opened before it, or after a hard reload): a new one.
         }
-      }
-      return self.clients.openWindow(url.href);
+        // Not this worker's window (opened before it, or after a hard reload), or no navigate().
+        return within(self.clients.openWindow(url.href), STEP_MS, {});
+      })();
+      return Promise.all([focused, opened]);
     }),
   );
 });

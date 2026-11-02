@@ -104,6 +104,10 @@ The forces behind these smaller choices:
 - **No home city, no pinning, newest first.** With at most 10 saved cities, all visible at once, either added a second
   concept and a button on every city page for little gain, and the row by the name is shorter without it. "My city
   first" is better met by geolocation (the crosshair in the search field).
+- **On phones the greeting sits right under the search**, with the page's usual spacing (2026-11-02, the owner's pick
+  from four mockups). The 12vh gap above it left an empty band under the search bar on a small screen and pushed
+  favourites down by about 100 px. Only the gap goes, so it is one CSS rule with nothing to translate; on wider screens,
+  where the gap balances the large greeting, it stays.
 
 ## Consequences
 
@@ -137,6 +141,10 @@ The forces behind these smaller choices:
 - **Header buttons:** icons only with no label anywhere (a bare star was then thought unclear, and phones have no
   hover tooltips); a star plus a "⋯" menu (hides home city and warnings, and whether notifications are on); the
   buttons on their own row (40 px more before the temperature).
+- **Greeting on phones:** above the search, between the logo and the field (the subline reads as a hint for the field,
+  but the heading would have to move into the header's markup, and the search drops below the first glance); a smaller
+  heading with the subline right under it (denser, but the greeting loses its weight for little extra room); the
+  current gap.
 - **"Saved" everywhere, as Google Maps does:** a star reads as favourites, and the section already had that name.
 - **Weather icon placement:** a small icon before the condition (adds little next to the word); a large one at the
   block's right edge (runs into three-character temperatures such as −12° on a phone); one above the number (pushes
