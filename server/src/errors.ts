@@ -34,6 +34,20 @@ export class BusyError extends AppError {
   }
 }
 
+/**
+ * Refused because of the client, not the server: its address has used up an allowance
+ * (LoadLimiter, rateLimits.ts). express-rate-limit answers its own limits itself.
+ */
+export class RateLimitedError extends AppError {
+  /** @param retryAfterSeconds Sent as `Retry-After` when known (the allowance's window ends then). */
+  constructor(
+    message = 'Too many requests. Try again later.',
+    public readonly retryAfterSeconds?: number,
+  ) {
+    super(message, 429, ERROR_CODES.RATE_LIMITED);
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor(message = 'Nothing found.') {
     super(message, 404, ERROR_CODES.NOT_FOUND);

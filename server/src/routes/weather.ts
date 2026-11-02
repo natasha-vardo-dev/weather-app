@@ -7,9 +7,10 @@ import {
   locationsQuerySchema,
   type LocationsResponse,
 } from '@weather/shared';
-import { Router } from 'express';
-import { AppError, BusyError, errorDetails, NotFoundError, type ProviderError } from '../errors.js';
+import { Router, type Request } from 'express';
+import { AppError, BusyError, errorDetails, NotFoundError, RateLimitedError, type ProviderError } from '../errors.js';
 import type { Logger } from '../observability/logger.js';
+import type { LoadLimiter } from '../rateLimits.js';
 import type { WeatherService } from '../services/weatherService.js';
 
 const FORECAST_MAX_AGE = 300;
@@ -23,8 +24,13 @@ const AIR_QUALITY_MAX_AGE = 900;
 const STALE_MAX_AGE = 60;
 const maxAge = (seconds: number, stale: boolean) => `public, max-age=${stale ? STALE_MAX_AGE : seconds}`;
 
-export function weatherRouter(service: WeatherService, logger?: Logger): Router {
+/**
+ * `loads` limits the provider calls one address causes (rateLimits.ts); without it (tests of
+ * other things, rate limits off) there is no such limit.
+ */
+export function weatherRouter(service: WeatherService, logger?: Logger, loads?: LoadLimiter): Router {
   const router = Router();
+  const allowance = (req: Request) => loads?.allowance(req.ip);
 
   router.get('/locations', async (req, res, next) => {
     try {
@@ -52,7 +58,7 @@ export function weatherRouter(service: WeatherService, logger?: Logger): Router 
   router.get('/forecast', async (req, res, next) => {
     try {
       const { lat, lon, days } = forecastQuerySchema.parse(req.query);
-      const { value: forecast, stale } = await service.getForecast(lat, lon, days);
+      const { value: forecast, stale } = await service.getForecast(lat, lon, days, allowance(req));
       // Set only on success: an error must not be cached by browsers or CDNs.
       res.set('Cache-Control', maxAge(FORECAST_MAX_AGE, stale));
       res.json(forecast);
@@ -66,14 +72,18 @@ export function weatherRouter(service: WeatherService, logger?: Logger): Router 
   router.get('/forecasts', async (req, res, next) => {
     try {
       const { places, days } = forecastsQuerySchema.parse(req.query);
-      const settled = await Promise.allSettled(places.map(({ lat, lon }) => service.getForecast(lat, lon, days)));
+      const check = allowance(req);
+      const settled = await Promise.allSettled(
+        places.map(({ lat, lon }) => service.getForecast(lat, lon, days, check)),
+      );
       const failed = settled.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
       // Nothing to show: the usual error response (502 for the provider), so no one stores it.
       if (failed.length === settled.length) throw failed[0]!.reason;
       for (const { reason } of failed) {
         // A budget refusal is logged by the budget, once a minute: here it would be up to ten
         // lines a request while the budget is spent. (Found by roborev.)
-        if (reason instanceof BusyError) continue;
+        // Likewise a refused allowance, logged by the limiter.
+        if (reason instanceof BusyError || reason instanceof RateLimitedError) continue;
         // A bug (not an AppError) keeps its stack in the log, as it would on /forecast.
         if (reason instanceof AppError) {
           logger?.warn({ code: reason.code, detail: (reason as ProviderError).detail }, 'forecast in batch failed');
@@ -98,7 +108,7 @@ export function weatherRouter(service: WeatherService, logger?: Logger): Router 
   router.get('/air-quality', async (req, res, next) => {
     try {
       const { lat, lon } = airQualityQuerySchema.parse(req.query);
-      const { value: airQuality, stale } = await service.getAirQuality(lat, lon);
+      const { value: airQuality, stale } = await service.getAirQuality(lat, lon, allowance(req));
       res.set('Cache-Control', maxAge(AIR_QUALITY_MAX_AGE, stale));
       res.json(airQuality);
     } catch (err) {

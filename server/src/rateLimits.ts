@@ -1,6 +1,7 @@
 import { ERROR_CODES, type ApiErrorBody } from '@weather/shared';
 import type { RequestHandler } from 'express';
-import { rateLimit } from 'express-rate-limit';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
+import { RateLimitedError } from './errors.js';
 import type { Logger } from './observability/logger.js';
 import type { Metrics } from './observability/metrics.js';
 
@@ -78,4 +79,94 @@ export function rateLimiters(limits: RateLimits, logger: Logger, metrics?: Metri
     clientErrors: make(limits.clientErrors, 'clientErrors'),
     push: make(limits.push, 'push'),
   };
+}
+
+/**
+ * Provider calls (cache misses) one address may cause through /forecast, /forecasts and
+ * /air-quality, per window. The limits above count requests, not what they cost: a forecast
+ * from the cache costs nothing, a new place about 2.2 Open-Meteo calls. Within them one address
+ * could ask for ~300 new places a minute (coordinates a hundredth of a degree apart are all new)
+ * and spend the server's daily quota, shared by every user, in a quarter of an hour; the global
+ * budget (Metrics.budget) would then refuse new forecasts to everyone for the rest of the day.
+ *
+ * 30 a minute is a cold start page with ten saved cities and room to spare (a city page asks for
+ * a forecast and air quality: two); 150 an hour is a long look around the map. One address at
+ * the hourly limit all day stays below the daily budget (150 × 24 × 2.2 ≈ 7 900 < 9 000), so it
+ * slows the quota down rather than spending it. Many addresses are what the budget is for.
+ */
+export interface LoadLimits {
+  perMinute: number;
+  perHour: number;
+}
+
+export const DEFAULT_LOAD_LIMITS: LoadLimits = { perMinute: 30, perHour: 150 };
+
+/**
+ * Addresses counted per window. Past it new ones are not counted (and not refused): memory stays
+ * bounded when very many addresses ask at once, and against those the global budget holds.
+ */
+export const MAX_TRACKED_ADDRESSES = 50_000;
+
+interface Window {
+  ms: number;
+  limit: number;
+  start: number;
+  counts: Map<string, number>;
+}
+
+/**
+ * Per-address allowances of provider calls, in memory and per instance like the request limits.
+ * Windows are fixed (counts reset at once when one ends), as express-rate-limit's are.
+ */
+export class LoadLimiter {
+  private readonly windows: Window[];
+  private lastLogged = -Infinity;
+
+  constructor(
+    limits: LoadLimits,
+    private readonly logger?: Logger,
+    private readonly metrics?: Metrics,
+    private readonly now: () => number = Date.now,
+  ) {
+    const start = now();
+    this.windows = [
+      { ms: 60_000, limit: limits.perMinute, start, counts: new Map() },
+      { ms: 3_600_000, limit: limits.perHour, start, counts: new Map() },
+    ];
+  }
+
+  /**
+   * A check for one request from `ip`, to run before each provider call the request causes
+   * (WeatherService): counts the call, or throws RateLimitedError when the address has none left.
+   * Cached answers never run it. IPv6 addresses count per /56, as the request limits do.
+   */
+  allowance(ip: string | undefined): () => void {
+    const key = ip ? ipKeyGenerator(ip) : 'unknown';
+    return () => {
+      const now = this.now();
+      for (const window of this.windows) {
+        if (now - window.start >= window.ms) {
+          window.start = now;
+          window.counts.clear();
+        }
+      }
+      const spent = this.windows.filter((window) => (window.counts.get(key) ?? 0) >= window.limit);
+      if (spent.length > 0) {
+        this.metrics?.rateLimited();
+        // Once a minute at most: a script past its allowance would otherwise log every request.
+        if (now - this.lastLogged >= 60_000) {
+          this.lastLogged = now;
+          this.logger?.warn({ limiter: 'loads' }, 'rate limit reached');
+        }
+        // When the last spent window starts over, as the request limits' Retry-After says.
+        const retryAfterMs = Math.max(...spent.map((window) => window.start + window.ms - now));
+        throw new RateLimitedError(undefined, Math.max(1, Math.ceil(retryAfterMs / 1000)));
+      }
+      for (const window of this.windows) {
+        const count = window.counts.get(key);
+        if (count !== undefined) window.counts.set(key, count + 1);
+        else if (window.counts.size < MAX_TRACKED_ADDRESSES) window.counts.set(key, 1);
+      }
+    };
+  }
 }

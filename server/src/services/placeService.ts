@@ -1,4 +1,4 @@
-import { CITY_MATCH_KM, distanceKm, type Location, type ReversePlace } from '@weather/shared';
+import { CITY_MATCH_KM, distanceKm, roundCoordinate as round, type Location, type ReversePlace } from '@weather/shared';
 import type { ReverseGeocoder } from '../providers/types.js';
 import type { Logger } from '../observability/logger.js';
 import { TtlCache, type CacheStats } from './cache.js';
@@ -8,8 +8,6 @@ import { staleErrorLogger } from './staleErrorLogger.js';
 export interface CitySearch {
   searchLocations(query: string, limit: number, language: string): Promise<Location[]>;
 }
-
-const round = (n: number) => Number(n.toFixed(2));
 
 /**
  * The place at the user's location.

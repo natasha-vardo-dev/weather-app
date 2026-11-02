@@ -36,6 +36,15 @@ describe('GET /api/v1/forecast', () => {
     expect(res.body.error.code).toBe('INVALID_REQUEST');
   });
 
+  it('names the parameter and what is wrong with it', async () => {
+    const { app } = setup();
+    const message = async (query: string) => (await request(app).get(`/api/v1/forecast?${query}`)).body.error.message;
+    expect(await message('lat=&lon=21')).toBe('lat: Required.');
+    expect(await message('lat=52.23')).toBe('lon: Required.');
+    expect(await message('lat=north&lon=21')).toBe('lat: Must be a number.');
+    expect(await message('lat=200&lon=21')).toMatch(/^lat: Too big/);
+  });
+
   it('lets browsers keep a stale forecast for a minute only', async () => {
     const provider = createFakeProvider();
     // A 1 ms TTL: the second answer is past it, returned at once while the forecast refreshes.

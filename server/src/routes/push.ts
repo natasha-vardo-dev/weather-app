@@ -110,7 +110,7 @@ export function notifyRouter(notifier: AlertNotifier, secret: string): Router {
   router.post('/internal/alerts/notify', async (req, res, next) => {
     const given = req.get('authorization')?.replace(/^Bearer /, '') ?? '';
     if (!sameSecret(given, secret)) {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Endpoint not found.' } });
+      res.status(404).json({ error: { code: ERROR_CODES.NOT_FOUND, message: 'Endpoint not found.' } });
       return;
     }
     try {

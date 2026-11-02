@@ -3,10 +3,17 @@ import cors from 'cors';
 import { isIP } from 'node:net';
 import express, { type ErrorRequestHandler } from 'express';
 import helmet from 'helmet';
-import { AppError, ProviderError } from './errors.js';
+import { AppError, ProviderError, RateLimitedError } from './errors.js';
 import { requestLogger, silentLogger, type Logger } from './observability/logger.js';
 import { FCM_TOPIC_LIMITS, type Metrics } from './observability/metrics.js';
-import { DEFAULT_RATE_LIMITS, rateLimiters, type RateLimits } from './rateLimits.js';
+import {
+  DEFAULT_LOAD_LIMITS,
+  DEFAULT_RATE_LIMITS,
+  LoadLimiter,
+  rateLimiters,
+  type LoadLimits,
+  type RateLimits,
+} from './rateLimits.js';
 import { sameSecret } from './secrets.js';
 import { alertsRouter } from './routes/alerts.js';
 import { placesRouter } from './routes/places.js';
@@ -76,6 +83,8 @@ export interface AppOptions {
   trustProxy?: number | boolean;
   /** Requests per minute per IP; false turns limiting off. */
   rateLimits?: RateLimits | false;
+  /** Provider calls per IP (forecasts and air quality); false turns it off, as does `rateLimits: false`. */
+  loadLimits?: LoadLimits | false;
   logger?: Logger;
   metrics?: Metrics;
   /** Guards GET /api/internal/metrics (bearer token); without it the endpoint does not exist. */
@@ -108,6 +117,7 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
     push,
     trustProxy = false,
     rateLimits = DEFAULT_RATE_LIMITS,
+    loadLimits = DEFAULT_LOAD_LIMITS,
     logger = silentLogger,
     metrics,
     metricsSecret,
@@ -255,7 +265,8 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
 
   // The contract, under its version (API_PREFIX). A breaking change gets a new prefix served
   // next to this one until old clients are gone (counted per version in the metrics).
-  app.use(API_PREFIX, weatherRouter(service, logger));
+  const loads = rateLimits && loadLimits ? new LoadLimiter(loadLimits, logger, metrics) : undefined;
+  app.use(API_PREFIX, weatherRouter(service, logger, loads));
   app.use(API_PREFIX, clientErrorsRouter(logger, metrics));
   if (places) app.use(API_PREFIX, placesRouter(places, approximate));
   if (alerts) app.use(API_PREFIX, alertsRouter(alerts));
@@ -285,10 +296,17 @@ export function createApp(service: WeatherService, options: AppOptions = {}) {
       logger.warn({ method: req.method, path, detail: err.detail ?? 'unknown' }, 'provider error');
     }
     if (err instanceof ZodError) {
-      res.status(400).json(errorBody(ERROR_CODES.INVALID_REQUEST, err.issues[0]?.message ?? 'Invalid request.'));
+      // Named by the parameter: "lat: Required." says what to fix, the message alone did not.
+      const issue = err.issues[0];
+      const where = issue?.path.length ? `${issue.path.join('.')}: ` : '';
+      res
+        .status(400)
+        .json(errorBody(ERROR_CODES.INVALID_REQUEST, issue ? `${where}${issue.message}` : 'Invalid request.'));
       return;
     }
     if (err instanceof AppError) {
+      if (err instanceof RateLimitedError && err.retryAfterSeconds)
+        res.set('Retry-After', String(err.retryAfterSeconds));
       res.status(err.status).json(errorBody(err.code, err.message));
       return;
     }
