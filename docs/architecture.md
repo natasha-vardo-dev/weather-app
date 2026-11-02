@@ -558,8 +558,10 @@ Saved cities live in the browser (`localStorage`, key `favorites:v1`), with no a
   `useSyncExternalStore`; the `storage` event keeps every open tab in sync.
 - **Star button** by the city name, icon only: the star fills in when saved; its hidden name says what pressing does,
   so it has no `aria-pressed`.
-- **Start page:** saved cities as a grid of cards (name, country, icon, current temperature, condition, today's
-  high/low); four columns on desktop, two on phones, fixed height so cards do not grow when weather arrives.
+- **Start page:** the greeting (heading and a line on what to search for), then saved cities as a grid of cards (name,
+  country, icon, current temperature, condition, today's high/low); four columns on desktop, two on phones, fixed
+  height so cards do not grow when weather arrives. The greeting starts 12vh below the search; on screens up to 480 px
+  it follows the search with the page's usual spacing.
 - **City page:** saved cities form a scrolling strip of compact tiles (city, country, icon, temperature) between the
   search and the weather, the same on every screen size. The open city stays in the strip, highlighted with
   `aria-current="page"`. The strip shows during loading and errors too.
