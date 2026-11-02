@@ -4,7 +4,7 @@ import { isProduction, loadConfig } from '../src/config.js';
 const SECRET = 'a'.repeat(32);
 const ACCOUNT = JSON.stringify({ project_id: 'demo', client_email: 'x@demo.iam', private_key: 'k' });
 
-/** A production setup that passes: what README's "Deployment" asks for. */
+/** A production setup that passes: what deploy/vm/api.env.example asks for. */
 const PRODUCTION = { NODE_ENV: 'production', PROXY_SECRET: SECRET, TRUST_PROXY: '1' };
 
 describe('loadConfig', () => {
@@ -22,8 +22,7 @@ describe('loadConfig', () => {
     expect(loadConfig({ LISTEN_HOST: '127.0.0.1' }).host).toBe('127.0.0.1');
   });
 
-  it('treats Render or NODE_ENV=production as production', () => {
-    expect(isProduction({ RENDER: 'true' })).toBe(true);
+  it('treats NODE_ENV=production as production', () => {
     expect(isProduction({ NODE_ENV: 'production' })).toBe(true);
     expect(isProduction({ NODE_ENV: 'development' })).toBe(false);
   });
@@ -35,9 +34,8 @@ describe('loadConfig', () => {
     expect(config.corsOrigins).toEqual([]);
   });
 
-  it('reports the deployed commit from the deploy script, else from Render', () => {
+  it('reports the deployed commit from the deploy script', () => {
     expect(loadConfig({ GIT_COMMIT: 'abcdef1234567890' }).version).toBe('abcdef1');
-    expect(loadConfig({ RENDER_GIT_COMMIT: '1234567890abcdef' }).version).toBe('1234567');
     expect(loadConfig({}).version).toBeUndefined();
   });
 
@@ -57,7 +55,7 @@ describe('loadConfig', () => {
   it('lists every problem at once and never the secret itself', () => {
     let message = '';
     try {
-      loadConfig({ RENDER: 'true', PROXY_SECRET: 'tooshort-secret', IP_SELF_LOOKUP: '1' });
+      loadConfig({ NODE_ENV: 'production', PROXY_SECRET: 'tooshort-secret', IP_SELF_LOOKUP: '1' });
     } catch (err) {
       message = (err as Error).message;
     }

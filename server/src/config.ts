@@ -28,13 +28,9 @@ export interface Config {
 
 type Env = Record<string, string | undefined>;
 
-/**
- * Production is NODE_ENV=production (set by the systemd unit in deploy/vm), or Render
- * (which sets RENDER=true): the host is enough, so a deploy where nobody set NODE_ENV is
- * still checked.
- */
+/** Production is NODE_ENV=production, set by the systemd unit in deploy/vm. */
 export function isProduction(env: Env): boolean {
-  return env.NODE_ENV?.trim() === 'production' || env.RENDER?.trim() === 'true';
+  return env.NODE_ENV?.trim() === 'production';
 }
 
 const value = (env: Env, name: string): string | undefined => env[name]?.trim() || undefined;
@@ -101,8 +97,8 @@ export function loadConfig(env: Env): Config {
     firebaseAccount: serviceAccount(value(env, 'FIREBASE_SERVICE_ACCOUNT')),
     notifySecret: value(env, 'ALERTS_NOTIFY_SECRET'),
     metricsSecret: value(env, 'METRICS_SECRET'),
-    // Written by deploy/vm/deploy.sh; Render sets its own.
-    version: (value(env, 'GIT_COMMIT') ?? value(env, 'RENDER_GIT_COMMIT'))?.slice(0, 7),
+    // Written by deploy/vm/deploy.sh.
+    version: value(env, 'GIT_COMMIT')?.slice(0, 7),
   };
 
   const problems: string[] = [];

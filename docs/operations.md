@@ -1,7 +1,7 @@
 # Operations
 
-How the running app is watched, and what to do when an alert comes. Deployment itself is in the
-[README](../README.md#deployment).
+How the running app is watched, and what to do when an alert comes. Deployment itself is in
+[deploy-aws.md](deploy-aws.md).
 
 ## Uptime monitoring and alerts
 
@@ -67,7 +67,7 @@ The start's log line `operational state store` says which (`"store":"firestore"`
   - `lastError` says `lease lost mid-run`: a run outlived its lease (stalled sending) and another instance took over;
     it sends what is left, nothing to do unless it repeats (then FCM or Firestore is slow: their status pages);
   - `PERMISSION_DENIED` or `NOT_FOUND` from Firestore in the log: the database is not created or the service account
-    lacks **Cloud Datastore User** (README, "Deployment"). Runs fail until fixed, rather than forgetting what was sent.
+    lacks **Cloud Datastore User** ([CONTRIBUTING, "Push notifications"](../CONTRIBUTING.md#push-notifications-optional)). Runs fail until fixed, rather than forgetting what was sent.
 
 A server refusing to start with `Invalid configuration:` lists every setting to fix (`server/src/config.ts`) in
 `journalctl -u weather-api`. `deploy.sh` switches back to the previous build by itself when the new one does not
@@ -92,14 +92,14 @@ Locally: `npm run providers:check -w server`.
 
 ## Notification scheduler
 
-[cron-job.org](https://cron-job.org) calls `POST /api/internal/alerts/notify` every 5 minutes (see the README). In the
+[cron-job.org](https://cron-job.org) calls `POST /api/internal/alerts/notify` every 5 minutes ([CONTRIBUTING, "Push notifications"](../CONTRIBUTING.md#push-notifications-optional)). In the
 job's settings, turn on "Notify on failure", so a failing run (FCM failing, every feed down, the state store
 unavailable, the API down) reaches the same inbox. A run where only some feeds failed or FCM refused messages for good
 answers 200 (the rest was sent); the notify monitor catches those when they last.
 
 To tell whether push itself works (after a Firebase update, or when nobody gets notifications while warnings are in
-force), send a test notification to your own device: `npm run push:test -w server -- --token <token>` (README, "Push
-notifications"). It goes through FCM, not through the scheduler or the API.
+force), send a test notification to your own device: `npm run push:test -w server -- --token <token>`
+([CONTRIBUTING, "Push notifications"](../CONTRIBUTING.md#push-notifications-optional)). It goes through FCM, not through the scheduler or the API.
 
 ## Request budget of an open page
 
@@ -126,6 +126,10 @@ Admin** and **Cloud Datastore User**, nothing project-wide. On the VM they are i
 `sudo systemctl restart weather-api`. Logs never print a secret; journald on the VM keeps them 14 days (setup.sh; the privacy
 policy states it), and only users with SSH access to the VM can read them.
 
+## Dependency updates
+
+Dependabot (`.github/dependabot.yml`) opens weekly pull requests into `main` ([ADR 0032](adr/0032-dependabot-into-main.md)): minor and patch updates grouped (production and development apart), each major version alone, Firebase alone (its tests use a fake, so check push notifications live before merging), GitHub Actions monthly. CI also runs every Monday with no change at all, so a newly published vulnerability (the production audit fails on high ones) or a test that depends on the date shows up anyway. In the repository's settings (Code security), turn on Dependabot alerts and security updates: those pull requests come as soon as an advisory is out. Not automated: the Node version in `.nvmrc` (once a year, at a new LTS) and the `@grpc/grpc-js` override in `package.json` (drop it once `firebase` updates grpc itself).
+
 ## Dependency audit
 
 CI fails on high or critical advisories in production dependencies (`npm audit --omit=dev`). The full audit (with
@@ -138,3 +142,14 @@ development tools) is reviewed when the weekly CI run is read; known exceptions,
 
 Do not run `npm audit fix --force`: it proposes downgrades by years. The `@grpc/grpc-js` override in `package.json`
 goes when `firebase` depends on a fixed version itself.
+
+## Not verified live
+
+Everything else in these documents was checked on the deployed app (last on 2026-11-01). These parts work in tests or
+on paper only; check them when the chance comes, then remove the line:
+
+- **A real MeteoAlarm warning pushed in the user's language.** The test notification (`npm run push:test`) arrives in
+  English; one for a real warning, written by the service worker from the stored strings, has not been seen yet.
+- **Rollback with `deploy.sh <commit>`** ([deploy-aws.md](deploy-aws.md#updating-and-rolling-back)): the automatic
+  return to the previous build on a failed start and the manual one by commit have not been tried on the VM.
+- **The oasdiff breaking-change check in CI** has not run on a pull request that changes the API yet.

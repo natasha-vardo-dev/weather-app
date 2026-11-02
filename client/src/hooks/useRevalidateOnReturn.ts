@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
  * while the old data stays on screen.
  *
  * No timer: a page left in view is not refreshed, so a forgotten tab does not keep spending the
- * provider's daily quota on its place (see "Data fetching" in docs/architecture.md).
+ * provider's daily quota on its place (see "Frontend" in docs/architecture.md).
  * `isDue` must be stable (a module-level function).
  */
 export function useRevalidateOnReturn(key: string | null, isDue: (key: string) => boolean): number {
