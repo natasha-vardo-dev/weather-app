@@ -39,7 +39,11 @@ export function pushStrings(t: Messages): PushStrings {
   return { titles, until: t.alerts.until('{time}'), fromTo: t.alerts.fromTo('{start}', '{end}') };
 }
 
-/** Hands the service worker what it needs to write a notification (it can't read localStorage). */
+/**
+ * Hands the service worker what it needs to write a notification (it can't read localStorage).
+ * The connection is closed once the write is done: an open one is kept for the page's life, and
+ * would block a later version of the database (Safari waits on it) in this tab and the worker.
+ */
 export function writeServiceWorkerState(strings: PushStrings, language: string, locale: string): Promise<void> {
   const { places } = getAlertSubscriptions();
   const state = {
@@ -53,10 +57,21 @@ export function writeServiceWorkerState(strings: PushStrings, language: string, 
     open.onupgradeneeded = () => open.result.createObjectStore('kv');
     open.onerror = () => resolve();
     open.onsuccess = () => {
-      const tx = open.result.transaction('kv', 'readwrite');
-      tx.objectStore('kv').put(state, 'state');
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
+      const db = open.result;
+      db.onversionchange = () => db.close();
+      const done = () => {
+        resolve();
+        db.close();
+      };
+      try {
+        const tx = db.transaction('kv', 'readwrite');
+        tx.objectStore('kv').put(state, 'state');
+        tx.oncomplete = done;
+        tx.onerror = done;
+        tx.onabort = done;
+      } catch {
+        done();
+      }
     };
   });
 }

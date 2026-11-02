@@ -7,14 +7,22 @@ const request = <T>(result: T) => {
   return req;
 };
 
-/** A fake IndexedDB holding `state`. */
-const fakeIndexedDB = (state: unknown) => ({
-  open: () =>
-    request({
-      transaction: () => ({ objectStore: () => ({ get: () => request(state) }) }),
-      createObjectStore: () => {},
-    }),
-});
+/** A fake IndexedDB holding `state`; `closed` counts closed connections. */
+const fakeIndexedDB = (state: unknown) => {
+  const db = { closed: 0, opened: 0 };
+  return Object.assign(db, {
+    open: () => {
+      db.opened += 1;
+      return request({
+        transaction: () => ({ objectStore: () => ({ get: () => request(state) }) }),
+        createObjectStore: () => {},
+        close: () => {
+          db.closed += 1;
+        },
+      });
+    },
+  });
+};
 
 /** Runs public/push-sw.js with a fake service worker scope and IndexedDB holding `state`. */
 function loadServiceWorker(state: unknown, indexedDB: unknown = fakeIndexedDB(state)) {
@@ -185,5 +193,13 @@ describe('notification click', () => {
     sw.clients.matchAll.mockResolvedValueOnce([{ navigate }] as never);
     await click(sw);
     expect(sw.clients.openWindow).toHaveBeenCalledWith(URL_);
+  });
+
+  it('closes its database connection after reading, so the database can be upgraded later', async () => {
+    const db = fakeIndexedDB(null);
+    const sw = loadServiceWorker(null, db);
+    await push(sw, { key: 'a', level: 'orange', type: 'wind', areas: '[]', texts: '{}' });
+    expect(db.opened).toBeGreaterThan(0);
+    expect(db.closed).toBe(db.opened);
   });
 });

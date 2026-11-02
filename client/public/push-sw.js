@@ -10,7 +10,11 @@
 const DB = 'weather-push';
 const STORE = 'kv';
 
-/** Never rejects nor hangs: an exception inside a callback would leave the promise unsettled. */
+/**
+ * Never rejects nor hangs: an exception inside a callback would leave the promise unsettled.
+ * Closes its connection when done: the worker lives on between pushes, and an open connection
+ * would block a later version of the database.
+ */
 function readState() {
   return new Promise((resolve) => {
     try {
@@ -18,12 +22,19 @@ function readState() {
       open.onupgradeneeded = () => open.result.createObjectStore(STORE);
       open.onerror = () => resolve(null);
       open.onsuccess = () => {
+        const db = open.result;
+        db.onversionchange = () => db.close();
+        // Settled first: nothing after it can leave the promise hanging.
+        const done = (value) => {
+          resolve(value);
+          db.close();
+        };
         try {
-          const get = open.result.transaction(STORE).objectStore(STORE).get('state');
-          get.onsuccess = () => resolve(get.result ?? null);
-          get.onerror = () => resolve(null);
+          const get = db.transaction(STORE).objectStore(STORE).get('state');
+          get.onsuccess = () => done(get.result ?? null);
+          get.onerror = () => done(null);
         } catch {
-          resolve(null);
+          done(null);
         }
       };
     } catch {
