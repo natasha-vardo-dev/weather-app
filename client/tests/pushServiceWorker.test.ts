@@ -291,16 +291,6 @@ describe('notification click', () => {
     expect(db.data.has('open')).toBe(false);
   });
 
-  it('keeps a trace of pushes and clicks on the device (temporary, for the iPhone case)', async () => {
-    const db = memoryIndexedDB();
-    const sw = loadServiceWorker(null, db);
-    await push(sw, { key: 'a', level: 'orange', type: 'wind', areas: '[]', texts: '{}' });
-    sw.clients.matchAll.mockResolvedValueOnce([] as never);
-    await click(sw);
-    const messages = (db.data.get('trace') as { who: string; message: string }[]).map((t) => t.message);
-    expect(messages).toEqual(expect.arrayContaining(['push', 'notification click', 'notification click: new window']));
-  });
-
   it('closes its database connection after reading, so the database can be upgraded later', async () => {
     const db = fakeIndexedDB(null);
     const sw = loadServiceWorker(null, db);
