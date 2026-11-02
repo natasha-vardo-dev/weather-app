@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { takePendingOpen, tracePage } from '../push/pendingOpen';
+import { takePendingOpen } from '../push/pendingOpen';
 
 /**
  * Opens the place a tapped warning notification is about, by two routes:
@@ -36,7 +36,6 @@ export function useOpenFromNotification(): void {
     let recheck: ReturnType<typeof setTimeout> | undefined;
     function openPending() {
       void takePendingOpen().then((path) => {
-        if (path) void tracePage('page: took the record', { path, alreadyThere: path === here(), cancelled });
         if (path && !cancelled && path !== here()) navigate(path);
       });
     }
@@ -45,25 +44,12 @@ export function useOpenFromNotification(): void {
       clearTimeout(recheck);
       recheck = setTimeout(openPending, RECHECK_MS);
     }
-    // TEMPORARY trace of the page showing again: only where notifications are allowed, and
-    // without the page, so it is no history of places viewed; after the record's own check, so
-    // it does not delay it. (Found by roborev.)
-    const traceShown = (event: string) => {
-      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        void tracePage(event, { state: document.visibilityState });
-      }
-    };
     function onVisible() {
       if (document.visibilityState === 'visible') onShown();
-      traceShown('page: visibility');
-    }
-    function onPageShow() {
-      onShown();
-      traceShown('page: pageshow');
     }
     onShown();
     document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('pageshow', onPageShow);
+    window.addEventListener('pageshow', onShown);
 
     const container = navigator.serviceWorker;
     function onMessage(event: MessageEvent) {
@@ -72,7 +58,6 @@ export function useOpenFromNotification(): void {
       const path = (data as { path?: unknown }).path;
       // A path of this site only: a message is input like any other.
       if (typeof path !== 'string' || !path.startsWith('/') || path.startsWith('//')) return;
-      void tracePage('page: message', { path, alreadyThere: path === here() });
       if (path !== here()) navigate(path);
       event.ports[0]?.postMessage('opened');
       // Used: the record must not open it again later.
@@ -85,7 +70,7 @@ export function useOpenFromNotification(): void {
       cancelled = true;
       clearTimeout(recheck);
       document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('pageshow', onPageShow);
+      window.removeEventListener('pageshow', onShown);
       container?.removeEventListener('message', onMessage);
     };
   }, []);

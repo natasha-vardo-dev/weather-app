@@ -234,9 +234,7 @@ means editing it. As built:
 
 - no accounts, cookies, analytics or ads; favourites and settings stay in the browser, and so do the last loaded
   forecasts, air quality and place names (the service worker's cache, up to 50 for a day; the policy lists it), and,
-  after a tapped notification, the page it opens (IndexedDB `open`, removed when used or after two minutes); for now
-  also a trace of the last 30 notification events of the past week (IndexedDB `trace`: received, tapped, the route taken, the page
-  showing again where notifications are allowed), on the device only, to be removed with the iPhone investigation;
+  after a tapped notification, the page it opens (IndexedDB `open`, removed when used or after two minutes);
 - the server sees places and searches and passes them to Open-Meteo and Nominatim as itself; it sees the IP address for
   rate limiting (memory, a minute; not in logs) and browser error reports (message, stack, page kind, user agent);
   places, searches and error reports reach the logs, which journald on the VM keeps 14 days (`MaxRetentionSec`, set by
