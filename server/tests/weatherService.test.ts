@@ -39,6 +39,31 @@ describe('WeatherService', () => {
     expect(provider.getAirQuality).toHaveBeenCalledWith(52.23, 21.01);
   });
 
+  it('serves any number of days from at most two forecasts a place, cut to the days asked for', async () => {
+    const provider = createFakeProvider();
+    const days = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        date: `2026-10-${10 + i}`,
+        weatherCode: 3,
+        tempMax: 14,
+        tempMin: 6,
+        precipitationProbability: 20,
+      }));
+    provider.getForecast.mockImplementation(async (_lat, _lon, n) => ({
+      ...(await createFakeProvider().getForecast(0, 0, n)),
+      daily: days(n),
+    }));
+    const service = new WeatherService(provider);
+
+    for (const n of [1, 3, 7, 10]) {
+      expect((await service.getForecast(52.23, 21.01, n)).value.daily).toHaveLength(n);
+    }
+    for (const n of [11, 16]) {
+      expect((await service.getForecast(52.23, 21.01, n)).value.daily).toHaveLength(n);
+    }
+    expect(provider.getForecast.mock.calls.map(([, , n]) => n)).toEqual([10, 16]);
+  });
+
   it('caches forecasts for nearby coordinates', async () => {
     const provider = createFakeProvider();
     const service = new WeatherService(provider);

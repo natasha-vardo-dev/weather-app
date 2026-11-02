@@ -105,7 +105,11 @@ interface SavedState {
 }
 
 const STATE = 'alert-notifier';
-/** A run takes seconds; the scheduler calls every 5 minutes. */
+/**
+ * A run takes seconds; the scheduler calls every 5 minutes. A long run (hundreds of new
+ * warnings after downtime) renews it before each send once half of it has passed, so another
+ * instance cannot start sending the same warnings meanwhile.
+ */
 const LEASE_MS = 4 * 60 * 1000;
 
 const isPairs = <T>(value: unknown, check: (v: unknown) => v is T): value is [string, T][] =>
@@ -174,6 +178,8 @@ export class AlertNotifier {
   private readonly logger: Logger;
   private readonly holder: string;
   private readonly state: NotifierStatus;
+  /** When this instance last took or renewed the lease. */
+  private leasedAt = 0;
 
   constructor(
     private readonly source: AlertBroadcastSource,
@@ -224,6 +230,7 @@ export class AlertNotifier {
     } catch (err) {
       return this.fail(err);
     }
+    this.leasedAt = this.now();
     if (!leased) {
       this.logger.info('notifier: another instance holds the lease, skipping this run');
       const nothing = { warnings: 0, notified: 0, messages: 0, feedsRead: 0, feedsFailed: [], rejected: 0 };
@@ -262,6 +269,21 @@ export class AlertNotifier {
     }
     if (error) throw error;
     return result!;
+  }
+
+  /**
+   * Renews the lease once half of it has passed. Lost (it ran out and another instance took
+   * it): the run stops, the warnings not yet sent are the other instance's to send.
+   */
+  private async keepLease(): Promise<void> {
+    if (this.now() - this.leasedAt < LEASE_MS / 2) return;
+    if (!(await this.store.lease(STATE, this.holder, LEASE_MS))) {
+      throw new ProviderError(
+        'notifier: lease lost mid-run',
+        'Another instance took over the run; it sends what is left.',
+      );
+    }
+    this.leasedAt = this.now();
   }
 
   private fail(err: unknown): never {
@@ -332,12 +354,19 @@ export class AlertNotifier {
     let messages = 0;
     let rejected = 0;
     let failed = 0;
+    // Every new full warning asked for at once (the provider loads a few at a time): one by one,
+    // a run after downtime with hundreds of them took minutes and outlived its lease.
+    const loads = new Map(
+      warnings
+        .filter((warning) => !this.seen.has(warning.ref))
+        .map((warning) => [warning.ref, this.source.loadWarning(warning.ref).catch(() => undefined)]),
+    );
     for (const warning of warnings) {
       if (this.seen.has(warning.ref)) continue;
       const expiresAt = Date.parse(warning.expires);
       // In force before this source was first read: record it, never push it.
       const existing = !this.warmed.has(warning.source) || this.quiet.has(warning.ref);
-      const alert = await this.source.loadWarning(warning.ref).catch(() => undefined);
+      const alert = await loads.get(warning.ref);
       // Not loaded: try again next run. Loaded but not a warning (green, unreadable): done.
       if (alert === undefined) {
         if (existing) this.quiet.set(warning.ref, expiresAt);
@@ -383,6 +412,7 @@ export class AlertNotifier {
       }));
       // One warning at a time, recorded only once sent: a failure leaves just this warning
       // to retry, and never repeats the ones already pushed.
+      await this.keepLease();
       try {
         const sent = await this.sender.send(batch);
         messages += sent.accepted;

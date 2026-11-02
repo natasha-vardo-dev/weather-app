@@ -1,4 +1,4 @@
-import { BusyError, ProviderError } from '../errors.js';
+import { BusyError, ProviderError, RateLimitedError } from '../errors.js';
 import type { Logger } from '../observability/logger.js';
 
 /**
@@ -8,12 +8,13 @@ import type { Logger } from '../observability/logger.js';
  *
  * A refresh refused by the budget (BusyError) is not logged here: the budget logs refusals
  * once a minute, and every request for a stale value starts a refresh, so a line each would
- * flood the logs while the budget is spent. (Found by roborev.)
+ * flood the logs while the budget is spent. (Found by roborev.) Likewise a refresh refused by
+ * the requester's own allowance (RateLimitedError, LoadLimiter): the stale value goes out to them.
  */
 export function staleErrorLogger(logger: Logger | undefined, cache: string) {
   if (!logger) return undefined;
   return (err: unknown) => {
-    if (err instanceof BusyError) return;
+    if (err instanceof BusyError || err instanceof RateLimitedError) return;
     if (err instanceof ProviderError)
       logger.warn({ cache, detail: err.detail ?? 'unknown' }, 'provider error, stale value kept');
     else logger.error({ cache, err }, 'load failed, stale value kept');

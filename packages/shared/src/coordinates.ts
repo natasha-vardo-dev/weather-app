@@ -2,6 +2,22 @@ export const LATITUDE_RANGE = { min: -90, max: 90 } as const;
 export const LONGITUDE_RANGE = { min: -180, max: 180 } as const;
 
 /**
+ * Every coordinate is rounded to this many decimals, everywhere (cache keys, URLs, saved
+ * places, push areas): ~1 km, enough for weather, and nearby requests share one forecast.
+ */
+export const COORDINATE_DECIMALS = 2;
+
+/** A coordinate rounded to COORDINATE_DECIMALS. */
+export function roundCoordinate(degrees: number): number {
+  return Number(degrees.toFixed(COORDINATE_DECIMALS));
+}
+
+/** The rounded pair as text, "52.23,21.01": equal for the same place. */
+export function placeKey(place: { latitude: number; longitude: number }): string {
+  return `${place.latitude.toFixed(COORDINATE_DECIMALS)},${place.longitude.toFixed(COORDINATE_DECIMALS)}`;
+}
+
+/**
  * Plain check without zod, so clients can validate coordinates
  * without pulling the schema library into their bundle.
  */

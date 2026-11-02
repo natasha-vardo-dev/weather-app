@@ -8,7 +8,7 @@ import { ClockIcon } from './NoticeIcons';
 /**
  * Says the city's forecast is old, with the time of its data: the server answers with the
  * last forecast it has (up to an hour old) when the provider is down, and a page left open
- * is not refreshed. Judged by the data's own time, so it needs nothing from the API and
+ * in view is not refreshed (only when it comes back into view, `useRevalidateOnReturn`). Judged by the data's own time, so it needs nothing from the API and
  * covers both. Not while offline: that banner already says the forecast may be old.
  *
  * The live region stays in the page, so the notice is announced when it appears.

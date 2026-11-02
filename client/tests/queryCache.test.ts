@@ -61,6 +61,8 @@ describe('createQueryCache', () => {
     time = 1001;
     expect(cache.age('a')).toBe(1001);
     expect(cache.get('a')).toBeUndefined();
+    // Reading the expired value does not forget how old it is.
+    expect(cache.age('a')).toBe(1001);
   });
 
   it('tells subscribers which key got a new value, until they unsubscribe', async () => {

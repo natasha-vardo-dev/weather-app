@@ -11,6 +11,8 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
   dataBy: 'Wetterdaten von',
   privacy: 'Datenschutz',
   offline: 'Sie sind offline. Angezeigt wird die zuletzt geladene Vorhersage, sie ist möglicherweise veraltet.',
+  serverDown:
+    'Der Wetterserver antwortet nicht. Angezeigt wird die zuletzt geladene Vorhersage, sie ist möglicherweise veraltet.',
   outdated: (time) => `Vorhersage zuletzt aktualisiert: ${time}.`,
   crash: {
     title: 'Etwas ist schiefgelaufen',
@@ -98,6 +100,11 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
     label: 'Stadt suchen',
     searching: 'Suche läuft…',
     noResults: (q) => `Keine Stadt passt zu „${q}“. Prüfe die Schreibweise.`,
+    found: (n) =>
+      plural(n, {
+        one: '{n} Stadt gefunden. Mit den Pfeiltasten auswählen.',
+        other: '{n} Städte gefunden. Mit den Pfeiltasten auswählen.',
+      }),
   },
   place: { island: 'Insel' },
   weather: { loading: (place) => `Vorhersage für ${place} wird geladen…`, tryAgain: 'Erneut versuchen' },
@@ -211,5 +218,6 @@ export const de: MessagesFactory = ({ num, deg, plural }) => ({
     RATE_LIMITED: 'Zu viele Anfragen aus deinem Netzwerk. Warte eine Minute und versuche es erneut.',
     SERVICE_BUSY: 'Der Dienst ist gerade ausgelastet. Versuche es in ein paar Minuten erneut.',
     NETWORK_ERROR: 'Keine Verbindung zum Server. Prüfe deine Internetverbindung und versuche es erneut.',
+    SERVER_UNAVAILABLE: 'Der Wetterserver antwortet nicht. Versuche es in ein paar Minuten noch einmal.',
   },
 });

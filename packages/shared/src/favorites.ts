@@ -1,4 +1,4 @@
-import { CITY_MATCH_KM, distanceKm, isValidCoordinates, isValidLocationId } from './coordinates.js';
+import { CITY_MATCH_KM, distanceKm, isValidCoordinates, isValidLocationId, placeKey } from './coordinates.js';
 
 /** A saved place. Coordinates identify it; name and country are only for display. */
 export interface Favorite {
@@ -17,9 +17,7 @@ export interface Favorite {
 export const MAX_FAVORITES = 10;
 
 /** ~1 km, the same rounding as place URLs: one city is never saved twice. */
-function key(place: { latitude: number; longitude: number }): string {
-  return `${place.latitude.toFixed(2)},${place.longitude.toFixed(2)}`;
-}
+const key = placeKey;
 
 export function isFavorite(favorites: readonly Favorite[], place: Favorite): boolean {
   return favorites.some((f) => key(f) === key(place));

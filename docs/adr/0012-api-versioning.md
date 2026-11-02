@@ -1,6 +1,6 @@
 # 0012. Versioned API with a checked contract
 
-- Status: Accepted
+- Status: Accepted; details and later refinements in [0031](0031-api-testing-and-shared-package-details.md)
 - Date: 2026-10-31
 
 ## Context

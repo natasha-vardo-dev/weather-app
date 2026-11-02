@@ -1,6 +1,6 @@
 # 0004. Free providers' limits are product requirements
 
-- Status: Accepted
+- Status: Accepted; details and later refinements in [0023](0023-cache-and-provider-budget-details.md)
 - Date: 2026-10-31 (recorded)
 
 ## Context

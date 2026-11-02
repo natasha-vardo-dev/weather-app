@@ -11,6 +11,7 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
   dataBy: 'Données météo fournies par',
   privacy: 'Confidentialité',
   offline: 'Vous êtes hors ligne. Dernières prévisions chargées affichées, elles peuvent être dépassées.',
+  serverDown: 'Le serveur météo ne répond pas. Dernières prévisions chargées affichées, elles peuvent être dépassées.',
   outdated: (time) => `Dernière mise à jour de la prévision : ${time}.`,
   crash: {
     title: "Une erreur s'est produite",
@@ -98,6 +99,11 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
     label: 'Rechercher une ville',
     searching: 'Recherche…',
     noResults: (q) => `Aucune ville ne correspond à « ${q} ». Vérifiez l'orthographe.`,
+    found: (n) =>
+      plural(n, {
+        one: '{n} ville trouvée. Choisissez avec les flèches haut et bas.',
+        other: '{n} villes trouvées. Choisissez avec les flèches haut et bas.',
+      }),
   },
   place: { island: 'île' },
   weather: { loading: (place) => `Chargement des prévisions pour ${place}…`, tryAgain: 'Réessayer' },
@@ -211,5 +217,6 @@ export const fr: MessagesFactory = ({ num, deg, plural }) => ({
     RATE_LIMITED: 'Trop de requêtes depuis votre réseau. Patientez une minute, puis réessayez.',
     SERVICE_BUSY: 'Le service est surchargé pour le moment. Réessayez dans quelques minutes.',
     NETWORK_ERROR: 'Pas de connexion au serveur. Vérifiez votre connexion Internet et réessayez.',
+    SERVER_UNAVAILABLE: 'Le serveur météo ne répond pas. Réessayez dans quelques minutes.',
   },
 });

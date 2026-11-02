@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { showSaved } from '../api/savedResponses';
+import { showSaved, type SavedReason } from '../api/savedResponses';
 
-/** While mounted with `saved` true, the stale-data banner is shown (see savedResponses). */
-export function useReportSaved(saved: boolean): void {
-  useEffect(() => (saved ? showSaved() : undefined), [saved]);
+/** While mounted with a reason, the stale-data banner is shown for it (see savedResponses). */
+export function useReportSaved(reason: SavedReason | undefined): void {
+  useEffect(() => (reason ? showSaved(reason) : undefined), [reason]);
 }

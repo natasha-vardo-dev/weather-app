@@ -8,6 +8,7 @@ import {
   ALERT_GROUPS,
   ALERT_LEVELS,
   isValidCoordinates,
+  placeKey,
   type AlertGroup,
   type AlertLevel,
   type AlertNotificationSettings,
@@ -53,7 +54,7 @@ export function samePlace(
   a: { latitude: number; longitude: number },
   b: { latitude: number; longitude: number },
 ): boolean {
-  return a.latitude.toFixed(2) === b.latitude.toFixed(2) && a.longitude.toFixed(2) === b.longitude.toFixed(2);
+  return placeKey(a) === placeKey(b);
 }
 
 /** Storage is untrusted (edited, older format): anything malformed is dropped. */

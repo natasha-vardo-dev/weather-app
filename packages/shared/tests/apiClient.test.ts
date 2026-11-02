@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError, createApiClient } from '../src/apiClient.js';
+import { isRetryable } from '../src/errors.js';
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -83,5 +84,83 @@ describe('createApiClient', () => {
     const error = await api.getForecast(1, 1).catch((e) => e);
     expect(error).toBeInstanceOf(ApiError);
     expect(error.code).toBe('NETWORK_ERROR');
+  });
+
+  // The API down: the site's proxy answers 502/504 with its own page. As INTERNAL it was not
+  // retryable, so the page offered no "Try again"; as NETWORK_ERROR it told the user to check
+  // an internet connection that works.
+  it('reports a server error without the API error body as SERVER_UNAVAILABLE, which can be retried', async () => {
+    for (const status of [502, 503, 504]) {
+      const fetchFn = vi.fn(async () => new Response('<html>Bad gateway</html>', { status }));
+      const error = await createApiClient({ baseUrl: '', fetchFn })
+        .getForecast(1, 1)
+        .catch((e) => e);
+      expect(error).toMatchObject({ code: 'SERVER_UNAVAILABLE', status });
+      expect(isRetryable(error.code)).toBe(true);
+    }
+  });
+
+  it('keeps a client error without the API error body INTERNAL', async () => {
+    const fetchFn = vi.fn(async () => new Response('Not here', { status: 404 }));
+    const error = await createApiClient({ baseUrl: '', fetchFn })
+      .getForecast(1, 1)
+      .catch((e) => e);
+    expect(error).toMatchObject({ code: 'INTERNAL', status: 404 });
+  });
+
+  describe('timeout', () => {
+    /** A fetch that never answers, rejecting like the platform's when its signal aborts. */
+    const stalled = vi.fn(
+      (_url: string | URL | Request, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+        }),
+    );
+
+    it('fails a request with no answer as NETWORK_ERROR once the time is up', async () => {
+      vi.useFakeTimers();
+      try {
+        const api = createApiClient({ baseUrl: '', fetchFn: stalled, timeoutMs: 1000 });
+        const result = api.getForecast(1, 1).catch((e) => e);
+        await vi.advanceTimersByTimeAsync(999);
+        expect(stalled.mock.lastCall![1]!.signal!.aborted).toBe(false);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(await result).toMatchObject({ code: 'NETWORK_ERROR' });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("still passes the caller's own abort on as an AbortError", async () => {
+      const controller = new AbortController();
+      const api = createApiClient({ baseUrl: '', fetchFn: stalled, timeoutMs: 1000 });
+      const result = api.searchLocations('Warsaw', { signal: controller.signal }).catch((e) => e);
+      controller.abort();
+      expect(await result).toMatchObject({ name: 'AbortError' });
+    });
+
+    it('fails an answer whose body stalls as NETWORK_ERROR', async () => {
+      vi.useFakeTimers();
+      try {
+        const fetchFn = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+          const body = new ReadableStream({
+            start(controller) {
+              init?.signal?.addEventListener('abort', () =>
+                controller.error(new DOMException('Aborted', 'AbortError')),
+              );
+            },
+          });
+          return new Response(body, { headers: { 'Content-Type': 'application/json' } });
+        });
+        const api = createApiClient({ baseUrl: '', fetchFn, timeoutMs: 1000 });
+        const result = api.getForecast(1, 1).catch((e) => e);
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(await result).toMatchObject({ code: 'NETWORK_ERROR' });
+        // Not asked again past the HTTP cache, as an unreadable answer would be.
+        expect(fetchFn).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });

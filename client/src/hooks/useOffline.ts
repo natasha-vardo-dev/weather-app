@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { isShowingSaved, subscribeToSaved } from '../api/savedResponses';
+import { showingSaved, subscribeToSaved } from '../api/savedResponses';
 
 function subscribe(onChange: () => void): () => void {
   window.addEventListener('online', onChange);
@@ -12,10 +12,24 @@ function subscribe(onChange: () => void): () => void {
   };
 }
 
+/** Why the page may show old data, if it may. */
+export type StaleReason = 'offline' | 'server';
+
 /**
- * Whether the page may show old data: no network at all, or the last API answer came from
- * the service worker's cache (the network failed while the browser still reported one).
+ * `offline`: no network at all, or an answer on screen came from the service worker's cache
+ * because the network failed (while the browser still reported one). `server`: answers on
+ * screen are saved copies because our server failed while the site answered; the user's
+ * connection works, so the banner must not tell them to check it.
  */
+export function useStaleReason(): StaleReason | null {
+  return useSyncExternalStore(subscribe, () => {
+    if (!navigator.onLine) return 'offline';
+    const saved = showingSaved();
+    return saved === 'network' ? 'offline' : saved;
+  });
+}
+
+/** Whether the page may show old data, for whatever reason. */
 export function useOffline(): boolean {
-  return useSyncExternalStore(subscribe, () => !navigator.onLine || isShowingSaved());
+  return useStaleReason() !== null;
 }

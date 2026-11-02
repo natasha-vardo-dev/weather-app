@@ -34,14 +34,16 @@ A web application that shows the current weather and a 10-day forecast for a sel
 
 ## Architecture
 
-```
-Browser (React SPA) → Backend for Frontend (Express) → Open-Meteo
-                              ↓
-                       In-memory TTL cache
+```mermaid
+flowchart LR
+  browser["Browser or installed app"] --> vercel["Vercel: site + /api proxy"] --> api["API on AWS EC2<br/>(in-memory caches)"]
+  api --> providers[("Open-Meteo, MeteoAlarm,<br/>Nominatim, ipwho.is")]
+  api --> fcm[("Firebase: push, state")] --> browser
 ```
 
-See [docs/architecture.md](docs/architecture.md) for how it works and [docs/adr/](docs/adr/README.md) for the main
-decisions and the alternatives considered.
+How each part works, with the full diagrams and the [key parameters](docs/architecture.md#key-parameters):
+[docs/architecture.md](docs/architecture.md). Why it is so, and what was rejected: [docs/adr/](docs/adr/README.md).
+First change: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Project structure
 
@@ -105,6 +107,7 @@ npm run format     # Prettier (CI runs format:check)
 npm run typecheck  # TypeScript checks
 npm run openapi    # regenerate docs/openapi.json after changing the API's schemas
 npm run build      # production build
+npm run providers:check -w server   # the real Open-Meteo and MeteoAlarm still read (daily in CI, docs/operations.md)
 ```
 
 ## API
@@ -130,7 +133,7 @@ The contract is versioned in the path (`/api/v1`); health and internal endpoints
 
 Errors use one format: `{ "error": { "code": "INVALID_REQUEST", "message": "..." } }`.
 
-Requests are limited per IP address (a minute's window): 300 for the API as a whole, 30 batches for `/api/v1/forecasts` (up to 10 places each), 60 for city search, 10 for `/api/v1/places/*`, 60 for `/api/v1/push/*` (plus 120 changes an hour per push token). Over the limit: `429` with code `RATE_LIMITED` and the standard `RateLimit` and `Retry-After` headers.
+Requests are limited per IP address, per minute and per endpoint group, and so are new places (provider calls); the numbers are in [Key parameters](docs/architecture.md#key-parameters), plus 120 changes an hour per push token. Over the limit: `429` with code `RATE_LIMITED` and `Retry-After` (the per-request limits also send the standard `RateLimit` headers).
 
 ## Deployment
 
@@ -155,7 +158,7 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 ## Trade-offs and decisions
 
 - City URLs use the GeoNames id (`/weather/756135-warsaw`), which Open-Meteo and yr.no share, so a link is the same in every language and does not depend on the weather provider; places found by location have no id and keep coordinates in the URL ([ADR 0006](docs/adr/0006-place-urls-by-id.md)).
-- In-memory cache instead of Redis: enough for a single instance; the cache sits behind a small class, so it is easy to replace.
+- In-memory cache instead of Redis: enough for a single instance; the cache sits behind a small class, so it is easy to replace. Redis waits for a second instance ([ADR 0022](docs/adr/0022-no-redis-while-one-instance.md)).
 - Monorepo with npm workspaces: `server`, `client` and `packages/shared` change together and are reviewed as one unit.
 - `@weather/shared` holds the API contract (types, error format, validation schemas, constants), environment-neutral weather helpers and the API client. Server internals (providers, cache) stay out of it so clients never depend on where data comes from.
 
@@ -163,4 +166,4 @@ Serving the API from the frontend's domain avoids CORS and keeps future auth coo
 
 - [Wind unit setting; accounts so favourites sync between devices]
 - [More e2e scenarios (geolocation, offline, notifications); the React Compiler itself (its lint rules are on)]
-- [Redis cache and rate limiting, so counters survive restarts]
+- [With a second API instance: Redis for the cache and the per-IP limits; before that, if restarts become costly, the cache saved to disk at shutdown (ADR 0022)]

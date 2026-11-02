@@ -36,6 +36,8 @@ export interface Messages {
   privacy: string;
   /** Banner while the browser has no network; the app shows what it saved earlier. */
   offline: string;
+  /** Saved forecasts shown because our server, not the user's connection, is down. */
+  serverDown: string;
   /**
    * Above a city's forecast whose data is old (provider down, or the page left open): the data's
    * time, "21:40" or "yesterday 21:40". A colon before it, as in alerts' times: the day word from
@@ -122,7 +124,13 @@ export interface Messages {
     goHome: string;
     orSearch: string;
   };
-  search: { label: string; searching: string; noResults: (query: string) => string };
+  search: {
+    label: string;
+    searching: string;
+    noResults: (query: string) => string;
+    /** Read out by screen readers when suggestions arrive: how many, and how to choose. */
+    found: (count: number) => string;
+  };
   /** What a place is when not a town, shown after its name: "Rhodes · island". */
   place: { island: string };
   weather: { loading: (place: string) => string; tryAgain: string };

@@ -11,6 +11,8 @@ export const it: MessagesFactory = ({ num, deg, plural }) => ({
   dataBy: 'Dati meteo di',
   privacy: 'Privacy',
   offline: "Sei offline. Viene mostrata l'ultima previsione caricata, potrebbe non essere aggiornata.",
+  serverDown:
+    "Il server meteo non risponde. Viene mostrata l'ultima previsione caricata, potrebbe non essere aggiornata.",
   outdated: (time) => `Ultimo aggiornamento delle previsioni: ${time}.`,
   crash: {
     title: 'Qualcosa è andato storto',
@@ -97,6 +99,11 @@ export const it: MessagesFactory = ({ num, deg, plural }) => ({
     label: 'Cerca una città',
     searching: 'Ricerca in corso…',
     noResults: (q) => `Nessuna città corrisponde a «${q}». Controlla l'ortografia.`,
+    found: (n) =>
+      plural(n, {
+        one: '{n} città trovata. Scegli con le frecce su e giù.',
+        other: '{n} città trovate. Scegli con le frecce su e giù.',
+      }),
   },
   place: { island: 'isola' },
   weather: { loading: (place) => `Caricamento delle previsioni per ${place}…`, tryAgain: 'Riprova' },
@@ -209,5 +216,6 @@ export const it: MessagesFactory = ({ num, deg, plural }) => ({
     RATE_LIMITED: 'Troppe richieste dalla tua rete. Attendi un minuto e riprova.',
     SERVICE_BUSY: 'Il servizio è sovraccarico in questo momento. Riprova tra qualche minuto.',
     NETWORK_ERROR: 'Nessuna connessione al server. Controlla la connessione a internet e riprova.',
+    SERVER_UNAVAILABLE: 'Il server meteo non risponde. Riprova tra qualche minuto.',
   },
 });

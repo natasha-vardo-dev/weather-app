@@ -1,6 +1,6 @@
 # 0010. Official warnings from MeteoAlarm, located by region borders
 
-- Status: Accepted
+- Status: Accepted; details and later refinements in [0030](0030-weather-warnings-details.md)
 - Date: 2026-10-31 (recorded)
 
 ## Context

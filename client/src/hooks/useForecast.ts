@@ -2,8 +2,9 @@ import { ERROR_CODES, isRetryable, type ErrorCode, type Forecast } from '@weathe
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError, forecasts } from '../api/client';
 import { createQueryCache } from '../api/queryCache';
-import { isSavedValue } from '../api/savedResponses';
+import { isSavedValue, savedReason } from '../api/savedResponses';
 import { useReportSaved } from './useReportSaved';
+import { useRevalidateOnReturn } from './useRevalidateOnReturn';
 
 export interface ForecastError {
   /** Translated on render, so switching language also translates a shown error. */
@@ -43,6 +44,15 @@ export function loadTimeZone(latitude: number, longitude: number): Promise<strin
     );
 }
 
+/**
+ * How old a shown forecast must be to load again when the page comes back into view: the
+ * server keeps a forecast this long (Open-Meteo's current weather is per 15 minutes), so asking
+ * sooner would get the same answer.
+ */
+export const FORECAST_REFRESH_MS = 15 * 60 * 1000;
+
+const isForecastDue = (key: string) => (forecastCache.age(key) ?? Infinity) >= FORECAST_REFRESH_MS;
+
 function toError(err: unknown): ForecastError {
   return err instanceof ApiError
     ? { code: err.code, canRetry: isRetryable(err.code) }
@@ -53,12 +63,17 @@ function toError(err: unknown): ForecastError {
  * Takes plain numbers so a new object with the same coordinates doesn't refetch.
  * `batch`: saved cities' tiles and cards, asked for together, go out as one request
  * (`forecastBatch.ts`); the city page's own forecast goes alone.
+ *
+ * Loaded again when the page comes back into view with a forecast older than
+ * FORECAST_REFRESH_MS (`useRevalidateOnReturn`), without a loading state: the old one stays
+ * until the new one arrives, and stays if that fails.
  */
 export function useForecast(latitude: number | null, longitude: number | null, { batch = false } = {}) {
   const key = latitude === null || longitude === null ? null : `${latitude},${longitude}`;
   const [state, setState] = useState<State>({ key: null, settled: null, forecast: null, error: null });
   const [attempt, setAttempt] = useState(0);
   const request = key === null ? null : `${key}#${attempt}`;
+  const revision = useRevalidateOnReturn(key, isForecastDue);
 
   useEffect(() => {
     if (latitude === null || longitude === null) return;
@@ -77,12 +92,18 @@ export function useForecast(latitude: number | null, longitude: number | null, {
         if (!cancelled) setState({ key: requestKey, settled, forecast, error: null });
       })
       .catch((err: unknown) => {
-        if (!cancelled) setState({ key: requestKey, settled, forecast: null, error: toError(err) });
+        if (cancelled) return;
+        // A failed refresh keeps the forecast shown; the outdated notice says how old it is.
+        setState((prev) =>
+          prev.key === requestKey && prev.forecast
+            ? { ...prev, settled }
+            : { key: requestKey, settled, forecast: null, error: toError(err) },
+        );
       });
     return () => {
       cancelled = true;
     };
-  }, [latitude, longitude, attempt, batch]);
+  }, [latitude, longitude, attempt, batch, revision]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
@@ -94,7 +115,7 @@ export function useForecast(latitude: number | null, longitude: number | null, {
   const loading = request !== null && state.settled !== request;
   const cached = key ? (forecastCache.get(key) ?? null) : null;
   const forecast = isCurrent ? (state.forecast ?? cached) : cached;
-  useReportSaved(isSavedValue(forecast));
+  useReportSaved(savedReason(forecast));
   return {
     forecast,
     error: isCurrent ? state.error : null,

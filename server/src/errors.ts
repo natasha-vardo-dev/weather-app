@@ -1,10 +1,10 @@
-import { ERROR_CODES, type ErrorCode } from '@weather/shared';
+import { ERROR_CODES, type ApiErrorCode } from '@weather/shared';
 
 export class AppError extends Error {
   constructor(
     message: string,
     public readonly status: number,
-    public readonly code: ErrorCode,
+    public readonly code: ApiErrorCode,
   ) {
     super(message);
     this.name = 'AppError';
@@ -34,6 +34,20 @@ export class BusyError extends AppError {
   }
 }
 
+/**
+ * Refused because of the client, not the server: its address has used up an allowance
+ * (LoadLimiter, rateLimits.ts). express-rate-limit answers its own limits itself.
+ */
+export class RateLimitedError extends AppError {
+  /** @param retryAfterSeconds Sent as `Retry-After` when known (the allowance's window ends then). */
+  constructor(
+    message = 'Too many requests. Try again later.',
+    public readonly retryAfterSeconds?: number,
+  ) {
+    super(message, 429, ERROR_CODES.RATE_LIMITED);
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor(message = 'Nothing found.') {
     super(message, 404, ERROR_CODES.NOT_FOUND);
@@ -41,7 +55,7 @@ export class NotFoundError extends AppError {
 }
 
 /** What a client may see of an error: an AppError's code and message, anything else is internal. */
-export function errorDetails(err: unknown): { code: ErrorCode; message: string } {
+export function errorDetails(err: unknown): { code: ApiErrorCode; message: string } {
   if (err instanceof AppError) return { code: err.code, message: err.message };
   return { code: ERROR_CODES.INTERNAL, message: 'Something went wrong on our side.' };
 }

@@ -1,6 +1,6 @@
 # 0003. In-memory cache-aside with request coalescing and stale data
 
-- Status: Accepted
+- Status: Accepted; the Redis second level deferred by [0022](0022-no-redis-while-one-instance.md); details and later refinements in [0023](0023-cache-and-provider-budget-details.md)
 - Date: 2026-10-31 (recorded; refined several times, see [architecture.md](../architecture.md#caching))
 
 ## Context

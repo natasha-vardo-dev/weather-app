@@ -2,8 +2,9 @@ import { summarizeAirQuality, type AirQuality, type AirQualitySummary } from '@w
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import { createQueryCache } from '../api/queryCache';
-import { isSavedValue } from '../api/savedResponses';
+import { isSavedValue, savedReason, type SavedReason } from '../api/savedResponses';
 import { useReportSaved } from './useReportSaved';
+import { useRevalidateOnReturn } from './useRevalidateOnReturn';
 
 export interface AirQualityView {
   summary: AirQualitySummary;
@@ -23,6 +24,11 @@ const airQualityCache = createQueryCache<AirQuality>({
  */
 export const AIR_QUALITY_RETRY_MS = 20_000;
 
+/** The provider updates air quality hourly and the server keeps it an hour: sooner gets the same answer. */
+export const AIR_QUALITY_REFRESH_MS = 60 * 60 * 1000;
+
+const isAirQualityDue = (key: string) => (airQualityCache.age(key) ?? Infinity) >= AIR_QUALITY_REFRESH_MS;
+
 function toView(airQuality: AirQuality | undefined): AirQualityView | null {
   if (!airQuality) return null;
   const summary = summarizeAirQuality(airQuality);
@@ -37,21 +43,23 @@ function toView(airQuality: AirQuality | undefined): AirQualityView | null {
  * A failed load is retried once by itself after AIR_QUALITY_RETRY_MS. `retry` loads again
  * at once (errors are not cached); the page calls it together with the forecast's retry,
  * so "Try again" after an outage brings both back.
+ * Like the forecast, loaded again when the page comes back into view with a value older than
+ * AIR_QUALITY_REFRESH_MS; the shown value stays until the new one arrives, and if that fails.
  */
 export function useAirQuality(
   latitude: number | null,
   longitude: number | null,
 ): { airQuality: AirQualityView | null | undefined; retry: () => void } {
   const key = latitude === null || longitude === null ? null : `${latitude},${longitude}`;
-  const [state, setState] = useState<{ key: string | null; view: AirQualityView | null; saved: boolean }>({
+  const [state, setState] = useState<{ key: string | null; view: AirQualityView | null; saved?: SavedReason }>({
     key: null,
     view: null,
-    saved: false,
   });
   const [attempt, setAttempt] = useState(0);
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
   // The place that already had its automatic retry: one per place visit.
   const autoRetriedFor = useRef<string | null>(null);
+  const revision = useRevalidateOnReturn(key, isAirQualityDue);
 
   // A new place (or a return to an earlier one) is a new visit with its own retry.
   // Declared before the loading effect, so it runs first when the place changes.
@@ -67,11 +75,11 @@ export function useAirQuality(
     airQualityCache
       .load(requestKey, () => api.getAirQuality(latitude, longitude))
       .then((airQuality) => {
-        if (!cancelled) setState({ key: requestKey, view: toView(airQuality), saved: isSavedValue(airQuality) });
+        if (!cancelled) setState({ key: requestKey, view: toView(airQuality), saved: savedReason(airQuality) });
       })
       .catch(() => {
         if (cancelled) return;
-        setState({ key: requestKey, view: null, saved: false });
+        setState((prev) => (prev.key === requestKey && prev.view ? prev : { key: requestKey, view: null }));
         if (autoRetriedFor.current !== requestKey) {
           autoRetriedFor.current = requestKey;
           retryTimer = setTimeout(retry, AIR_QUALITY_RETRY_MS);
@@ -81,14 +89,14 @@ export function useAirQuality(
       cancelled = true;
       clearTimeout(retryTimer);
     };
-  }, [latitude, longitude, attempt, retry]);
+  }, [latitude, longitude, attempt, retry, revision]);
 
   // Never the previous city's value; a cached one is shown at once.
   let airQuality: AirQualityView | null | undefined;
-  let saved = false;
+  let saved: SavedReason | undefined;
   if (state.key === key) {
     airQuality = state.view;
-    saved = state.saved && state.view !== null;
+    saved = state.view !== null ? state.saved : undefined;
   } else if (!key) airQuality = null;
   else {
     const cached = airQualityCache.get(key);

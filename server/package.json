@@ -11,7 +11,8 @@
     "test": "vitest run",
     "openapi": "tsx scripts/openapi.ts",
     "openapi:check": "tsx scripts/openapi.ts --check",
-    "push:test": "tsx scripts/sendTestPush.ts"
+    "push:test": "tsx scripts/sendTestPush.ts",
+    "providers:check": "tsx scripts/checkProviders.ts"
   },
   "dependencies": {
     "@weather/shared": "*",

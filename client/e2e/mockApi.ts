@@ -21,10 +21,12 @@ const notFound = (route: Route) => json(route, { error: { code: 'NOT_FOUND', mes
 /**
  * Answers every /api request with fixtures, as the server would. Returns the requests nothing
  * here knows, so a test fails on a call it did not expect instead of quietly getting an error.
+ * Routed on the browser context, not the page: with the service worker allowed (offline tests)
+ * its requests are the context's, and a page route would not see them.
  */
 export async function mockApi(page: Page): Promise<{ unexpected: string[] }> {
   const unexpected: string[] = [];
-  await page.route('**/api/**', (route) => {
+  await page.context().route('**/api/**', (route) => {
     const url = new URL(route.request().url());
     const params = url.searchParams;
     const path = url.pathname;
@@ -54,8 +56,15 @@ export async function mockApi(page: Page): Promise<{ unexpected: string[] }> {
     }
     if (path === '/api/v1/air-quality') return json(route, airQuality());
     if (path === '/api/v1/alerts') return json(route, noAlerts);
-    // Nothing to name by position in these tests.
-    if (path.startsWith('/api/v1/places/')) return notFound(route);
+    // The browser's position names Warsaw when it is there (geolocation.spec.ts), nothing elsewhere.
+    if (path === '/api/v1/places/reverse') {
+      const near = (value: string | null, target: number) => Math.abs(Number(value) - target) < 0.1;
+      return near(params.get('lat'), warsaw.latitude) && near(params.get('lon'), warsaw.longitude)
+        ? json(route, inLanguage(warsaw, params.get('lang')))
+        : notFound(route);
+    }
+    // The IP address points to Kraków.
+    if (path === '/api/v1/places/approximate') return json(route, inLanguage(krakow, params.get('lang')));
 
     unexpected.push(`${route.request().method()} ${path}`);
     return json(route, { error: { code: 'INTERNAL', message: 'Not mocked' } }, 500);

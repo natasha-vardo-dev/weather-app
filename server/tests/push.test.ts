@@ -370,6 +370,79 @@ describe('AlertNotifier cut midway', () => {
   });
 });
 
+describe('AlertNotifier on a long run', () => {
+  it('asks for every new full warning before sending, not one after another', async () => {
+    const source = fakeSource();
+    const sender = fakeSender();
+    const notifier = new AlertNotifier(source, sender, () => NOW);
+    await notifier.run();
+    source.set([
+      [warning('a'), alert('A', 'red')],
+      [warning('b'), alert('B', 'red')],
+      [warning('c'), alert('C', 'red')],
+    ]);
+    const asked: string[] = [];
+    const load = source.loadWarning;
+    source.loadWarning = (ref) => {
+      asked.push(ref);
+      return load(ref);
+    };
+    let askedAtFirstSend = 0;
+    sender.send = vi.fn(async (messages: PushMessage[]) => {
+      askedAtFirstSend ||= asked.length;
+      return { accepted: messages.length, rejected: 0 };
+    });
+
+    expect(await notifier.run()).toMatchObject({ notified: 3 });
+    expect(askedAtFirstSend).toBe(3);
+  });
+
+  it('renews its lease while sending, so another instance cannot take the run over', async () => {
+    let now = NOW;
+    const store = new MemoryStateStore(() => now);
+    const source = fakeSource();
+    const sender = fakeSender();
+    const notifier = new AlertNotifier(source, sender, () => now, { store });
+    await notifier.run();
+    source.set([
+      [warning('a'), alert('A', 'red')],
+      [warning('b'), alert('B', 'red')],
+      [warning('c'), alert('C', 'red')],
+    ]);
+    // Each send takes three minutes: the run outlasts the four-minute lease.
+    sender.send = vi.fn(async (messages: PushMessage[]) => {
+      expect(await store.lease('alert-notifier', 'other-instance', 60_000)).toBe(false);
+      now += 3 * 60_000;
+      return { accepted: messages.length, rejected: 0 };
+    });
+
+    expect(await notifier.run()).toMatchObject({ notified: 3 });
+  });
+
+  it('stops when the lease was lost, leaving the rest to the instance that has it', async () => {
+    let now = NOW;
+    const store = new MemoryStateStore(() => now);
+    const source = fakeSource();
+    const sender = fakeSender();
+    const notifier = new AlertNotifier(source, sender, () => now, { store });
+    await notifier.run();
+    source.set([
+      [warning('a'), alert('A', 'red')],
+      [warning('b'), alert('B', 'red')],
+    ]);
+    sender.send = vi.fn(async (messages: PushMessage[]) => {
+      // Stalled past the lease, and another instance took it meanwhile.
+      now += 5 * 60_000;
+      await store.lease('alert-notifier', 'other-instance', 4 * 60_000);
+      return { accepted: messages.length, rejected: 0 };
+    });
+
+    await expect(notifier.run()).rejects.toThrow('Another instance took over');
+    expect(sender.send).toHaveBeenCalledTimes(1);
+    expect(notifier.status().lastError).toContain('lease lost');
+  });
+});
+
 describe('AlertNotifier when saving fails', () => {
   it('keeps what it sent when the save failed, so reading the older record never pushes it again', async () => {
     const store = new MemoryStateStore(() => NOW);

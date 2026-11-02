@@ -2,6 +2,7 @@ import {
   ApiError,
   ERROR_CODES,
   isSamePlace,
+  placeKey,
   SEARCH_MAX_LENGTH,
   SEARCH_MIN_LENGTH,
   type Favorite,
@@ -97,7 +98,7 @@ export async function loadNames(place: Favorite, language: string): Promise<Plac
  * other coordinates would reuse a check made for the real place, skipping it.
  */
 function cacheKey(place: Favorite, language: string): string {
-  const coords = `${place.latitude.toFixed(2)},${place.longitude.toFixed(2)}`;
+  const coords = placeKey(place);
   return place.id ? `${language}:id:${place.id}:${coords}` : `${language}:name:${place.name}:${coords}`;
 }
 

@@ -1,4 +1,4 @@
-import { FORECAST_DEFAULT_DAYS } from '@weather/shared';
+import { FORECAST_DEFAULT_DAYS, FORECAST_MAX_DAYS, roundCoordinate as round } from '@weather/shared';
 import type { Logger } from '../observability/logger.js';
 import type { AirQuality, Forecast, Location, WeatherProvider } from '../providers/types.js';
 import { staleErrorLogger } from './staleErrorLogger.js';
@@ -8,8 +8,6 @@ const MB = 1024 * 1024;
 const HOUR = 60 * 60 * 1000;
 const MINUTE = 60 * 1000;
 const DAY = 24 * HOUR;
-/** ~1 km: nearby requests share one entry, and the provider is asked for the same point. */
-const round = (degrees: number) => Number(degrees.toFixed(2));
 /**
  * Memory is bounded in bytes (JSON size; the objects in memory take about 2–3 times more), so
  * the entry limit is only a guard against many tiny entries. 10% of each TTL taken off at
@@ -70,12 +68,28 @@ export class WeatherService {
     );
   }
 
-  /** With `stale`: a stale forecast should be kept by browsers for less long. */
-  getForecast(latitude: number, longitude: number, days = FORECAST_DEFAULT_DAYS): Promise<Cached<Forecast>> {
+  /**
+   * With `stale`: a stale forecast should be kept by browsers for less long. `allowance` is the
+   * requester's (LoadLimiter): run, like the budget, only when the provider is called.
+   *
+   * At most two entries a place, whatever `days` is asked for: up to the default the default's
+   * forecast is loaded and cut, beyond it the longest. Open-Meteo counts up to two weeks as one
+   * period (openMeteoWeight), so the default costs no more than a shorter one. Before, each
+   * value was an entry and provider calls of its own: a client varying `days` multiplied both.
+   */
+  getForecast(
+    latitude: number,
+    longitude: number,
+    days = FORECAST_DEFAULT_DAYS,
+    allowance?: () => void,
+  ): Promise<Cached<Forecast>> {
     const [lat, lon] = [round(latitude), round(longitude)];
-    return this.forecastCache.load(`${lat}:${lon}:${days}`, async () =>
-      this.call(() => this.provider.getForecast(lat, lon, days)),
+    const loaded = days <= FORECAST_DEFAULT_DAYS ? FORECAST_DEFAULT_DAYS : FORECAST_MAX_DAYS;
+    const forecast = this.forecastCache.load(`${lat}:${lon}:${loaded}`, async () =>
+      this.call(() => this.provider.getForecast(lat, lon, loaded), allowance),
     );
+    if (days === loaded) return forecast;
+    return forecast.then(({ value, stale }) => ({ value: { ...value, daily: value.daily.slice(0, days) }, stale }));
   }
 
   /** Place names change only when the provider's data does, so they share the search TTL. */
@@ -84,16 +98,20 @@ export class WeatherService {
     return this.locationByIdCache.getOrLoad(key, async () => this.call(() => this.provider.getLocation(id, language)));
   }
 
-  getAirQuality(latitude: number, longitude: number): Promise<Cached<AirQuality>> {
+  getAirQuality(latitude: number, longitude: number, allowance?: () => void): Promise<Cached<AirQuality>> {
     const [lat, lon] = [round(latitude), round(longitude)];
     return this.airQualityCache.load(`${lat}:${lon}`, async () =>
-      this.call(() => this.provider.getAirQuality(lat, lon)),
+      this.call(() => this.provider.getAirQuality(lat, lon), allowance),
     );
   }
 
-  /** A provider call, after the budget check. */
-  private call<T>(load: () => Promise<T>): Promise<T> {
+  /**
+   * A provider call, after the budget check and then the requester's allowance: a call the
+   * budget refuses does not use up the requester's.
+   */
+  private call<T>(load: () => Promise<T>, allowance?: () => void): Promise<T> {
     this.budget();
+    allowance?.();
     return load();
   }
 

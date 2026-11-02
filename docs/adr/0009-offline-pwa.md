@@ -1,6 +1,6 @@
 # 0009. Installable app that shows the last forecast offline
 
-- Status: Accepted
+- Status: Accepted; details and later refinements in [0029](0029-pwa-and-offline-details.md)
 - Date: 2026-10-31 (recorded)
 
 ## Context

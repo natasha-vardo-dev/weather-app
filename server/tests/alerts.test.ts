@@ -7,6 +7,7 @@ import { concurrencyLimit, MAX_BYTES } from '../src/providers/http.js';
 import {
   allowedUrl,
   FEED_LIMITS,
+  FAILURE_TTL_MS,
   MeteoAlarmProvider,
   parseCap,
   parseCapPolygon,
@@ -205,15 +206,25 @@ describe('MeteoAlarmProvider', () => {
     expect(feedCalls).toHaveLength(1);
   });
 
-  it('does not keep a failed feed: the next request tries again', async () => {
+  it('does not ask for a failed feed again for a minute, then does', async () => {
     let fail = true;
+    let now = NOW;
     const fetchFn = fakeFetch({
       'legacy-atom-poland': () => (fail ? new Response('down', { status: 503 }) : new Response(polandFeed)),
     });
-    const p = provider(fetchFn);
+    const feedCalls = () => fetchFn.mock.calls.filter(([url]) => String(url).endsWith('legacy-atom-poland')).length;
+    const p = provider(fetchFn, () => now);
     await expect(p.getAlerts(WEGORZEWO.lat, WEGORZEWO.lon)).rejects.toBeInstanceOf(ProviderError);
     fail = false;
+
+    // Within the minute: the same error at once, without waiting on MeteoAlarm again.
+    now += FAILURE_TTL_MS - 1;
+    await expect(p.getAlerts(WEGORZEWO.lat, WEGORZEWO.lon)).rejects.toBeInstanceOf(ProviderError);
+    expect(feedCalls()).toBe(1);
+
+    now += 1;
     expect(await p.getAlerts(WEGORZEWO.lat, WEGORZEWO.lon)).toHaveLength(1);
+    expect(feedCalls()).toBe(2);
   });
 
   describe('when a feed fails', () => {
@@ -353,6 +364,47 @@ describe('MeteoAlarm fetch queues', () => {
     expect(cap).toContain('<alert');
     for (const release of pending.splice(0)) release();
     await run;
+  });
+});
+
+describe('MeteoAlarm queue for the notifier', () => {
+  it("does not make a page's warning wait behind the notifier's backlog", async () => {
+    const pending: (() => void)[] = [];
+    const fetchFn = vi.fn(async (url: string | URL) => {
+      const href = String(url);
+      if (href.includes('legacy-atom-poland')) return new Response(polandFeed);
+      if (href.includes('legacy-atom-')) return new Response('<feed xmlns="http://www.w3.org/2005/Atom"></feed>');
+      if (href.includes('6b0b72c3')) return new Response(fogCap);
+      // The notifier's full warnings hang, as many slow downloads after downtime would.
+      await new Promise<void>((resolve) => pending.push(resolve));
+      return new Response('not found', { status: 404 });
+    });
+    const p = provider(fetchFn);
+    await p.listWarnings();
+    const backlog = Array.from(
+      { length: 30 },
+      (_, i) => `https://feeds.meteoalarm.org/api/v1/warnings/feeds-poland/x${i}`,
+    );
+    // As listed by a feed: loadWarning only loads what listWarnings found, so list them by hand.
+    const listed = (p as unknown as { listed: Map<string, unknown> }).listed;
+    const entry = [...listed.values()][0];
+    for (const ref of backlog) listed.set(ref, entry);
+    const notifier = backlog.map((ref) => p.loadWarning(ref).catch(() => undefined));
+    await vi.waitFor(() => expect(pending.length).toBeGreaterThan(0));
+
+    // The page's warning text is fetched while the notifier's are all still waiting.
+    const alerts = await p.getAlerts(WEGORZEWO.lat, WEGORZEWO.lon);
+    expect(alerts.map((a) => a.type)).toEqual(['fog']);
+    expect(pending.length).toBeLessThanOrEqual(5);
+
+    for (const release of pending.splice(0)) release();
+    while (pending.length) for (const release of pending.splice(0)) release();
+    await vi.waitFor(async () => {
+      for (const release of pending.splice(0)) release();
+      expect(
+        (await Promise.race([Promise.all(notifier), new Promise((r) => setTimeout(() => r('wait'), 5))])) !== 'wait',
+      ).toBe(true);
+    });
   });
 });
 

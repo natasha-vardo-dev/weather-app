@@ -1,6 +1,6 @@
 # 0014. Browser errors reported to our own endpoint, not Sentry
 
-- Status: Accepted
+- Status: Accepted; details and later refinements in [0024](0024-server-hardening-observability-privacy.md)
 - Date: 2026-10-31
 
 ## Context
