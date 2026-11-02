@@ -130,7 +130,7 @@ describe('useOpenFromNotification', () => {
     expect(result.current).toBe('/weather/3094802-krakow');
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(container.startMessages).toHaveBeenCalledTimes(1);
-    // Only the message route's own clean-ups, one per message, no checks on moving.
-    expect(open.mock.calls.length - opens).toBe(2);
+    // Per message only its clean-up and a trace entry (temporary), no checks on moving.
+    expect(open.mock.calls.length - opens).toBe(4);
   });
 });

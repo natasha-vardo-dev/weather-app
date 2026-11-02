@@ -49,7 +49,8 @@ export function PrivacyPage() {
         <li>
           if you turn on warning notifications: the places and settings you chose, and the texts used to write
           notifications in your language; after you tap a notification, the page it opens, until the app shows it (at
-          most two minutes).
+          most two minutes); for now, while we fix notifications on iPhone, a list of the last 30 notification events of
+          the past week (received, tapped, which page opened) to look into on the device.
         </li>
       </ul>
 
